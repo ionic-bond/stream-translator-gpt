@@ -462,7 +462,7 @@ def cli():
                         'If the history size > 0, the GPT API will be called serially.')
     parser.add_argument('--gpt_model',
                         type=str,
-                        default="gpt-3.5-turbo",
+                        default="gpt-3.5-turbo-1106",
                         help='GPT model name, gpt-3.5-turbo or gpt-4')
     parser.add_argument('--gpt_translation_timeout',
                         type=int,
