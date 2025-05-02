@@ -45,6 +45,8 @@ def _parse_json_completion(completion):
 
 
 def _is_task_timeout(task: TranslationTask, timeout: float) -> bool:
+    if timeout == 0.0:
+        return False
     return datetime.now(timezone.utc) - task.start_time > timedelta(seconds=timeout)
 
 
