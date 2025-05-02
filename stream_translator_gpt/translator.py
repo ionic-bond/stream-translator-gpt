@@ -68,24 +68,14 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
                 proxy=processing_proxy,
                 use_json_result=use_json_result,
             )
-        if gpt_translation_history_size == 0:
-            _start_daemon_thread(
-                ParallelTranslator.work,
-                llm_client=llm_client,
-                timeout=gpt_translation_timeout,
-                retry_if_translation_fails=retry_if_translation_fails,
-                input_queue=transcriber_to_translator_queue,
-                output_queue=translator_to_exporter_queue,
-            )
-        else:
-            _start_daemon_thread(
-                SerialTranslator.work,
-                llm_client=llm_client,
-                timeout=gpt_translation_timeout,
-                retry_if_translation_fails=retry_if_translation_fails,
-                input_queue=transcriber_to_translator_queue,
-                output_queue=translator_to_exporter_queue,
-            )
+        _start_daemon_thread(
+            ParallelTranslator.work,
+            llm_client=llm_client,
+            timeout=gpt_translation_timeout,
+            retry_if_translation_fails=retry_if_translation_fails,
+            input_queue=transcriber_to_translator_queue,
+            output_queue=translator_to_exporter_queue,
+        )
     if use_faster_whisper:
         _start_daemon_thread(FasterWhisper.work,
                              model=model,

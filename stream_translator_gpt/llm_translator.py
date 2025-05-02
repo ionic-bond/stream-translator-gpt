@@ -45,6 +45,8 @@ def _parse_json_completion(completion):
 
 
 def _is_task_timeout(task: TranslationTask, timeout: float) -> bool:
+    if timeout == 0.0:
+        return False
     return datetime.now(timezone.utc) - task.start_time > timedelta(seconds=timeout)
 
 
@@ -63,22 +65,34 @@ class LLMClint():
         self.model = model
         self.prompt = prompt
         self.history_size = history_size
-        self.history_messages = []
+        self.history_transcribed_text = []
         self.proxy = proxy
         self.use_json_result = use_json_result
 
-    def _append_history_message(self, user_content: str, assistant_content: str):
-        if not user_content or not assistant_content:
+    
+    def _append_history_transcribed_text(self, transcribed_text: str):
+        if not transcribed_text:
             return
-        self.history_messages.extend([{
-            'role': 'user',
-            'content': user_content
-        }, {
-            'role': 'assistant',
-            'content': assistant_content
-        }])
-        while (len(self.history_messages) > self.history_size * 2):
-            self.history_messages.pop(0)
+        self.history_transcribed_text.append(transcribed_text)
+        while (len(self.history_transcribed_text) > self.history_size):
+            self.history_transcribed_text.pop(0)
+    
+    def _generate_user_content(self, translation_task: TranslationTask):
+        user_content = self.prompt + '.'
+        if self.use_json_result:
+            user_content += ' Output the answer in json format, key is translation.'
+        if self.history_size and self.history_transcribed_text:
+            user_content += ' There are {} lines of text with contextual relationships below, only translate the last line, do not translate the first {} lines.'.format(len(self.history_transcribed_text) + 1, len(self.history_transcribed_text))
+        user_content += '\n'
+        for text in self.history_transcribed_text:
+            user_content += text + '\n'
+        user_content += translation_task.transcribed_text
+        if self.history_size:
+            self._append_history_transcribed_text(translation_task.transcribed_text)
+        # print()
+        # print(user_content)
+        # print()
+        translation_task.llm_user_content = user_content
 
     def _translate_by_gpt(self, translation_task: TranslationTask):
         # https://platform.openai.com/docs/api-reference/chat/create?lang=python
@@ -86,13 +100,12 @@ class LLMClint():
 
         ApiKeyPool.use_openai_api()
         client = OpenAI(http_client=DefaultHttpxClient(proxy=self.proxy))
+
         system_prompt = 'You are a translation engine.'
-        if self.use_json_result:
-            system_prompt += " Output the answer in json format, key is translation."
         messages = [{'role': 'system', 'content': system_prompt}]
-        messages.extend(self.history_messages)
-        user_content = '{}: \n{}'.format(self.prompt, translation_task.transcribed_text)
-        messages.append({'role': 'user', 'content': user_content})
+        if not translation_task.llm_user_content:
+            self._generate_user_content(translation_task)
+        messages.append({'role': 'user', 'content': translation_task.llm_user_content})
 
         try:
             completion = client.chat.completions.create(
@@ -112,8 +125,6 @@ class LLMClint():
             translation_task.translation_failed = True
             print(e)
             return
-        if self.history_size:
-            self._append_history_message(user_content, translation_task.translated_text)
 
     @staticmethod
     def _gpt_to_gemini(gpt_messages: list):
@@ -123,6 +134,8 @@ class LLMClint():
             gemini_message['role'] = gpt_message['role']
             if gemini_message['role'] == 'assistant':
                 gemini_message['role'] = 'model'
+            if gemini_message['role'] == 'system':
+                gemini_message['role'] = 'user'
             gemini_message['parts'] = [gpt_message['content']]
             gemini_messages.append(gemini_message)
         return gemini_messages
@@ -135,9 +148,9 @@ class LLMClint():
 
         ApiKeyPool.use_google_api()
         client = genai.GenerativeModel(self.model)
-        messages = self._gpt_to_gemini(self.history_messages)
-        user_content = '{}: \n{}'.format(self.prompt, translation_task.transcribed_text)
-        messages.append({'role': 'user', 'parts': [user_content]})
+        if not translation_task.llm_user_content:
+            self._generate_user_content(translation_task)
+        contents = 'You are a translation engine. ' + translation_task.llm_user_content
         config = genai.types.GenerationConfig(candidate_count=1, temperature=0)
         safety_settings = {
             HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
@@ -147,7 +160,7 @@ class LLMClint():
         }
 
         try:
-            response = client.generate_content(messages, generation_config=config, safety_settings=safety_settings)
+            response = client.generate_content(contents, generation_config=config, safety_settings=safety_settings)
             translation_task.translated_text = response.text
             if self.use_json_result:
                 translation_task.translated_text = _parse_json_completion(translation_task.translated_text)
@@ -155,8 +168,6 @@ class LLMClint():
             translation_task.translation_failed = True
             print(e)
             return
-        if self.history_size:
-            self._append_history_message(user_content, translation_task.translated_text)
 
     def translate(self, translation_task: TranslationTask):
         if self.llm_type == self.LLM_TYPE.GPT:
