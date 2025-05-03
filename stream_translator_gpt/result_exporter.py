@@ -63,9 +63,9 @@ class ResultExporter(LoopWorkerBase):
             text_to_send = text_to_send.strip()
             if output_file_path:
                 _output_to_file(output_file_path, text_to_send)
-            if cqhttp_url:
-                _send_to_cqhttp(cqhttp_url, cqhttp_token, proxies, text_to_send)
-            if discord_webhook_url:
-                _send_to_discord(discord_webhook_url, proxies, text_to_send)
             if telegram_token and telegram_chat_id:
                 _send_to_telegram(telegram_token, telegram_chat_id, proxies, text_to_send)
+            if discord_webhook_url:
+                _send_to_discord(discord_webhook_url, proxies, text_to_send)
+            if cqhttp_url:
+                _send_to_cqhttp(cqhttp_url, cqhttp_token, proxies, text_to_send)
