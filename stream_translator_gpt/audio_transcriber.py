@@ -1,5 +1,6 @@
 import os
 import queue
+from abc import abstractmethod
 from scipy.io.wavfile import write as write_audio
 
 import numpy as np
@@ -20,18 +21,11 @@ def _filter_text(text: str, whisper_filters: str):
     return text
 
 
-class OpenaiWhisper(LoopWorkerBase):
+class AudioTranscriber(LoopWorkerBase):
 
-    def __init__(self, model: str, language: str) -> None:
-        import whisper
-
-        print('Loading whisper model: {}'.format(model))
-        self.model = whisper.load_model(model)
-        self.language = language
-
+    @abstractmethod
     def transcribe(self, audio: np.array, **transcribe_options) -> str:
-        result = self.model.transcribe(audio, without_timestamps=True, language=self.language, **transcribe_options)
-        return result.get('text')
+        pass
 
     def loop(self, input_queue: queue.SimpleQueue[TranslationTask], output_queue: queue.SimpleQueue[TranslationTask],
              whisper_filters: str, print_result: bool, output_timestamps: bool, **transcribe_options):
@@ -52,7 +46,21 @@ class OpenaiWhisper(LoopWorkerBase):
             output_queue.put(task)
 
 
-class FasterWhisper(OpenaiWhisper):
+class OpenaiWhisper(AudioTranscriber):
+
+    def __init__(self, model: str, language: str) -> None:
+        import whisper
+
+        print('Loading whisper model: {}'.format(model))
+        self.model = whisper.load_model(model)
+        self.language = language
+
+    def transcribe(self, audio: np.array, **transcribe_options) -> str:
+        result = self.model.transcribe(audio, without_timestamps=True, language=self.language, **transcribe_options)
+        return result.get('text')
+
+
+class FasterWhisper(AudioTranscriber):
 
     def __init__(self, model: str, language: str) -> None:
         from faster_whisper import WhisperModel
@@ -69,7 +77,7 @@ class FasterWhisper(OpenaiWhisper):
         return transcribed_text
 
 
-class RemoteOpenaiWhisper(OpenaiWhisper):
+class RemoteOpenaiWhisper(AudioTranscriber):
     # https://platform.openai.com/docs/api-reference/audio/createTranscription?lang=python
 
     def __init__(self, language: str, proxy: str) -> None:
@@ -88,5 +96,29 @@ class RemoteOpenaiWhisper(OpenaiWhisper):
             ApiKeyPool.use_openai_api()
             client = OpenAI(http_client=DefaultHttpxClient(proxy=self.proxy))
             result = client.audio.transcriptions.create(model='whisper-1', file=audio_file, language=self.language).text
+        os.remove(TEMP_AUDIO_FILE_NAME)
+        return result
+
+
+class RemoteOpenaiTranscriber(AudioTranscriber):
+    # https://platform.openai.com/docs/api-reference/audio/createTranscription?lang=python
+
+    def __init__(self, model: str, language: str, proxy: str) -> None:
+        self.model = model
+        self.language = language
+        self.proxy = proxy
+
+    def __del__(self):
+        if os.path.exists(TEMP_AUDIO_FILE_NAME):
+            os.remove(TEMP_AUDIO_FILE_NAME)
+
+    def transcribe(self, audio: np.array, **transcribe_options) -> str:
+        from openai import OpenAI, DefaultHttpxClient
+        with open(TEMP_AUDIO_FILE_NAME, 'wb') as audio_file:
+            write_audio(audio_file, SAMPLE_RATE, audio)
+        with open(TEMP_AUDIO_FILE_NAME, 'rb') as audio_file:
+            ApiKeyPool.use_openai_api()
+            client = OpenAI(http_client=DefaultHttpxClient(proxy=self.proxy))
+            result = client.audio.transcriptions.create(model=self.model, file=audio_file, language=self.language).text
         os.remove(TEMP_AUDIO_FILE_NAME)
         return result

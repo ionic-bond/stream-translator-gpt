@@ -8,7 +8,7 @@ import time
 from .common import ApiKeyPool
 from .audio_getter import StreamAudioGetter, LocalFileAudioGetter, DeviceAudioGetter
 from .audio_slicer import AudioSlicer
-from .audio_transcriber import OpenaiWhisper, FasterWhisper, RemoteOpenaiWhisper
+from .audio_transcriber import OpenaiWhisper, FasterWhisper, RemoteOpenaiWhisper, RemoteOpenaiTranscriber
 from .llm_translator import LLMClint, ParallelTranslator, SerialTranslator
 from .result_exporter import ResultExporter
 
@@ -21,7 +21,7 @@ def _start_daemon_thread(func, *args, **kwargs):
 
 def main(url, format, cookies, input_proxy, device_index, device_recording_interval, frame_duration,
          continuous_no_speech_threshold, min_audio_length, max_audio_length, prefix_retention_length, vad_threshold,
-         model, language, use_faster_whisper, use_whisper_api, whisper_filters, openai_api_key, google_api_key,
+         model, language, use_faster_whisper, use_whisper_api, use_openai_transcription_api, openai_transcription_model, whisper_filters, openai_api_key, google_api_key,
          gpt_translation_prompt, gpt_translation_history_size, gpt_model, gemini_model, gpt_translation_timeout,
          gpt_base_url, gemini_base_url, processing_proxy, use_json_result, retry_if_translation_fails,
          output_timestamps, hide_transcribe_result, output_proxy, output_file_path, cqhttp_url, cqhttp_token,
@@ -98,6 +98,17 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
                              **transcribe_options)
     elif use_whisper_api:
         _start_daemon_thread(RemoteOpenaiWhisper.work,
+                             language=language,
+                             proxy=processing_proxy,
+                             print_result=not hide_transcribe_result,
+                             output_timestamps=output_timestamps,
+                             input_queue=slicer_to_transcriber_queue,
+                             output_queue=transcriber_to_translator_queue,
+                             whisper_filters=whisper_filters,
+                             **transcribe_options)
+    elif use_openai_transcription_api:
+        _start_daemon_thread(RemoteOpenaiTranscriber.work,
+                             model=openai_transcription_model,
                              language=language,
                              proxy=processing_proxy,
                              print_result=not hide_transcribe_result,
@@ -240,6 +251,14 @@ def cli():
                         action='store_true',
                         help='Set this flag to use OpenAI Whisper API instead of '
                         'the original local Whipser.')
+    parser.add_argument('--use_openai_transcription_api',
+                        action='store_true',
+                        help='Set this flag to use OpenAI transcription API instead of '
+                        'the original local Whipser.')
+    parser.add_argument('--openai_transcription_model',
+                        type=str,
+                        default='gpt-4o-mini-transcribe',
+                        help='OpenAI\'s transcription model name, whisper-1 / gpt-4o-mini-transcribe / gpt-4o-transcribe')
     parser.add_argument('--whisper_filters',
                         type=str,
                         default='emoji_filter',
