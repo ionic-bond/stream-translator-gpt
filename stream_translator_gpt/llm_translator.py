@@ -6,6 +6,8 @@ import re
 from collections import deque
 from datetime import datetime, timedelta, timezone
 
+from requests.exceptions import SSLError
+
 from .common import TranslationTask, LoopWorkerBase, ApiKeyPool
 
 
@@ -153,7 +155,7 @@ class LLMClint():
             translation_task.translated_text = response.text
             if self.use_json_result:
                 translation_task.translated_text = _parse_json_completion(translation_task.translated_text)
-        except (ValueError, InternalServerError, ResourceExhausted, TooManyRequests) as e:
+        except (ValueError, InternalServerError, ResourceExhausted, TooManyRequests, SSLError) as e:
             translation_task.translation_failed = True
             print(e)
             return
