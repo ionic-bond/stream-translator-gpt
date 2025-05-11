@@ -1,4 +1,5 @@
 import os
+import threading
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 
@@ -32,6 +33,12 @@ class LoopWorkerBase(ABC):
     def work(cls, **kwargs):
         obj = cls(**_auto_args(cls.__init__, kwargs))
         obj.loop(**_auto_args(obj.loop, kwargs))
+
+
+def start_daemon_thread(func, *args, **kwargs):
+    thread = threading.Thread(target=func, args=args, kwargs=kwargs)
+    thread.daemon = True
+    thread.start()
 
 
 def sec2str(second: float):

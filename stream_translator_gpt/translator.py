@@ -2,21 +2,14 @@ import argparse
 import os
 import queue
 import sys
-import threading
 import time
 
-from .common import ApiKeyPool
+from .common import ApiKeyPool, start_daemon_thread
 from .audio_getter import StreamAudioGetter, LocalFileAudioGetter, DeviceAudioGetter
 from .audio_slicer import AudioSlicer
 from .audio_transcriber import OpenaiWhisper, FasterWhisper, RemoteOpenaiWhisper, RemoteOpenaiTranscriber
 from .llm_translator import LLMClint, ParallelTranslator, SerialTranslator
 from .result_exporter import ResultExporter
-
-
-def _start_daemon_thread(func, *args, **kwargs):
-    thread = threading.Thread(target=func, args=args, kwargs=kwargs)
-    thread.daemon = True
-    thread.start()
 
 
 def main(url, format, cookies, input_proxy, device_index, device_recording_interval, frame_duration,
@@ -36,7 +29,7 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
     transcriber_to_translator_queue = queue.SimpleQueue()
     translator_to_exporter_queue = queue.SimpleQueue() if gpt_translation_prompt else transcriber_to_translator_queue
 
-    _start_daemon_thread(
+    start_daemon_thread(
         ResultExporter.work,
         output_whisper_result=not hide_transcribe_result,
         output_timestamps=output_timestamps,
@@ -69,7 +62,7 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
                 use_json_result=use_json_result,
             )
         if gpt_translation_history_size == 0:
-            _start_daemon_thread(
+            start_daemon_thread(
                 ParallelTranslator.work,
                 llm_client=llm_client,
                 timeout=gpt_translation_timeout,
@@ -78,7 +71,7 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
                 output_queue=translator_to_exporter_queue,
             )
         else:
-            _start_daemon_thread(
+            start_daemon_thread(
                 SerialTranslator.work,
                 llm_client=llm_client,
                 timeout=gpt_translation_timeout,
@@ -87,7 +80,7 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
                 output_queue=translator_to_exporter_queue,
             )
     if use_faster_whisper:
-        _start_daemon_thread(FasterWhisper.work,
+        start_daemon_thread(FasterWhisper.work,
                              model=model,
                              language=language,
                              print_result=not hide_transcribe_result,
@@ -97,7 +90,7 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
                              whisper_filters=whisper_filters,
                              **transcribe_options)
     elif use_whisper_api:
-        _start_daemon_thread(RemoteOpenaiWhisper.work,
+        start_daemon_thread(RemoteOpenaiWhisper.work,
                              language=language,
                              proxy=processing_proxy,
                              print_result=not hide_transcribe_result,
@@ -107,7 +100,7 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
                              whisper_filters=whisper_filters,
                              **transcribe_options)
     elif use_openai_transcription_api:
-        _start_daemon_thread(RemoteOpenaiTranscriber.work,
+        start_daemon_thread(RemoteOpenaiTranscriber.work,
                              model=openai_transcription_model,
                              language=language,
                              proxy=processing_proxy,
@@ -118,7 +111,7 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
                              whisper_filters=whisper_filters,
                              **transcribe_options)
     else:
-        _start_daemon_thread(OpenaiWhisper.work,
+        start_daemon_thread(OpenaiWhisper.work,
                              model=model,
                              language=language,
                              print_result=not hide_transcribe_result,
@@ -127,7 +120,7 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
                              output_queue=transcriber_to_translator_queue,
                              whisper_filters=whisper_filters,
                              **transcribe_options)
-    _start_daemon_thread(
+    start_daemon_thread(
         AudioSlicer.work,
         frame_duration=frame_duration,
         continuous_no_speech_threshold=continuous_no_speech_threshold,
