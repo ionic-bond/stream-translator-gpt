@@ -1,5 +1,6 @@
 numpy
 scipy
+websocket-client
 yt-dlp>=2024.12.23
 ffmpeg-python>=0.2.0,<0.3
 sounddevice<1.0

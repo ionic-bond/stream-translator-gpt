@@ -2,25 +2,18 @@ import argparse
 import os
 import queue
 import sys
-import threading
 import time
 
-from .common import ApiKeyPool
+from .common import ApiKeyPool, start_daemon_thread
 from .audio_getter import StreamAudioGetter, LocalFileAudioGetter, DeviceAudioGetter
 from .audio_slicer import AudioSlicer
-from .audio_transcriber import OpenaiWhisper, FasterWhisper, RemoteOpenaiWhisper, RemoteOpenaiTranscriber
+from .audio_transcriber import OpenaiWhisper, FasterWhisper, RemoteWhisper, OpenaiTranscriber, RealtimeOpenaiTranscriber
 from .llm_translator import LLMClint, ParallelTranslator, SerialTranslator
 from .result_exporter import ResultExporter
 
 
-def _start_daemon_thread(func, *args, **kwargs):
-    thread = threading.Thread(target=func, args=args, kwargs=kwargs)
-    thread.daemon = True
-    thread.start()
-
-
 def main(url, format, cookies, input_proxy, device_index, device_recording_interval, frame_duration,
-         continuous_no_speech_threshold, min_audio_length, max_audio_length, prefix_retention_length, vad_threshold,
+         continuous_no_speech_threshold, min_audio_length, max_audio_length, prefix_retention_length, vad_threshold, use_openai_semantic_vad,
          model, language, use_faster_whisper, use_whisper_api, use_openai_transcription_api, openai_transcription_model, whisper_filters, openai_api_key, google_api_key,
          gpt_translation_prompt, gpt_translation_history_size, gpt_model, gemini_model, gpt_translation_timeout,
          gpt_base_url, gemini_base_url, processing_proxy, use_json_result, retry_if_translation_fails,
@@ -36,7 +29,7 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
     transcriber_to_translator_queue = queue.SimpleQueue()
     translator_to_exporter_queue = queue.SimpleQueue() if gpt_translation_prompt else transcriber_to_translator_queue
 
-    _start_daemon_thread(
+    start_daemon_thread(
         ResultExporter.work,
         output_whisper_result=not hide_transcribe_result,
         output_timestamps=output_timestamps,
@@ -69,7 +62,7 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
                 use_json_result=use_json_result,
             )
         if gpt_translation_history_size == 0:
-            _start_daemon_thread(
+            start_daemon_thread(
                 ParallelTranslator.work,
                 llm_client=llm_client,
                 timeout=gpt_translation_timeout,
@@ -78,7 +71,7 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
                 output_queue=translator_to_exporter_queue,
             )
         else:
-            _start_daemon_thread(
+            start_daemon_thread(
                 SerialTranslator.work,
                 llm_client=llm_client,
                 timeout=gpt_translation_timeout,
@@ -86,58 +79,69 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
                 input_queue=transcriber_to_translator_queue,
                 output_queue=translator_to_exporter_queue,
             )
-    if use_faster_whisper:
-        _start_daemon_thread(FasterWhisper.work,
-                             model=model,
-                             language=language,
-                             print_result=not hide_transcribe_result,
-                             output_timestamps=output_timestamps,
-                             input_queue=slicer_to_transcriber_queue,
-                             output_queue=transcriber_to_translator_queue,
-                             whisper_filters=whisper_filters,
-                             **transcribe_options)
-    elif use_whisper_api:
-        _start_daemon_thread(RemoteOpenaiWhisper.work,
-                             language=language,
-                             proxy=processing_proxy,
-                             print_result=not hide_transcribe_result,
-                             output_timestamps=output_timestamps,
-                             input_queue=slicer_to_transcriber_queue,
-                             output_queue=transcriber_to_translator_queue,
-                             whisper_filters=whisper_filters,
-                             **transcribe_options)
-    elif use_openai_transcription_api:
-        _start_daemon_thread(RemoteOpenaiTranscriber.work,
+    if use_openai_transcription_api and use_openai_semantic_vad:
+        start_daemon_thread(RealtimeOpenaiTranscriber.work,
                              model=openai_transcription_model,
                              language=language,
                              proxy=processing_proxy,
                              print_result=not hide_transcribe_result,
-                             output_timestamps=output_timestamps,
-                             input_queue=slicer_to_transcriber_queue,
+                             input_queue=getter_to_slicer_queue,
                              output_queue=transcriber_to_translator_queue,
                              whisper_filters=whisper_filters,
                              **transcribe_options)
     else:
-        _start_daemon_thread(OpenaiWhisper.work,
-                             model=model,
-                             language=language,
-                             print_result=not hide_transcribe_result,
-                             output_timestamps=output_timestamps,
-                             input_queue=slicer_to_transcriber_queue,
-                             output_queue=transcriber_to_translator_queue,
-                             whisper_filters=whisper_filters,
-                             **transcribe_options)
-    _start_daemon_thread(
-        AudioSlicer.work,
-        frame_duration=frame_duration,
-        continuous_no_speech_threshold=continuous_no_speech_threshold,
-        min_audio_length=min_audio_length,
-        max_audio_length=max_audio_length,
-        prefix_retention_length=prefix_retention_length,
-        vad_threshold=vad_threshold,
-        input_queue=getter_to_slicer_queue,
-        output_queue=slicer_to_transcriber_queue,
-    )
+        if use_faster_whisper:
+            start_daemon_thread(FasterWhisper.work,
+                                 model=model,
+                                 language=language,
+                                 print_result=not hide_transcribe_result,
+                                 output_timestamps=output_timestamps,
+                                 input_queue=slicer_to_transcriber_queue,
+                                 output_queue=transcriber_to_translator_queue,
+                                 whisper_filters=whisper_filters,
+                                 **transcribe_options)
+        elif use_whisper_api:
+            start_daemon_thread(RemoteWhisper.work,
+                                 language=language,
+                                 proxy=processing_proxy,
+                                 print_result=not hide_transcribe_result,
+                                 output_timestamps=output_timestamps,
+                                 input_queue=slicer_to_transcriber_queue,
+                                 output_queue=transcriber_to_translator_queue,
+                                 whisper_filters=whisper_filters,
+                                 **transcribe_options)
+        elif use_openai_transcription_api:
+            start_daemon_thread(OpenaiTranscriber.work,
+                                 model=openai_transcription_model,
+                                 language=language,
+                                 proxy=processing_proxy,
+                                 print_result=not hide_transcribe_result,
+                                 output_timestamps=output_timestamps,
+                                 input_queue=slicer_to_transcriber_queue,
+                                 output_queue=transcriber_to_translator_queue,
+                                 whisper_filters=whisper_filters,
+                                 **transcribe_options)
+        else:
+            start_daemon_thread(OpenaiWhisper.work,
+                                 model=model,
+                                 language=language,
+                                 print_result=not hide_transcribe_result,
+                                 output_timestamps=output_timestamps,
+                                 input_queue=slicer_to_transcriber_queue,
+                                 output_queue=transcriber_to_translator_queue,
+                                 whisper_filters=whisper_filters,
+                                 **transcribe_options)
+        start_daemon_thread(
+            AudioSlicer.work,
+            frame_duration=frame_duration,
+            continuous_no_speech_threshold=continuous_no_speech_threshold,
+            min_audio_length=min_audio_length,
+            max_audio_length=max_audio_length,
+            prefix_retention_length=prefix_retention_length,
+            vad_threshold=vad_threshold,
+            input_queue=getter_to_slicer_queue,
+            output_queue=slicer_to_transcriber_queue,
+        )
     if url.lower() == 'device':
         DeviceAudioGetter.work(
             device_index=device_index,
@@ -165,7 +169,7 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
     while (not getter_to_slicer_queue.empty() or not slicer_to_transcriber_queue.empty() or
            not transcriber_to_translator_queue.empty() or not translator_to_exporter_queue.empty()):
         time.sleep(5)
-    print('Stream ended')
+    print('Translator stopped.')
 
 
 def cli():
@@ -223,6 +227,9 @@ def cli():
                         help='The threshold of Voice activity detection.'
                         'if the speech probability of a frame is higher than this value, '
                         'then this frame is speech.')
+    parser.add_argument('--use_openai_semantic_vad',
+                        action='store_true',
+                        help='')
     parser.add_argument('--model',
                         type=str,
                         default='small',
@@ -300,7 +307,7 @@ def cli():
                         default=10,
                         help='If the GPT / Gemini translation exceeds this number of seconds, '
                         'the translation will be discarded.')
-    parser.add_argument('--gpt_base_url', type=str, default=None, help='Customize the API endpoint of GPT.')
+    parser.add_argument('--gpt_base_url', type=str, default='https://api.openai.com/v1', help='Customize the API endpoint of GPT.')
     parser.add_argument('--gemini_base_url', type=str, default=None, help='Customize the API endpoint of Gemini.')
     parser.add_argument('--processing_proxy',
                         type=str,

@@ -101,5 +101,5 @@ class AudioSlicer(LoopWorkerBase):
             self.put(audio)
             if self.should_slice():
                 sliced_audio, time_range = self.slice()
-                task = TranslationTask(sliced_audio, time_range)
+                task = TranslationTask(audio=sliced_audio, time_range=time_range)
                 output_queue.put(task)
