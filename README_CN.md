@@ -25,7 +25,7 @@ flowchart LR
         direction LR
         ca("`**Whisper**`")
         cb("`**Faster-Whisper**`")
-        cc("`**Whisper API**`")
+        cc("`**OpenAI Transcription API**`")
     end
     subgraph gd["`**翻译**`"]
         direction LR
@@ -84,7 +84,7 @@ stream-translator-gpt
 
 ```
 git clone https://github.com/ionic-bond/stream-translator-gpt.git
-pip install -r ./stream-translator-gpt/requirements.txt
+pip install -r ./stream-translator-gpt/requirements.txt -U
 python3 ./stream-translator-gpt/translator.py
 ```
 
@@ -98,21 +98,21 @@ python3 ./stream-translator-gpt/translator.py
 
     ```stream-translator-gpt {URL} --model large --language {input_language} --use_faster_whisper```
 
-- 通过 **Whisper API** 进行语音转文字：
+- 通过 **OpenAI Transcription API** 进行语音转文字：
 
-    ```stream-translator-gpt {URL} --language {input_language} --use_whisper_api --openai_api_key {your_openai_key}```
+    ```stream-translator-gpt {URL} --language {input_language} --use_openai_transcription_api --openai_api_key {your_openai_key}```
 
 - 通过 **Gemini** 将内容翻译成其他语言：
 
-    ```stream-translator-gpt {URL} --model large --language ja --gpt_translation_prompt "翻译以下日语为中文，只输出译文，不要输出原文" --google_api_key {your_google_key}```
+    ```stream-translator-gpt {URL} --model large --language ja --translation_prompt "翻译以下日语为中文，只输出译文，不要输出原文" --google_api_key {your_google_key}```
 
 - 通过 **GPT** 将内容翻译成其他语言：
 
-    ```stream-translator-gpt {URL} --model large --language ja --gpt_translation_prompt "翻译以下日语为中文，只输出译文，不要输出原文" --openai_api_key {your_openai_key}```
+    ```stream-translator-gpt {URL} --model large --language ja --translation_prompt "翻译以下日语为中文，只输出译文，不要输出原文" --openai_api_key {your_openai_key}```
 
-- 同时使用 **Whisper API** 和 **Gemini** ：
+- 同时使用 **OpenAI Transcription API** 和 **Gemini** ：
 
-    ```stream-translator-gpt {URL} --model large --language ja --use_whisper_api --openai_api_key {your_openai_key} --gpt_translation_prompt "Translate from Japanese to Chinese" --google_api_key {your_google_key}```
+    ```stream-translator-gpt {URL} --model large --language ja --use_openai_transcription_api --openai_api_key {your_openai_key} --translation_prompt "Translate from Japanese to Chinese" --google_api_key {your_google_key}```
 
 - 使用本地视频/音频文件作为输入源:
 
@@ -124,7 +124,7 @@ python3 ./stream-translator-gpt/translator.py
 
     将使用系统默认的音频设备作为输入。
 
-    如果你想使用其他音频输入设备，`stream-translator-gpt device --print_all_devices` 获取设备索引，然后运行 CLI 命令 `--device_index {index}`。
+    如果你想使用其他音频输入设备，`stream-translator-gpt device --list_devices` 获取设备索引，然后运行命令 `--device_index {index}`。
 
     如果你想使用另一个程序的音频输出作为输入，你需要[**启用立体声混音**](https://www.howtogeek.com/39532/how-to-enable-stereo-mix-in-windows-7-to-record-audio/)。
 
@@ -138,7 +138,7 @@ python3 ./stream-translator-gpt/translator.py
 
 - 将结果保存到.srt字幕文件中:
 
-    ```stream-translator-gpt {URL} --model large --language ja --gpt_translation_prompt "Translate from Japanese to Chinese" --google_api_key {your_google_key} --hide_transcribe_result --output_timestamps --output_file_path ./result.srt```
+    ```stream-translator-gpt {URL} --model large --language ja --translation_prompt "Translate from Japanese to Chinese" --google_api_key {your_google_key} --hide_transcribe_result --output_timestamps --output_file_path ./result.srt```
 
 ## 所有选项
 
@@ -146,11 +146,11 @@ python3 ./stream-translator-gpt/translator.py
 | :--------------------------------- | :------------------------ | :------------------------------------------------------------------------------------------------------------------------- |
 | **输入选项**                       |
 | `URL`                              |                           | 直播流的URL。如果填写了本地文件路径，它将被用作输入。如果填写"device"，输入将从您的PC音频设备获取。                        |
-| `--format`                         | bestaudio                 | 直播流格式代码，此参数将直接传递给yt-dlp。                                                                                 |
+| `--format`                         | bestaudio                 | 直播流格式代码，此参数将直接传递给yt-dlp。您可以通过 `yt-dlp {url} -F` 获取可用格式的列表。                                |
 | `--cookies`                        |                           | 用于打开仅会员可看的直播流，此参数将直接传递给yt-dlp。                                                                     |
 | `--input_proxy`                    |                           | 为 yt-dlp 使用指定的 HTTP/HTTPS/SOCKS 代理，例如 http://127.0.0.1:7890。                                                   |
 | `--device_index`                   |                           | 音频输入设备的index。如果未设置，则使用系统默认音频输入设备。                                                              |
-| `--print_all_devices`              |                           | 打印所有音频设备信息然后退出。                                                                                             |
+| `--list_devices`                   |                           | 打印所有音频设备信息然后退出。                                                                                             |
 | `--device_recording_interval`      | 0.5                       | 录音间隔越短，延迟越低，但会增加CPU使用率。建议将其设置在0.1到1.0之间。                                                    |
 | **音频切割选项**                   |
 | `--frame_duration`                 | 0.1                       | 处理实时流数据的单位（以秒为单位），需大于等于0.03。                                                                       |
@@ -162,19 +162,17 @@ python3 ./stream-translator-gpt/translator.py
 | **语音转文字选项**                 |
 | `--model`                          | small                     | 选择Whisper/Faster-Whisper模型。请在[此处](https://github.com/openai/whisper#available-models-and-languages)查看可用模型。 |
 | `--language`                       | auto                      | 直播流中的语言。请在[此处](https://github.com/openai/whisper#available-models-and-languages)查看可用语言。                 |
-| `--beam_size`                      | 5                         | 波束搜索中的波束数量。设置为0以使用贪婪算法（更快但准确度较低）。                                                          |
-| `--best_of`                        | 5                         | 在非零温度下采样时的候选者数量。                                                                                           |
 | `--use_faster_whisper`             |                           | 设置此标志以使用Faster-Whisper实现，而不是原始的OpenAI实现                                                                 |
-| `--use_whisper_api`                |                           | 设置此标志以使用OpenAI Whisper API，而不是原始本地Whipser.                                                                 |
+| `--use_openai_transcription_api`   |                           | 设置此标志以使用OpenAI转录API，而不是原始本地Whipser.                                                                      |
 | `--whisper_filters`                | emoji_filter              | 应用于whisper结果的过滤器，由","分隔。我们提供 emoji_filter 和 japanese_stream_filter                                      |
 | **翻译选项**                       |
 | `--openai_api_key`                 |                           | 如果使用GPT翻译/Whisper API，需要OpenAI API密钥。如果您有多个密钥，可以用“,”分隔，每个密钥将轮流使用。                     |
 | `--google_api_key`                 |                           | 如果使用Gemini翻译，需要Google API密钥。如果您有多个密钥，可以用“,”分隔，每个密钥将轮流使用。                              |
 | `--gpt_model`                      | gpt-4o-mini               | GPT模型名称， gpt-4o / gpt-4o-mini                                                                                         |
 | `--gemini_model`                   | gemini-2.0-flash          | Gemini模型名称，gemini-1.5-flash / gemini-1.5-pro / gemini-2.0-flash                                                       |
-| `--gpt_translation_prompt`         |                           | 如果设置了该选项，将通过GPT / Gemini API（根据填写的API密钥决定）将结果文本翻译成目标语言。例如："从日语翻译成中文"        |
-| `--gpt_translation_history_size`   | 0                         | 调用GPT / Gemini API时发送的先前消息数量。如果历史记录大小为0，则会并行运行翻译。如果历史记录大小> 0，则会串行运行翻译。   |
-| `--gpt_translation_timeout`        | 10                        | 如果GPT / Gemini的翻译超过这个秒数，那么该次的翻译将被丢弃。                                                               |
+| `--translation_prompt`             |                           | 如果设置了该选项，将通过GPT / Gemini API（根据填写的API密钥决定）将结果文本翻译成目标语言。例如："从日语翻译成中文"        |
+| `--translation_history_size`       | 0                         | 调用GPT / Gemini API时发送的先前消息数量。如果历史记录大小为0，则会并行运行翻译。如果历史记录大小> 0，则会串行运行翻译。   |
+| `--translation_timeout`            | 10                        | 如果GPT / Gemini的翻译超过这个秒数，那么该次的翻译将被丢弃。                                                               |
 | `--gpt_base_url`                   | https://api.openai.com/v1 | 自定义GPT的API地址。                                                                                                       |
 | `--gemini_base_url`                |                           | 自定义Gemini的API地址。                                                                                                    |
 | `--processing_proxy`               |                           | 使用指定的HTTP/HTTPS/SOCKS代理来连接Whisper/GPT API（目前Gemini尚不支持在程序内指定代理），例如http://127.0.0.1:7890。     |

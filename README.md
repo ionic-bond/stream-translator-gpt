@@ -25,7 +25,7 @@ flowchart LR
         direction LR
         ca("`**Whisper**`")
         cb("`**Faster-Whisper**`")
-        cc("`**Whisper API**`")
+        cc("`**OpenAI Transcription API**`")
     end
     subgraph gd["`**Translation**`"]
         direction LR
@@ -64,7 +64,7 @@ Try it on Colab: [![Open In Colab](https://colab.research.google.com/assets/cola
 3. [**Install cuDNN to your CUDA dir**](https://developer.nvidia.com/cudnn-downloads) if you want to use **Faster-Whisper**.
 4. [**Install PyTorch (with CUDA) to your Python.**](https://pytorch.org/get-started/locally/)
 5. [**Create a Google API key**](https://aistudio.google.com/app/apikey) if you want to use **Gemini API** for translation. (Free 15 requests / minute)
-6. [**Create a OpenAI API key**](https://platform.openai.com/api-keys) if you want to use **Whisper API** for transcription or **GPT API** for translation.
+6. [**Create a OpenAI API key**](https://platform.openai.com/api-keys) if you want to use **OpenAI Transcription API** for transcription or **GPT API** for translation.
 
 **If you are in Windows, you also need to:**
 
@@ -86,7 +86,7 @@ or
 
 ```
 git clone https://github.com/ionic-bond/stream-translator-gpt.git
-pip install -r ./stream-translator-gpt/requirements.txt
+pip install -r ./stream-translator-gpt/requirements.txt -U
 python3 ./stream-translator-gpt/translator.py
 ```
 
@@ -100,21 +100,21 @@ python3 ./stream-translator-gpt/translator.py
 
     ```stream-translator-gpt {URL} --model large --language {input_language} --use_faster_whisper```
 
-- Transcribe by **Whisper API**:
+- Transcribe by **OpenAI Transcription API**:
 
-    ```stream-translator-gpt {URL} --language {input_language} --use_whisper_api --openai_api_key {your_openai_key}```
+    ```stream-translator-gpt {URL} --language {input_language} --use_openai_transcription_api --openai_api_key {your_openai_key}```
 
 - Translate to other language by **Gemini**:
 
-    ```stream-translator-gpt {URL} --model large --language ja --gpt_translation_prompt "Translate from Japanese to Chinese" --google_api_key {your_google_key}```
+    ```stream-translator-gpt {URL} --model large --language ja --translation_prompt "Translate from Japanese to Chinese" --google_api_key {your_google_key}```
 
 - Translate to other language by **GPT**:
 
-    ```stream-translator-gpt {URL} --model large --language ja --gpt_translation_prompt "Translate from Japanese to Chinese" --openai_api_key {your_openai_key}```
+    ```stream-translator-gpt {URL} --model large --language ja --translation_prompt "Translate from Japanese to Chinese" --openai_api_key {your_openai_key}```
 
-- Using **Whisper API** and **Gemini** at the same time:
+- Using **OpenAI Transcription API** and **Gemini** at the same time:
 
-    ```stream-translator-gpt {URL} --model large --language ja --use_whisper_api --openai_api_key {your_openai_key} --gpt_translation_prompt "Translate from Japanese to Chinese" --google_api_key {your_google_key}```
+    ```stream-translator-gpt {URL} --model large --language ja --use_openai_transcription_api --openai_api_key {your_openai_key} --translation_prompt "Translate from Japanese to Chinese" --google_api_key {your_google_key}```
 
 - Local video/audio file as input:
 
@@ -126,7 +126,7 @@ python3 ./stream-translator-gpt/translator.py
     
     Will use the system's default audio device as input.
 
-    If you want to use another audio input device, `stream-translator-gpt device --print_all_devices` get device index and then run the CLI with `--device_index {index}`.
+    If you want to use another audio input device, `stream-translator-gpt device --list_devices` get device index and then run the CLI with `--device_index {index}`.
 
     If you want to use the audio output of another program as input, you need to [**enable stereo mix**](https://www.howtogeek.com/39532/how-to-enable-stereo-mix-in-windows-7-to-record-audio/).
 
@@ -140,7 +140,7 @@ python3 ./stream-translator-gpt/translator.py
 
 - Saving result to a .srt subtitle file:
 
-    ```stream-translator-gpt {URL} --model large --language ja --gpt_translation_prompt "Translate from Japanese to Chinese" --google_api_key {your_google_key} --hide_transcribe_result --output_timestamps --output_file_path ./result.srt```
+    ```stream-translator-gpt {URL} --model large --language ja --translation_prompt "Translate from Japanese to Chinese" --google_api_key {your_google_key} --hide_transcribe_result --output_timestamps --output_file_path ./result.srt```
 
 ## All options
 
@@ -148,11 +148,11 @@ python3 ./stream-translator-gpt/translator.py
 | :--------------------------------- | :------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Input Options**                  |
 | `URL`                              |                           | The URL of the stream. If a local file path is filled in, it will be used as input. If fill in "device", the input will be obtained from your PC device.                                                 |
-| `--format`                         | bestaudio                 | Stream format code, this parameter will be passed directly to yt-dlp.                                                                                                                                    |
+| `--format`                         | bestaudio                 | Stream format code, this parameter will be passed directly to yt-dlp. You can get the list of available format codes by `yt-dlp {url} -F`                                                                |
 | `--cookies`                        |                           | Used to open member-only stream, this parameter will be passed directly to yt-dlp.                                                                                                                       |
 | `--input_proxy`                    |                           | Use the specified HTTP/HTTPS/SOCKS proxy for yt-dlp, e.g. http://127.0.0.1:7890.                                                                                                                         |
 | `--device_index`                   |                           | The index of the device that needs to be recorded. If not set, the system default recording device will be used.                                                                                         |
-| `--print_all_devices`              |                           | Print all audio devices info then exit.                                                                                                                                                                  |
+| `--list_devices`                   |                           | Print all audio devices info then exit.                                                                                                                                                                  |
 | `--device_recording_interval`      | 0.5                       | The shorter the recording interval, the lower the latency, but it will increase CPU usage. It is recommended to set it between 0.1 and 1.0.                                                              |
 | **Audio Slicing Options**          |
 | `--frame_duration`                 | 0.1                       | The unit that processes live streaming data in seconds, should be >= 0.03                                                                                                                                |
@@ -164,19 +164,17 @@ python3 ./stream-translator-gpt/translator.py
 | **Transcription Options**          |
 | `--model`                          | small                     | Select Whisper/Faster-Whisper model size. See [here](https://github.com/openai/whisper#available-models-and-languages) for available models.                                                             |
 | `--language`                       | auto                      | Language spoken in the stream. See [here](https://github.com/openai/whisper#available-models-and-languages) for available languages.                                                                     |
-| `--beam_size`                      | 5                         | Number of beams in beam search. Set to 0 to use greedy algorithm instead (faster but less accurate).                                                                                                     |
-| `--best_of`                        | 5                         | Number of candidates when sampling with non-zero temperature.                                                                                                                                            |
 | `--use_faster_whisper`             |                           | Set this flag to use Faster Whisper implementation instead of the original OpenAI implementation                                                                                                         |
-| `--use_whisper_api`                |                           | Set this flag to use OpenAI Whisper API instead of the original local Whipser.                                                                                                                           |
+| `--use_openai_transcription_api`   |                           | Set this flag to use OpenAI transcription API instead of the original local Whipser.                                                                                                                     |
 | `--whisper_filters`                | emoji_filter              | Filters apply to whisper results, separated by ",". We provide emoji_filter and japanese_stream_filter.                                                                                                  |
 | **Translation Options**            |
 | `--openai_api_key`                 |                           | OpenAI API key if using GPT translation / Whisper API. If you have multiple keys, you can separate them with "," and each key will be used in turn.                                                      |
 | `--google_api_key`                 |                           | Google API key if using Gemini translation. If you have multiple keys, you can separate them with "," and each key will be used in turn.                                                                 |
 | `--gpt_model`                      | gpt-4o-mini               | OpenAI's GPT model name, gpt-4o / gpt-4o-mini                                                                                                                                                            |
 | `--gemini_model`                   | gemini-2.0-flash          | Google's Gemini model name, gemini-1.5-flash / gemini-1.5-pro /gemini-2.0-flash                                                                                                                          |
-| `--gpt_translation_prompt`         |                           | If set, will translate the result text to target language via GPT / Gemini API (According to which API key is filled in). Example: "Translate from Japanese to Chinese"                                  |
-| `--gpt_translation_history_size`   | 0                         | The number of previous messages sent when calling the GPT / Gemini API. If the history size is 0, the translation will be run parallelly. If the history size > 0, the translation will be run serially. |
-| `--gpt_translation_timeout`        | 10                        | If the GPT / Gemini translation exceeds this number of seconds, the translation will be discarded.                                                                                                       |
+| `--translation_prompt`             |                           | If set, will translate the result text to target language via GPT / Gemini API (According to which API key is filled in). Example: "Translate from Japanese to Chinese"                                  |
+| `--translation_history_size`       | 0                         | The number of previous messages sent when calling the GPT / Gemini API. If the history size is 0, the translation will be run parallelly. If the history size > 0, the translation will be run serially. |
+| `--translation_timeout`            | 10                        | If the GPT / Gemini translation exceeds this number of seconds, the translation will be discarded.                                                                                                       |
 | `--gpt_base_url`                   | https://api.openai.com/v1 | Customize the API endpoint of GPT.                                                                                                                                                                       |
 | `--gemini_base_url`                |                           | Customize the API endpoint of Gemini.                                                                                                                                                                    |
 | `--processing_proxy`               |                           | Use the specified HTTP/HTTPS/SOCKS proxy for Whisper/GPT API (Gemini currently doesn't support specifying a proxy within the program), e.g. http://127.0.0.1:7890.                                       |

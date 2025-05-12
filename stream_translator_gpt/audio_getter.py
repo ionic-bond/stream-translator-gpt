@@ -8,7 +8,7 @@ import threading
 import ffmpeg
 import numpy as np
 
-from .common import SAMPLE_RATE, LoopWorkerBase
+from .common import SAMPLE_RATE, LoopWorkerBase, INFO
 
 
 def _transport(ytdlp_proc, ffmpeg_proc):
@@ -30,6 +30,7 @@ def _open_stream(url: str, format: str, cookies: str, proxy: str):
         cmd.extend(['--proxy', proxy])
     ytdlp_process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
 
+    # TODO: Get float32 audio
     try:
         ffmpeg_process = (ffmpeg.input('pipe:', loglevel='panic').output('pipe:',
                                                                          format='s16le',
@@ -50,7 +51,7 @@ class StreamAudioGetter(LoopWorkerBase):
     def __init__(self, url: str, format: str, cookies: str, proxy: str, frame_duration: float) -> None:
         self._cleanup_ytdlp_cache()
 
-        print('Opening stream: {}'.format(url))
+        print(f'{INFO}Opening stream: {url}')
         self.ffmpeg_process, self.ytdlp_process = _open_stream(url, format, cookies, proxy)
         self.byte_size = round(frame_duration * SAMPLE_RATE *
                                2)  # Factor 2 comes from reading the int16 stream as bytes
@@ -88,7 +89,7 @@ class StreamAudioGetter(LoopWorkerBase):
 class LocalFileAudioGetter(LoopWorkerBase):
 
     def __init__(self, file_path: str, frame_duration: float) -> None:
-        print('Opening local file: {}'.format(file_path))
+        print(f'{INFO}Opening local file: {file_path}')
         try:
             self.ffmpeg_process = (ffmpeg.input(file_path,
                                                 loglevel='panic').output('pipe:',
@@ -129,7 +130,8 @@ class DeviceAudioGetter(LoopWorkerBase):
         sd.default.dtype[0] = np.float32
         self.frame_duration = frame_duration
         self.recording_frame_num = max(1, round(recording_interval / frame_duration))
-        print('Recording device: {}'.format(sd.query_devices(sd.default.device[0])['name']))
+        device_name = sd.query_devices(sd.default.device[0])['name']
+        print(f'{INFO}Recording device: {device_name}')
 
     def loop(self, output_queue: queue.SimpleQueue[np.array]):
         import sounddevice as sd

@@ -17,7 +17,7 @@ Try it on Colab: [![Open In Colab](https://colab.research.google.com/assets/cola
 3. [**Install cuDNN to your CUDA dir**](https://developer.nvidia.com/cudnn-downloads) if you want to use **Faster-Whisper**.
 4. [**Install PyTorch (with CUDA) to your Python.**](https://pytorch.org/get-started/locally/)
 5. [**Create a Google API key**](https://aistudio.google.com/app/apikey) if you want to use **Gemini API** for translation. (Free 15 requests / minute)
-6. [**Create a OpenAI API key**](https://platform.openai.com/api-keys) if you want to use **Whisper API** for transcription or **GPT API** for translation.
+6. [**Create a OpenAI API key**](https://platform.openai.com/api-keys) if you want to use **OpenAI Transcription API** for transcription or **GPT API** for translation.
 
 **If you are in Windows, you also need to:**
 
@@ -53,21 +53,21 @@ python3 ./stream-translator-gpt/translator.py
 
     ```stream-translator-gpt {URL} --model large --language {input_language} --use_faster_whisper```
 
-- Transcribe by **Whisper API**:
+- Transcribe by **OpenAI Transcription API**:
 
-    ```stream-translator-gpt {URL} --language {input_language} --use_whisper_api --openai_api_key {your_openai_key}```
+    ```stream-translator-gpt {URL} --language {input_language} --use_openai_transcription_api --openai_api_key {your_openai_key}```
 
 - Translate to other language by **Gemini**:
 
-    ```stream-translator-gpt {URL} --model large --language ja --gpt_translation_prompt "Translate from Japanese to Chinese" --google_api_key {your_google_key}```
+    ```stream-translator-gpt {URL} --model large --language ja --translation_prompt "Translate from Japanese to Chinese" --google_api_key {your_google_key}```
 
 - Translate to other language by **GPT**:
 
-    ```stream-translator-gpt {URL} --model large --language ja --gpt_translation_prompt "Translate from Japanese to Chinese" --openai_api_key {your_openai_key}```
+    ```stream-translator-gpt {URL} --model large --language ja --translation_prompt "Translate from Japanese to Chinese" --openai_api_key {your_openai_key}```
 
-- Using **Whisper API** and **Gemini** at the same time:
+- Using **OpenAI Transcription API** and **Gemini** at the same time:
 
-    ```stream-translator-gpt {URL} --model large --language ja --use_whisper_api --openai_api_key {your_openai_key} --gpt_translation_prompt "Translate from Japanese to Chinese" --google_api_key {your_google_key}```
+    ```stream-translator-gpt {URL} --model large --language ja --use_openai_transcription_api --openai_api_key {your_openai_key} --translation_prompt "Translate from Japanese to Chinese" --google_api_key {your_google_key}```
 
 - Local video/audio file as input:
 
@@ -79,7 +79,7 @@ python3 ./stream-translator-gpt/translator.py
     
     Will use the system's default audio device as input.
 
-    If you want to use another audio input device, `stream-translator-gpt device --print_all_devices` get device index and then run the CLI with `--device_index {index}`.
+    If you want to use another audio input device, `stream-translator-gpt device --list_devices` get device index and then run the CLI with `--device_index {index}`.
 
     If you want to use the audio output of another program as input, you need to [**enable stereo mix**](https://www.howtogeek.com/39532/how-to-enable-stereo-mix-in-windows-7-to-record-audio/).
 
@@ -93,4 +93,4 @@ python3 ./stream-translator-gpt/translator.py
 
 - Saving result to a .srt subtitle file:
 
-    ```stream-translator-gpt {URL} --model large --language ja --gpt_translation_prompt "Translate from Japanese to Chinese" --google_api_key {your_google_key} --hide_transcribe_result --output_timestamps --output_file_path ./result.srt```
+    ```stream-translator-gpt {URL} --model large --language ja --translation_prompt "Translate from Japanese to Chinese" --google_api_key {your_google_key} --hide_transcribe_result --output_timestamps --output_file_path ./result.srt```

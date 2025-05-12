@@ -6,8 +6,9 @@ from scipy.io.wavfile import write as write_audio
 import numpy as np
 
 from . import filters
-from .common import TranslationTask, SAMPLE_RATE, LoopWorkerBase, sec2str, ApiKeyPool
+from .common import TranslationTask, SAMPLE_RATE, LoopWorkerBase, sec2str, ApiKeyPool, INFO
 
+# TODO: Hide tmp file
 TEMP_AUDIO_FILE_NAME = '_whisper_api_temp.wav'
 
 
@@ -51,7 +52,7 @@ class OpenaiWhisper(AudioTranscriber):
     def __init__(self, model: str, language: str) -> None:
         import whisper
 
-        print('Loading whisper model: {}'.format(model))
+        print(f'{INFO}Loading whisper model: {model}')
         self.model = whisper.load_model(model)
         self.language = language
 
@@ -65,7 +66,7 @@ class FasterWhisper(AudioTranscriber):
     def __init__(self, model: str, language: str) -> None:
         from faster_whisper import WhisperModel
 
-        print('Loading faster-whisper model: {}'.format(model))
+        print(f'{INFO}Loading faster-whisper model: {model}')
         self.model = WhisperModel(model)
         self.language = language
 
@@ -104,6 +105,7 @@ class RemoteOpenaiTranscriber(AudioTranscriber):
     # https://platform.openai.com/docs/api-reference/audio/createTranscription?lang=python
 
     def __init__(self, model: str, language: str, proxy: str) -> None:
+        print(f'{INFO}Using {model} API as transcription engine.')
         self.model = model
         self.language = language
         self.proxy = proxy

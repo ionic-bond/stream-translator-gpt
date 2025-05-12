@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 
 from requests.exceptions import SSLError
 
-from .common import TranslationTask, LoopWorkerBase, ApiKeyPool
+from .common import TranslationTask, LoopWorkerBase, ApiKeyPool, INFO
 
 
 # The double quotes in the values of JSON have not been escaped, so manual escaping is necessary.
@@ -62,7 +62,7 @@ class LLMClint():
                  use_json_result: bool) -> None:
         if llm_type not in (self.LLM_TYPE.GPT, self.LLM_TYPE.GEMINI):
             raise ValueError('Unknow LLM type: {}'.format(llm_type))
-        print('Using {} API as translation engine.'.format(model))
+        print(f'{INFO}Using {model} API as translation engine.')
         self.llm_type = llm_type
         self.model = model
         self.prompt = prompt

@@ -7,6 +7,17 @@ import numpy as np
 from whisper.audio import SAMPLE_RATE
 
 
+RED = '\033[91m'
+YELLOW = '\033[93m'
+GREEN = "\033[32m"
+BOLD = '\033[1m'
+ENDC = '\033[0m'
+
+INFO = f'{GREEN}[INFO]{ENDC} '
+WARNING = f'{YELLOW}[WARNING]{ENDC} '
+ERROR = f'{RED}[ERROR]{ENDC} '
+
+
 class TranslationTask:
 
     def __init__(self, audio: np.array, time_range: tuple[float, float]):
