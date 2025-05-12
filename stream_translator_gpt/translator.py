@@ -4,7 +4,7 @@ import queue
 import sys
 import time
 
-from .common import ApiKeyPool, start_daemon_thread, WARNING, ERROR
+from .common import ApiKeyPool, start_daemon_thread, is_url, WARNING, ERROR
 from .audio_getter import StreamAudioGetter, LocalFileAudioGetter, DeviceAudioGetter
 from .audio_slicer import AudioSlicer
 from .audio_transcriber import OpenaiWhisper, FasterWhisper, RemoteOpenaiWhisper, RemoteOpenaiTranscriber
@@ -138,18 +138,18 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
             recording_interval=device_recording_interval,
             output_queue=getter_to_slicer_queue,
         )
-    elif os.path.isabs(url):
-        LocalFileAudioGetter.work(
-            file_path=url,
-            frame_duration=frame_duration,
-            output_queue=getter_to_slicer_queue,
-        )
-    else:
+    elif is_url(url):
         StreamAudioGetter.work(
             url=url,
             format=format,
             cookies=cookies,
             proxy=input_proxy,
+            frame_duration=frame_duration,
+            output_queue=getter_to_slicer_queue,
+        )
+    else:
+        LocalFileAudioGetter.work(
+            file_path=url,
             frame_duration=frame_duration,
             output_queue=getter_to_slicer_queue,
         )

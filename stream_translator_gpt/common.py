@@ -1,7 +1,9 @@
 import os
+import re
 import threading
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 
 import numpy as np
 from whisper.audio import SAMPLE_RATE
@@ -92,3 +94,34 @@ class ApiKeyPool():
                         client_options=gemini_client_options,
                         transport='rest')
         cls.google_api_key_index = (cls.google_api_key_index + 1) % len(cls.google_api_key_list)
+
+
+def is_url(address):
+    parsed_url = urlparse(address)
+
+    if parsed_url.scheme and parsed_url.scheme != 'file':
+        if parsed_url.netloc or (parsed_url.scheme in ['mailto', 'tel', 'data']):
+            return True
+
+    if parsed_url.scheme == 'file':
+        return False
+
+    if parsed_url.netloc:
+        return True
+
+    if os.name == 'nt':
+        if re.match(r'^[a-zA-Z]:[\\/]', address):
+            return False
+        if address.startswith('\\\\') or address.startswith('//'):
+            return False
+        if '\\' in address and '/' not in address:
+             return False
+
+    if address.startswith('/') or address.startswith('./') or address.startswith('../'):
+        return False
+
+    if '/' in address or (os.name == 'nt' and '\\' in address):
+        if not parsed_url.scheme and not parsed_url.netloc:
+            return False
+    
+    return False
