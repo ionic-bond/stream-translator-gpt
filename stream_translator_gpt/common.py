@@ -115,7 +115,7 @@ def is_url(address):
         if address.startswith('\\\\') or address.startswith('//'):
             return False
         if '\\' in address and '/' not in address:
-             return False
+            return False
 
     if address.startswith('/') or address.startswith('./') or address.startswith('../'):
         return False
@@ -123,5 +123,5 @@ def is_url(address):
     if '/' in address or (os.name == 'nt' and '\\' in address):
         if not parsed_url.scheme and not parsed_url.netloc:
             return False
-    
+
     return False
