@@ -7,7 +7,8 @@ from .common import TranslationTask, LoopWorkerBase, sec2str, start_daemon_threa
 
 class ResultExporter(LoopWorkerBase):
 
-    def __init__(self, cqhttp_url: str, cqhttp_token: str, discord_webhook_url: str, telegram_token: str, telegram_chat_id: int, output_file_path: str, proxy: str) -> None:
+    def __init__(self, cqhttp_url: str, cqhttp_token: str, discord_webhook_url: str, telegram_token: str,
+                 telegram_chat_id: int, output_file_path: str, proxy: str) -> None:
         self.proxies = {"http": proxy, "https": proxy} if proxy else None
         self.cqhttp_queue = None
         self.discord_queue = None
@@ -25,7 +26,7 @@ class ResultExporter(LoopWorkerBase):
         if output_file_path:
             self.file_queue = queue.SimpleQueue()
             start_daemon_thread(self._write_message_to_file, file_path=output_file_path)
-    
+
     def _send_message_to_cqhttp(self, url: str, token: str):
         headers = {'Authorization': 'Bearer {}'.format(token)} if token else None
         while True:
@@ -45,7 +46,7 @@ class ResultExporter(LoopWorkerBase):
                     requests.post(webhook_url, json=data, timeout=10, proxies=self.proxies)
                 except Exception as e:
                     print(e)
-    
+
     def _send_message_to_telegram(self, token: str, chat_id: int):
         while True:
             text = self.telegram_queue.get()
@@ -63,7 +64,7 @@ class ResultExporter(LoopWorkerBase):
             text = self.file_queue.get()
             with open(file_path, 'a', encoding='utf-8') as f:
                 f.write(text + '\n\n')
-    
+
     def loop(self, input_queue: queue.SimpleQueue[TranslationTask], output_whisper_result: bool,
              output_timestamps: bool):
         while True:

@@ -14,11 +14,11 @@ from .result_exporter import ResultExporter
 
 def main(url, format, cookies, input_proxy, device_index, device_recording_interval, frame_duration,
          continuous_no_speech_threshold, min_audio_length, max_audio_length, prefix_retention_length, vad_threshold,
-         model, language, use_faster_whisper, use_whisper_api, use_openai_transcription_api, openai_transcription_model, whisper_filters, openai_api_key, google_api_key,
-         translation_prompt, translation_history_size, gpt_model, gemini_model, translation_timeout,
-         gpt_base_url, gemini_base_url, processing_proxy, use_json_result, retry_if_translation_fails,
-         output_timestamps, hide_transcribe_result, output_proxy, output_file_path, cqhttp_url, cqhttp_token,
-         discord_webhook_url, telegram_token, telegram_chat_id, **transcribe_options):
+         model, language, use_faster_whisper, use_whisper_api, use_openai_transcription_api, openai_transcription_model,
+         whisper_filters, openai_api_key, google_api_key, translation_prompt, translation_history_size, gpt_model,
+         gemini_model, translation_timeout, gpt_base_url, gemini_base_url, processing_proxy, use_json_result,
+         retry_if_translation_fails, output_timestamps, hide_transcribe_result, output_proxy, output_file_path,
+         cqhttp_url, cqhttp_token, discord_webhook_url, telegram_token, telegram_chat_id, **transcribe_options):
     ApiKeyPool.init(openai_api_key=openai_api_key,
                     gpt_base_url=gpt_base_url,
                     google_api_key=google_api_key,
@@ -81,45 +81,45 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
             )
     if use_faster_whisper:
         start_daemon_thread(FasterWhisper.work,
-                             model=model,
-                             language=language,
-                             print_result=not hide_transcribe_result,
-                             output_timestamps=output_timestamps,
-                             input_queue=slicer_to_transcriber_queue,
-                             output_queue=transcriber_to_translator_queue,
-                             whisper_filters=whisper_filters,
-                             **transcribe_options)
+                            model=model,
+                            language=language,
+                            print_result=not hide_transcribe_result,
+                            output_timestamps=output_timestamps,
+                            input_queue=slicer_to_transcriber_queue,
+                            output_queue=transcriber_to_translator_queue,
+                            whisper_filters=whisper_filters,
+                            **transcribe_options)
     elif use_whisper_api:
         start_daemon_thread(RemoteOpenaiWhisper.work,
-                             language=language,
-                             proxy=processing_proxy,
-                             print_result=not hide_transcribe_result,
-                             output_timestamps=output_timestamps,
-                             input_queue=slicer_to_transcriber_queue,
-                             output_queue=transcriber_to_translator_queue,
-                             whisper_filters=whisper_filters,
-                             **transcribe_options)
+                            language=language,
+                            proxy=processing_proxy,
+                            print_result=not hide_transcribe_result,
+                            output_timestamps=output_timestamps,
+                            input_queue=slicer_to_transcriber_queue,
+                            output_queue=transcriber_to_translator_queue,
+                            whisper_filters=whisper_filters,
+                            **transcribe_options)
     elif use_openai_transcription_api:
         start_daemon_thread(RemoteOpenaiTranscriber.work,
-                             model=openai_transcription_model,
-                             language=language,
-                             proxy=processing_proxy,
-                             print_result=not hide_transcribe_result,
-                             output_timestamps=output_timestamps,
-                             input_queue=slicer_to_transcriber_queue,
-                             output_queue=transcriber_to_translator_queue,
-                             whisper_filters=whisper_filters,
-                             **transcribe_options)
+                            model=openai_transcription_model,
+                            language=language,
+                            proxy=processing_proxy,
+                            print_result=not hide_transcribe_result,
+                            output_timestamps=output_timestamps,
+                            input_queue=slicer_to_transcriber_queue,
+                            output_queue=transcriber_to_translator_queue,
+                            whisper_filters=whisper_filters,
+                            **transcribe_options)
     else:
         start_daemon_thread(OpenaiWhisper.work,
-                             model=model,
-                             language=language,
-                             print_result=not hide_transcribe_result,
-                             output_timestamps=output_timestamps,
-                             input_queue=slicer_to_transcriber_queue,
-                             output_queue=transcriber_to_translator_queue,
-                             whisper_filters=whisper_filters,
-                             **transcribe_options)
+                            model=model,
+                            language=language,
+                            print_result=not hide_transcribe_result,
+                            output_timestamps=output_timestamps,
+                            input_queue=slicer_to_transcriber_queue,
+                            output_queue=transcriber_to_translator_queue,
+                            whisper_filters=whisper_filters,
+                            **transcribe_options)
     start_daemon_thread(
         AudioSlicer.work,
         frame_duration=frame_duration,
@@ -239,17 +239,19 @@ def cli():
                         action='store_true',
                         help='Set this flag to use faster-whisper implementation instead of '
                         'the original OpenAI implementation.')
-    parser.add_argument('--use_whisper_api',
-                        action='store_true',
-                        help='This flag will soon be deprecated, please use \"--use_openai_transcription_api\" instead.')
+    parser.add_argument(
+        '--use_whisper_api',
+        action='store_true',
+        help='This flag will soon be deprecated, please use \"--use_openai_transcription_api\" instead.')
     parser.add_argument('--use_openai_transcription_api',
                         action='store_true',
                         help='Set this flag to use OpenAI transcription API instead of '
                         'the original local Whipser.')
-    parser.add_argument('--openai_transcription_model',
-                        type=str,
-                        default='gpt-4o-mini-transcribe',
-                        help='OpenAI\'s transcription model name, whisper-1 / gpt-4o-mini-transcribe / gpt-4o-transcribe')
+    parser.add_argument(
+        '--openai_transcription_model',
+        type=str,
+        default='gpt-4o-mini-transcribe',
+        help='OpenAI\'s transcription model name, whisper-1 / gpt-4o-mini-transcribe / gpt-4o-transcribe')
     parser.add_argument('--whisper_filters',
                         type=str,
                         default='emoji_filter',
@@ -357,22 +359,26 @@ def cli():
         import sounddevice as sd
         print(sd.query_devices())
         exit(0)
-    
+
     if args['model'].endswith('.en'):
         if args['model'] == 'large.en':
-            print(f'{ERROR}English model does not have large model, please choose from {{tiny.en, small.en, medium.en}}')
+            print(
+                f'{ERROR}English model does not have large model, please choose from {{tiny.en, small.en, medium.en}}')
             sys.exit(0)
         if args['language'] != 'English' and args['language'] != 'en':
             if args['language'] == 'auto':
                 print(f'{WARNING}Using .en model, setting language from auto to English')
                 args['language'] = 'en'
             else:
-                print(f'{RED}English model cannot be used to detect non english language, please choose a non .en model')
+                print(
+                    f'{RED}English model cannot be used to detect non english language, please choose a non .en model')
                 sys.exit(0)
 
     if args['use_whisper_api']:
-        print(f'{WARNING}\"--use_whisper_api\" will soon be deprecated, please use \"--use_openai_transcription_api\" instead.')
-    
+        print(
+            f'{WARNING}\"--use_whisper_api\" will soon be deprecated, please use \"--use_openai_transcription_api\" instead.'
+        )
+
     transcription_flag_num = 0
     if args['use_faster_whisper']:
         transcription_flag_num += 1
@@ -389,13 +395,19 @@ def cli():
         sys.exit(0)
 
     if args['gpt_translation_prompt'] != None:
-        print(f'{WARNING}\"--gpt_translation_prompt\" will soon be deprecated, please use \"--translation_prompt\" instead.')
+        print(
+            f'{WARNING}\"--gpt_translation_prompt\" will soon be deprecated, please use \"--translation_prompt\" instead.'
+        )
         args['translation_prompt'] = args['gpt_translation_prompt']
     if args['gpt_translation_history_size'] != None:
-        print(f'{WARNING}\"--gpt_translation_history_size\" will soon be deprecated, please use \"--translation_history_size\" instead.')
+        print(
+            f'{WARNING}\"--gpt_translation_history_size\" will soon be deprecated, please use \"--translation_history_size\" instead.'
+        )
         args['translation_history_size'] = args['gpt_translation_history_size']
     if args['gpt_translation_timeout'] != None:
-        print(f'{WARNING}\"--gpt_translation_timeout\" will soon be deprecated, please use \"--translation_timeout\" instead.')
+        print(
+            f'{WARNING}\"--gpt_translation_timeout\" will soon be deprecated, please use \"--translation_timeout\" instead.'
+        )
         args['translation_timeout'] = args['gpt_translation_timeout']
 
     if args['translation_prompt'] and not (args['openai_api_key'] or args['google_api_key']):

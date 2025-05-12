@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 import numpy as np
 from whisper.audio import SAMPLE_RATE
 
-
 RED = '\033[91m'
 YELLOW = '\033[93m'
 GREEN = "\033[32m"
