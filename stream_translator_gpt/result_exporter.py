@@ -2,7 +2,7 @@ import os
 import queue
 import requests
 
-from .common import TranslationTask, LoopWorkerBase, sec2str, start_daemon_thread
+from .common import TranslationTask, LoopWorkerBase, sec2str, start_daemon_thread, BOLD, ENDC
 
 
 class ResultExporter(LoopWorkerBase):
@@ -28,7 +28,7 @@ class ResultExporter(LoopWorkerBase):
             start_daemon_thread(self._write_message_to_file, file_path=output_file_path)
 
     def _send_message_to_cqhttp(self, url: str, token: str):
-        headers = {'Authorization': 'Bearer {}'.format(token)} if token else None
+        headers = {f'Authorization': 'Bearer {token}'} if token else None
         while True:
             text = self.cqhttp_queue.get()
             data = {'message': text}
@@ -50,7 +50,7 @@ class ResultExporter(LoopWorkerBase):
     def _send_message_to_telegram(self, token: str, chat_id: int):
         while True:
             text = self.telegram_queue.get()
-            url = 'https://api.telegram.org/bot{}/sendMessage?chat_id={}&text={}'.format(token, chat_id, text)
+            url = f'https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={text}'
             try:
                 requests.post(url, timeout=10, proxies=self.proxies)
             except Exception as e:
@@ -69,7 +69,7 @@ class ResultExporter(LoopWorkerBase):
              output_timestamps: bool):
         while True:
             task = input_queue.get()
-            timestamp_text = '{} --> {}'.format(sec2str(task.time_range[0]), sec2str(task.time_range[1]))
+            timestamp_text = f'{sec2str(task.time_range[0])} --> {sec2str(task.time_range[1])}'
             text_to_send = (task.transcribed_text + '\n') if output_whisper_result else ''
             if output_timestamps:
                 text_to_send = timestamp_text + '\n' + text_to_send
@@ -78,7 +78,7 @@ class ResultExporter(LoopWorkerBase):
                 if output_timestamps:
                     text_to_print = timestamp_text + ' ' + text_to_print
                 text_to_print = text_to_print.strip()
-                print('\033[1m{}\033[0m'.format(text_to_print))
+                print(f'{BOLD}{text_to_print}{ENDC}')
                 text_to_send += task.translated_text
             text_to_send = text_to_send.strip()
             if self.cqhttp_queue:

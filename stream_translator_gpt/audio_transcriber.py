@@ -38,7 +38,7 @@ class AudioTranscriber(LoopWorkerBase):
                 continue
             if print_result:
                 if output_timestamps:
-                    timestamp_text = '{} --> {}'.format(sec2str(task.time_range[0]), sec2str(task.time_range[1]))
+                    timestamp_text = f'{sec2str(task.time_range[0])} --> {sec2str(task.time_range[1])}'
                     print(timestamp_text + ' ' + task.transcribed_text)
                 else:
                     print(task.transcribed_text)

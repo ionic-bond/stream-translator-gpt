@@ -61,7 +61,7 @@ class LLMClint():
     def __init__(self, llm_type: str, model: str, prompt: str, history_size: int, proxy: str,
                  use_json_result: bool) -> None:
         if llm_type not in (self.LLM_TYPE.GPT, self.LLM_TYPE.GEMINI):
-            raise ValueError('Unknow LLM type: {}'.format(llm_type))
+            raise ValueError(f'Unknow LLM type: {llm_type}')
         print(f'{INFO}Using {model} API as translation engine.')
         self.llm_type = llm_type
         self.model = model
@@ -95,7 +95,7 @@ class LLMClint():
             system_prompt += " Output the answer in json format, key is translation."
         messages = [{'role': 'system', 'content': system_prompt}]
         messages.extend(self.history_messages)
-        user_content = '{}: \n{}'.format(self.prompt, translation_task.transcribed_text)
+        user_content = f'{self.prompt}: \n{translation_task.transcribed_text}'
         messages.append({'role': 'user', 'content': user_content})
 
         try:
@@ -140,7 +140,7 @@ class LLMClint():
         ApiKeyPool.use_google_api()
         client = genai.GenerativeModel(self.model)
         messages = self._gpt_to_gemini(self.history_messages)
-        user_content = '{}: \n{}'.format(self.prompt, translation_task.transcribed_text)
+        user_content = f'{self.prompt}: \n{translation_task.transcribed_text}'
         messages.append({'role': 'user', 'parts': [user_content]})
         config = genai.types.GenerationConfig(candidate_count=1, temperature=0)
         safety_settings = {
@@ -168,7 +168,7 @@ class LLMClint():
         elif self.llm_type == self.LLM_TYPE.GEMINI:
             self._translate_by_gemini(translation_task)
         else:
-            raise ValueError('Unknow LLM type: {}'.format(self.llm_type))
+            raise ValueError(f'Unknow LLM type: {self.llm_type}')
 
 
 class ParallelTranslator(LoopWorkerBase):
@@ -192,7 +192,7 @@ class ParallelTranslator(LoopWorkerBase):
         for task in self.processing_queue:
             if task.translation_failed and not _is_task_timeout(task, self.timeout):
                 self._trigger(task)
-                print('Translation failed: {}'.format(task.transcribed_text))
+                print(f'Translation failed: {task.transcribed_text}')
                 time.sleep(1)
 
     def _get_results(self):
@@ -203,9 +203,9 @@ class ParallelTranslator(LoopWorkerBase):
             task = self.processing_queue.popleft()
             if not task.translated_text:
                 if _is_task_timeout(task, self.timeout):
-                    print('Translation timeout: {}'.format(task.transcribed_text))
+                    print(f'Translation timeout: {task.transcribed_text}')
                 else:
-                    print('Translation failed: {}'.format(task.transcribed_text))
+                    print(f'Translation failed: {task.transcribed_text}')
             results.append(task)
         return results
 
@@ -246,9 +246,9 @@ class SerialTranslator(LoopWorkerBase):
                         _is_task_timeout(current_task, self.timeout)):
                     if not current_task.translated_text:
                         if _is_task_timeout(current_task, self.timeout):
-                            print('Translation timeout: {}'.format(current_task.transcribed_text))
+                            print(f'Translation timeout: {current_task.transcribed_text}')
                         else:
-                            print('Translation failed: {}'.format(current_task.transcribed_text))
+                            print(f'Translation failed: {current_task.transcribed_text}')
                             if self.retry_if_translation_fails:
                                 self._trigger(current_task)
                                 time.sleep(1)
