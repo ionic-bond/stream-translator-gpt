@@ -1,5 +1,6 @@
 import os
 import queue
+import tempfile
 from abc import abstractmethod
 from scipy.io.wavfile import write as write_audio
 
@@ -7,9 +8,6 @@ import numpy as np
 
 from . import filters
 from .common import TranslationTask, SAMPLE_RATE, LoopWorkerBase, sec2str, ApiKeyPool, INFO
-
-# TODO: Hide tmp file
-TEMP_AUDIO_FILE_NAME = '_whisper_api_temp.wav'
 
 
 def _filter_text(text: str, whisper_filters: str):
@@ -85,20 +83,20 @@ class RemoteOpenaiWhisper(AudioTranscriber):
         self.proxy = proxy
         self.language = language
 
-    def __del__(self):
-        if os.path.exists(TEMP_AUDIO_FILE_NAME):
-            os.remove(TEMP_AUDIO_FILE_NAME)
-
     def transcribe(self, audio: np.array, **transcribe_options) -> str:
         from openai import OpenAI, DefaultHttpxClient
-        with open(TEMP_AUDIO_FILE_NAME, 'wb') as audio_file:
-            write_audio(audio_file, SAMPLE_RATE, audio)
-        with open(TEMP_AUDIO_FILE_NAME, 'rb') as audio_file:
-            ApiKeyPool.use_openai_api()
-            client = OpenAI(http_client=DefaultHttpxClient(proxy=self.proxy))
-            result = client.audio.transcriptions.create(model='whisper-1', file=audio_file, language=self.language).text
-        os.remove(TEMP_AUDIO_FILE_NAME)
-        return result
+        try:
+            with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.wav') as temp_audio_file:
+                temp_file_path = temp_audio_file.name
+                write_audio(temp_audio_file, SAMPLE_RATE, audio)
+            with open(temp_file_path, 'rb') as audio_file:
+                ApiKeyPool.use_openai_api()
+                client = OpenAI(http_client=DefaultHttpxClient(proxy=self.proxy))
+                result = client.audio.transcriptions.create(model='whisper-1', file=audio_file, language=self.language).text
+            return result
+        finally:
+            if temp_file_path and os.path.exists(temp_file_path):
+                os.remove(temp_file_path)
 
 
 class RemoteOpenaiTranscriber(AudioTranscriber):
@@ -110,17 +108,17 @@ class RemoteOpenaiTranscriber(AudioTranscriber):
         self.language = language
         self.proxy = proxy
 
-    def __del__(self):
-        if os.path.exists(TEMP_AUDIO_FILE_NAME):
-            os.remove(TEMP_AUDIO_FILE_NAME)
-
     def transcribe(self, audio: np.array, **transcribe_options) -> str:
         from openai import OpenAI, DefaultHttpxClient
-        with open(TEMP_AUDIO_FILE_NAME, 'wb') as audio_file:
-            write_audio(audio_file, SAMPLE_RATE, audio)
-        with open(TEMP_AUDIO_FILE_NAME, 'rb') as audio_file:
-            ApiKeyPool.use_openai_api()
-            client = OpenAI(http_client=DefaultHttpxClient(proxy=self.proxy))
-            result = client.audio.transcriptions.create(model=self.model, file=audio_file, language=self.language).text
-        os.remove(TEMP_AUDIO_FILE_NAME)
-        return result
+        try:
+            with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.wav') as temp_audio_file:
+                temp_file_path = temp_audio_file.name
+                write_audio(temp_audio_file, SAMPLE_RATE, audio)
+            with open(temp_file_path, 'rb') as audio_file:
+                ApiKeyPool.use_openai_api()
+                client = OpenAI(http_client=DefaultHttpxClient(proxy=self.proxy))
+                result = client.audio.transcriptions.create(model=self.model, file=audio_file, language=self.language).text
+            return result
+        finally:
+            if temp_file_path and os.path.exists(temp_file_path):
+                os.remove(temp_file_path)
