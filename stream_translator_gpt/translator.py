@@ -371,7 +371,7 @@ def cli():
                 args['language'] = 'en'
             else:
                 print(
-                    f'{RED}English model cannot be used to detect non english language, please choose a non .en model')
+                    f'{ERROR}English model cannot be used to detect non english language, please choose a non .en model')
                 sys.exit(0)
 
     if args['use_whisper_api']:

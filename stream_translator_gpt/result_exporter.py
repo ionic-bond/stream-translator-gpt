@@ -28,7 +28,7 @@ class ResultExporter(LoopWorkerBase):
             start_daemon_thread(self._write_message_to_file, file_path=output_file_path)
 
     def _send_message_to_cqhttp(self, url: str, token: str):
-        headers = {f'Authorization': 'Bearer {token}'} if token else None
+        headers = {'Authorization': f'Bearer {token}'} if token else None
         while True:
             text = self.cqhttp_queue.get()
             data = {'message': text}
