@@ -170,7 +170,7 @@ def cli():
                         'If fill in "device", the input will be obtained from your PC device.')
     parser.add_argument('--format',
                         type=str,
-                        default='bestaudio',
+                        default='ba/wa*',
                         help='Stream format code, this parameter will be passed directly to yt-dlp. '
                         'You can get the list of available format codes by \"yt-dlp \{url\} -F\"')
     parser.add_argument('--cookies',
