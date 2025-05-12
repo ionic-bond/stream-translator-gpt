@@ -92,7 +92,8 @@ class RemoteOpenaiWhisper(AudioTranscriber):
             with open(temp_file_path, 'rb') as audio_file:
                 ApiKeyPool.use_openai_api()
                 client = OpenAI(http_client=DefaultHttpxClient(proxy=self.proxy))
-                result = client.audio.transcriptions.create(model='whisper-1', file=audio_file, language=self.language).text
+                result = client.audio.transcriptions.create(model='whisper-1', file=audio_file,
+                                                            language=self.language).text
             return result
         finally:
             if temp_file_path and os.path.exists(temp_file_path):
@@ -117,7 +118,8 @@ class RemoteOpenaiTranscriber(AudioTranscriber):
             with open(temp_file_path, 'rb') as audio_file:
                 ApiKeyPool.use_openai_api()
                 client = OpenAI(http_client=DefaultHttpxClient(proxy=self.proxy))
-                result = client.audio.transcriptions.create(model=self.model, file=audio_file, language=self.language).text
+                result = client.audio.transcriptions.create(model=self.model, file=audio_file,
+                                                            language=self.language).text
             return result
         finally:
             if temp_file_path and os.path.exists(temp_file_path):

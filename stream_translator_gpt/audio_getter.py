@@ -52,7 +52,7 @@ class StreamAudioGetter(LoopWorkerBase):
 
         print(f'{INFO}Opening stream: {url}')
         self.ffmpeg_process, self.ytdlp_process = _open_stream(url, format, cookies, proxy)
-        self.byte_size = round(frame_duration * SAMPLE_RATE * 4) # Factor 4 comes from float32 (4 bytes per sample)
+        self.byte_size = round(frame_duration * SAMPLE_RATE * 4)  # Factor 4 comes from float32 (4 bytes per sample)
         signal.signal(signal.SIGINT, self._exit_handler)
 
     def __del__(self):
@@ -98,7 +98,7 @@ class LocalFileAudioGetter(LoopWorkerBase):
                                                                                                    pipe_stdout=True))
         except ffmpeg.Error as e:
             raise RuntimeError(f'Failed to load audio: {e.stderr.decode()}') from e
-        self.byte_size = round(frame_duration * SAMPLE_RATE * 4) # Factor 4 comes from float32 (4 bytes per sample)
+        self.byte_size = round(frame_duration * SAMPLE_RATE * 4)  # Factor 4 comes from float32 (4 bytes per sample)
         signal.signal(signal.SIGINT, self._exit_handler)
 
     def _exit_handler(self, signum, frame):
