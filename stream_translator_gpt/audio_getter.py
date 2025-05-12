@@ -30,11 +30,10 @@ def _open_stream(url: str, format: str, cookies: str, proxy: str):
         cmd.extend(['--proxy', proxy])
     ytdlp_process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
 
-    # TODO: Get float32 audio
     try:
         ffmpeg_process = (ffmpeg.input('pipe:', loglevel='panic').output('pipe:',
-                                                                         format='s16le',
-                                                                         acodec='pcm_s16le',
+                                                                         format='f32le',
+                                                                         acodec='pcm_f32le',
                                                                          ac=1,
                                                                          ar=SAMPLE_RATE).run_async(pipe_stdin=True,
                                                                                                    pipe_stdout=True))
@@ -53,8 +52,7 @@ class StreamAudioGetter(LoopWorkerBase):
 
         print(f'{INFO}Opening stream: {url}')
         self.ffmpeg_process, self.ytdlp_process = _open_stream(url, format, cookies, proxy)
-        self.byte_size = round(frame_duration * SAMPLE_RATE *
-                               2)  # Factor 2 comes from reading the int16 stream as bytes
+        self.byte_size = round(frame_duration * SAMPLE_RATE * 4) # Factor 4 comes from float32 (4 bytes per sample)
         signal.signal(signal.SIGINT, self._exit_handler)
 
     def __del__(self):
@@ -78,7 +76,7 @@ class StreamAudioGetter(LoopWorkerBase):
                 break
             if len(in_bytes) != self.byte_size:
                 continue
-            audio = np.frombuffer(in_bytes, np.int16).flatten().astype(np.float32) / 32768.0
+            audio = np.frombuffer(in_bytes, np.float32).flatten()
             output_queue.put(audio)
 
         self.ffmpeg_process.kill()
@@ -93,15 +91,14 @@ class LocalFileAudioGetter(LoopWorkerBase):
         try:
             self.ffmpeg_process = (ffmpeg.input(file_path,
                                                 loglevel='panic').output('pipe:',
-                                                                         format='s16le',
-                                                                         acodec='pcm_s16le',
+                                                                         format='f32le',
+                                                                         acodec='pcm_f32le',
                                                                          ac=1,
                                                                          ar=SAMPLE_RATE).run_async(pipe_stdin=True,
                                                                                                    pipe_stdout=True))
         except ffmpeg.Error as e:
             raise RuntimeError(f'Failed to load audio: {e.stderr.decode()}') from e
-        self.byte_size = round(frame_duration * SAMPLE_RATE *
-                               2)  # Factor 2 comes from reading the int16 stream as bytes
+        self.byte_size = round(frame_duration * SAMPLE_RATE * 4) # Factor 4 comes from float32 (4 bytes per sample)
         signal.signal(signal.SIGINT, self._exit_handler)
 
     def _exit_handler(self, signum, frame):
@@ -115,7 +112,7 @@ class LocalFileAudioGetter(LoopWorkerBase):
                 break
             if len(in_bytes) != self.byte_size:
                 continue
-            audio = np.frombuffer(in_bytes, np.int16).flatten().astype(np.float32) / 32768.0
+            audio = np.frombuffer(in_bytes, np.float32).flatten()
             output_queue.put(audio)
 
         self.ffmpeg_process.kill()
