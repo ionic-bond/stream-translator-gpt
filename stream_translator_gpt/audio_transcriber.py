@@ -30,18 +30,18 @@ class AudioTranscriber(LoopWorkerBase):
              whisper_filters: str, print_result: bool, output_timestamps: bool, **transcribe_options):
         while True:
             task = input_queue.get()
-            task.transcribed_text = _filter_text(self.transcribe(task.audio, **transcribe_options),
+            task.transcript = _filter_text(self.transcribe(task.audio, **transcribe_options),
                                                  whisper_filters).strip()
-            if not task.transcribed_text:
+            if not task.transcript:
                 if print_result:
                     print('skip...')
                 continue
             if print_result:
                 if output_timestamps:
                     timestamp_text = f'{sec2str(task.time_range[0])} --> {sec2str(task.time_range[1])}'
-                    print(timestamp_text + ' ' + task.transcribed_text)
+                    print(timestamp_text + ' ' + task.transcript)
                 else:
-                    print(task.transcribed_text)
+                    print(task.transcript)
             output_queue.put(task)
 
 
@@ -70,10 +70,10 @@ class FasterWhisper(AudioTranscriber):
 
     def transcribe(self, audio: np.array, **transcribe_options) -> str:
         segments, info = self.model.transcribe(audio, language=self.language, **transcribe_options)
-        transcribed_text = ''
+        transcript = ''
         for segment in segments:
-            transcribed_text += segment.text
-        return transcribed_text
+            transcript += segment.text
+        return transcript
 
 
 class RemoteOpenaiWhisper(AudioTranscriber):

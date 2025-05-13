@@ -95,7 +95,7 @@ class LLMClint():
             system_prompt += " Output the answer in json format, key is translation."
         messages = [{'role': 'system', 'content': system_prompt}]
         messages.extend(self.history_messages)
-        user_content = f'{self.prompt}: \n{translation_task.transcribed_text}'
+        user_content = f'{self.prompt}: \n{translation_task.transcript}'
         messages.append({'role': 'user', 'content': user_content})
 
         try:
@@ -109,15 +109,15 @@ class LLMClint():
                 messages=messages,
             )
 
-            translation_task.translated_text = completion.choices[0].message.content
+            translation_task.translation = completion.choices[0].message.content
             if self.use_json_result:
-                translation_task.translated_text = _parse_json_completion(translation_task.translated_text)
+                translation_task.translation = _parse_json_completion(translation_task.translation)
         except (APITimeoutError, APIConnectionError) as e:
             translation_task.translation_failed = True
             print(e)
             return
         if self.history_size:
-            self._append_history_message(user_content, translation_task.translated_text)
+            self._append_history_message(user_content, translation_task.translation)
 
     @staticmethod
     def _gpt_to_gemini(gpt_messages: list):
@@ -140,7 +140,7 @@ class LLMClint():
         ApiKeyPool.use_google_api()
         client = genai.GenerativeModel(self.model)
         messages = self._gpt_to_gemini(self.history_messages)
-        user_content = f'{self.prompt}: \n{translation_task.transcribed_text}'
+        user_content = f'{self.prompt}: \n{translation_task.transcript}'
         messages.append({'role': 'user', 'parts': [user_content]})
         config = genai.types.GenerationConfig(candidate_count=1, temperature=0)
         safety_settings = {
@@ -152,15 +152,15 @@ class LLMClint():
 
         try:
             response = client.generate_content(messages, generation_config=config, safety_settings=safety_settings)
-            translation_task.translated_text = response.text
+            translation_task.translation = response.text
             if self.use_json_result:
-                translation_task.translated_text = _parse_json_completion(translation_task.translated_text)
+                translation_task.translation = _parse_json_completion(translation_task.translation)
         except (ValueError, InternalServerError, ResourceExhausted, TooManyRequests, SSLError) as e:
             translation_task.translation_failed = True
             print(e)
             return
         if self.history_size:
-            self._append_history_message(user_content, translation_task.translated_text)
+            self._append_history_message(user_content, translation_task.translation)
 
     def translate(self, translation_task: TranslationTask):
         if self.llm_type == self.LLM_TYPE.GPT:
@@ -192,20 +192,20 @@ class ParallelTranslator(LoopWorkerBase):
         for task in self.processing_queue:
             if task.translation_failed and not _is_task_timeout(task, self.timeout):
                 self._trigger(task)
-                print(f'Translation failed: {task.transcribed_text}')
+                print(f'Translation failed: {task.transcript}')
                 time.sleep(1)
 
     def _get_results(self):
         results = []
         while self.processing_queue and (
-                self.processing_queue[0].translated_text or _is_task_timeout(self.processing_queue[0], self.timeout) or
+                self.processing_queue[0].translation or _is_task_timeout(self.processing_queue[0], self.timeout) or
             (self.processing_queue[0].translation_failed and not self.retry_if_translation_fails)):
             task = self.processing_queue.popleft()
-            if not task.translated_text:
+            if not task.translation:
                 if _is_task_timeout(task, self.timeout):
-                    print(f'Translation timeout: {task.transcribed_text}')
+                    print(f'Translation timeout: {task.transcript}')
                 else:
-                    print(f'Translation failed: {task.transcribed_text}')
+                    print(f'Translation failed: {task.transcript}')
             results.append(task)
         return results
 
@@ -242,13 +242,13 @@ class SerialTranslator(LoopWorkerBase):
         current_task = None
         while True:
             if current_task:
-                if (current_task.translated_text or current_task.translation_failed or
+                if (current_task.translation or current_task.translation_failed or
                         _is_task_timeout(current_task, self.timeout)):
-                    if not current_task.translated_text:
+                    if not current_task.translation:
                         if _is_task_timeout(current_task, self.timeout):
-                            print(f'Translation timeout: {current_task.transcribed_text}')
+                            print(f'Translation timeout: {current_task.transcript}')
                         else:
-                            print(f'Translation failed: {current_task.transcribed_text}')
+                            print(f'Translation failed: {current_task.transcript}')
                             if self.retry_if_translation_fails:
                                 self._trigger(current_task)
                                 time.sleep(1)

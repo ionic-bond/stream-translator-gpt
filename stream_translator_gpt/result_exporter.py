@@ -70,16 +70,16 @@ class ResultExporter(LoopWorkerBase):
         while True:
             task = input_queue.get()
             timestamp_text = f'{sec2str(task.time_range[0])} --> {sec2str(task.time_range[1])}'
-            text_to_send = (task.transcribed_text + '\n') if output_whisper_result else ''
+            text_to_send = (task.transcript + '\n') if output_whisper_result else ''
             if output_timestamps:
                 text_to_send = timestamp_text + '\n' + text_to_send
-            if task.translated_text:
-                text_to_print = task.translated_text
+            if task.translation:
+                text_to_print = task.translation
                 if output_timestamps:
                     text_to_print = timestamp_text + ' ' + text_to_print
                 text_to_print = text_to_print.strip()
                 print(f'{BOLD}{text_to_print}{ENDC}')
-                text_to_send += task.translated_text
+                text_to_send += task.translation
             text_to_send = text_to_send.strip()
             if self.cqhttp_queue:
                 self.cqhttp_queue.put(text_to_send)
