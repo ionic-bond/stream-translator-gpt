@@ -30,8 +30,7 @@ class AudioTranscriber(LoopWorkerBase):
              whisper_filters: str, print_result: bool, output_timestamps: bool, **transcribe_options):
         while True:
             task = input_queue.get()
-            task.transcript = _filter_text(self.transcribe(task.audio, **transcribe_options),
-                                                 whisper_filters).strip()
+            task.transcript = _filter_text(self.transcribe(task.audio, **transcribe_options), whisper_filters).strip()
             if not task.transcript:
                 if print_result:
                     print('skip...')
