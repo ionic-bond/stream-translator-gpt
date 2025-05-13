@@ -1,5 +1,4 @@
 import argparse
-import os
 import queue
 import sys
 import time

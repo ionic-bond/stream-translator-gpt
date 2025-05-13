@@ -6,8 +6,6 @@ import re
 from collections import deque
 from datetime import datetime, timedelta, timezone
 
-from requests.exceptions import SSLError
-
 from .common import TranslationTask, LoopWorkerBase, ApiKeyPool, INFO
 
 
@@ -86,7 +84,7 @@ class LLMClint():
 
     def _translate_by_gpt(self, translation_task: TranslationTask):
         # https://platform.openai.com/docs/api-reference/chat/create?lang=python
-        from openai import OpenAI, DefaultHttpxClient, APITimeoutError, APIConnectionError
+        from openai import OpenAI, DefaultHttpxClient
 
         ApiKeyPool.use_openai_api()
         client = OpenAI(http_client=DefaultHttpxClient(proxy=self.proxy))
@@ -112,7 +110,7 @@ class LLMClint():
             translation_task.translation = completion.choices[0].message.content
             if self.use_json_result:
                 translation_task.translation = _parse_json_completion(translation_task.translation)
-        except (APITimeoutError, APIConnectionError) as e:
+        except Exception as e:
             translation_task.translation_failed = True
             print(e)
             return
@@ -134,7 +132,6 @@ class LLMClint():
     def _translate_by_gemini(self, translation_task: TranslationTask):
         # https://ai.google.dev/tutorials/python_quickstart
         import google.generativeai as genai
-        from google.api_core.exceptions import InternalServerError, ResourceExhausted, TooManyRequests
         from google.generativeai.types import HarmCategory, HarmBlockThreshold
 
         ApiKeyPool.use_google_api()
@@ -155,7 +152,7 @@ class LLMClint():
             translation_task.translation = response.text
             if self.use_json_result:
                 translation_task.translation = _parse_json_completion(translation_task.translation)
-        except (ValueError, InternalServerError, ResourceExhausted, TooManyRequests, SSLError) as e:
+        except Exception as e:
             translation_task.translation_failed = True
             print(e)
             return
