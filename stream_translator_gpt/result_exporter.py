@@ -40,7 +40,7 @@ class ResultExporter(LoopWorkerBase):
     def _send_message_to_discord(self, webhook_url: str):
         while True:
             text = self.discord_queue.get()
-            for sub_text in (text + '\n').split('\n'):
+            for sub_text in text.split('\n') + ['\u200b']:
                 data = {'content': sub_text}
                 try:
                     requests.post(webhook_url, json=data, timeout=10, proxies=self.proxies)
