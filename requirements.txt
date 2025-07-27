@@ -1,9 +1,9 @@
 numpy
 scipy
-yt-dlp>=2025.4.30
+yt-dlp>=2025.6.30
 ffmpeg-python>=0.2.0,<0.3
 sounddevice<1.0
-openai-whisper==20240930
+openai-whisper==20250625
 faster-whisper>=1.1.1,<2.0.0
-openai>=1.65,<2.0
-google-generativeai>=0.8,<1.0
+openai>=1.77,<2.0
+google-generativeai>=0.8.4,<1.0
