@@ -144,11 +144,9 @@ class DeviceAudioGetter(LoopWorkerBase):
                 output_queue.put(split_audio)
 
         import sounddevice as sd
-        with sd.InputStream(
-            samplerate=SAMPLE_RATE,
-            blocksize=round(SAMPLE_RATE * self.frame_duration * self.recording_frame_num),
-            channels=1,
-            callback=audio_callback
-        ):
+        with sd.InputStream(samplerate=SAMPLE_RATE,
+                            blocksize=round(SAMPLE_RATE * self.frame_duration * self.recording_frame_num),
+                            channels=1,
+                            callback=audio_callback):
             while True:
                 time.sleep(5)
