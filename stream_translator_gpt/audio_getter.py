@@ -4,6 +4,7 @@ import signal
 import subprocess
 import sys
 import threading
+import time
 
 import ffmpeg
 import numpy as np
@@ -127,16 +128,27 @@ class DeviceAudioGetter(LoopWorkerBase):
         sd.default.dtype[0] = np.float32
         self.frame_duration = frame_duration
         self.recording_frame_num = max(1, round(recording_interval / frame_duration))
+
         device_name = sd.query_devices(sd.default.device[0])['name']
         print(f'{INFO}Recording device: {device_name}')
 
     def loop(self, output_queue: queue.SimpleQueue[np.array]):
-        import sounddevice as sd
-        while True:
-            audio = sd.rec(frames=round(SAMPLE_RATE * self.frame_duration * self.recording_frame_num),
-                           samplerate=SAMPLE_RATE,
-                           channels=1,
-                           blocking=True).flatten()
+
+        def audio_callback(indata: np.ndarray, frames: int, time_info, status) -> None:
+            if status:
+                print(status)
+
+            audio = indata.flatten()
             split_audios = np.array_split(audio, self.recording_frame_num)
             for split_audio in split_audios:
                 output_queue.put(split_audio)
+
+        import sounddevice as sd
+        with sd.InputStream(
+            samplerate=SAMPLE_RATE,
+            blocksize=round(SAMPLE_RATE * self.frame_duration * self.recording_frame_num),
+            channels=1,
+            callback=audio_callback
+        ):
+            while True:
+                time.sleep(5)
