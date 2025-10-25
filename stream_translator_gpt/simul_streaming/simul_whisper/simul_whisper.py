@@ -217,7 +217,6 @@ class PaddedAlignAttWhisper:
             current_tokens = toks[0]
         return current_tokens
 
-
     def segments_len(self):
         segments_len = sum(s.shape[0] for s in self.segments) / 16000
         return segments_len
@@ -451,7 +450,6 @@ class PaddedAlignAttWhisper:
                 current_tokens = current_tokens[:, :-1]
                 break
 
-
         # let's now operate only with the top beam hypothesis
         tokens_to_split = current_tokens[0, token_len_before_decoding:]
         if fire_detected or is_last:
@@ -516,4 +514,3 @@ class PaddedAlignAttWhisper:
                 context = ""
             print("CONTEXT+FORCED:", context, sep="\t", file=f)
             print("HYPOTHESIS:", text, sep="\t", file=f)
-
