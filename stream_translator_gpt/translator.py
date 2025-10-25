@@ -6,14 +6,14 @@ import time
 from .common import ApiKeyPool, start_daemon_thread, is_url, WARNING, ERROR
 from .audio_getter import StreamAudioGetter, LocalFileAudioGetter, DeviceAudioGetter
 from .audio_slicer import AudioSlicer
-from .audio_transcriber import OpenaiWhisper, FasterWhisper, RemoteOpenaiWhisper, RemoteOpenaiTranscriber
+from .audio_transcriber import OpenaiWhisper, FasterWhisper, SimulStreaming, RemoteOpenaiWhisper, RemoteOpenaiTranscriber
 from .llm_translator import LLMClint, ParallelTranslator, SerialTranslator
 from .result_exporter import ResultExporter
 
 
 def main(url, format, cookies, input_proxy, device_index, device_recording_interval, frame_duration,
          continuous_no_speech_threshold, min_audio_length, max_audio_length, prefix_retention_length, vad_threshold,
-         model, language, use_faster_whisper, use_whisper_api, use_openai_transcription_api, openai_transcription_model,
+         model, language, use_faster_whisper, use_simul_streaming, use_whisper_api, use_openai_transcription_api, openai_transcription_model,
          whisper_filters, openai_api_key, google_api_key, translation_prompt, translation_history_size, gpt_model,
          gemini_model, translation_timeout, gpt_base_url, gemini_base_url, processing_proxy, use_json_result,
          retry_if_translation_fails, output_timestamps, hide_transcribe_result, output_proxy, output_file_path,
@@ -80,6 +80,16 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
             )
     if use_faster_whisper:
         start_daemon_thread(FasterWhisper.work,
+                            model=model,
+                            language=language,
+                            print_result=not hide_transcribe_result,
+                            output_timestamps=output_timestamps,
+                            input_queue=slicer_to_transcriber_queue,
+                            output_queue=transcriber_to_translator_queue,
+                            whisper_filters=whisper_filters,
+                            **transcribe_options)
+    elif use_simul_streaming:
+        start_daemon_thread(SimulStreaming.work,
                             model=model,
                             language=language,
                             print_result=not hide_transcribe_result,
@@ -206,7 +216,7 @@ def cli():
     parser.add_argument('--max_audio_length', type=float, default=15.0, help='Maximum slice audio length in seconds.')
     parser.add_argument('--prefix_retention_length',
                         type=float,
-                        default=0.5,
+                        default=1.0,
                         help='The length of the retention prefix audio during slicing.')
     parser.add_argument('--vad_threshold',
                         type=float,
@@ -237,6 +247,10 @@ def cli():
     parser.add_argument('--use_faster_whisper',
                         action='store_true',
                         help='Set this flag to use faster-whisper implementation instead of '
+                        'the original OpenAI implementation.')
+    parser.add_argument('--use_simul_streaming',
+                        action='store_true',
+                        help='Set this flag to use SimulStreaming implementation instead of '
                         'the original OpenAI implementation.')
     parser.add_argument(
         '--use_whisper_api',

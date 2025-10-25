@@ -15,7 +15,7 @@ from .beam import BeamPyTorchInference
 from .eow_detection import fire_at_boundary, load_cif
 import os
 
-from token_buffer import TokenBuffer
+from ..token_buffer import TokenBuffer
 
 import numpy as np
 from .generation_progress import *
@@ -38,9 +38,8 @@ class PaddedAlignAttWhisper:
         self.log_segments = 0
         if cfg.logdir is not None and not os.path.exists(cfg.logdir):
             os.makedirs(cfg.logdir)
-        model_name = os.path.basename(cfg.model_path).replace(".pt", "")
-        model_path = os.path.dirname(os.path.abspath(cfg.model_path))
-        self.model = load_model(name=model_name, download_root=model_path)
+        model_name = cfg.model
+        self.model = load_model(name=model_name)
 
         logger.info(f"Model dimensions: {self.model.dims}")
 

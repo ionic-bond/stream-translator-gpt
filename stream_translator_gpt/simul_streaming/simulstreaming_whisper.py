@@ -1,12 +1,12 @@
-from whisper_streaming.base import OnlineProcessorInterface, ASRBase
+from .whisper_streaming.base import OnlineProcessorInterface, ASRBase
 import argparse
 
 import sys
 import logging
 import torch
 
-from simul_whisper.config import AlignAttConfig
-from simul_whisper.simul_whisper import PaddedAlignAttWhisper
+from .simul_whisper.config import AlignAttConfig
+from .simul_whisper.simul_whisper import PaddedAlignAttWhisper
 
 logger = logging.getLogger(__name__)
 
@@ -85,10 +85,10 @@ class SimulWhisperASR(ASRBase):
     
     sep = " "
 
-    def __init__(self, language, model_path, cif_ckpt_path, frame_threshold, audio_max_len, audio_min_len, segment_length, beams, task, 
+    def __init__(self, language, model, cif_ckpt_path, frame_threshold, audio_max_len, audio_min_len, segment_length, beams, task, 
                  decoder_type, never_fire, init_prompt, static_init_prompt, max_context_tokens, logdir):
         cfg = AlignAttConfig(
-            model_path=model_path, 
+            model=model, 
             segment_length=segment_length,
             frame_threshold=frame_threshold,
             language=language,

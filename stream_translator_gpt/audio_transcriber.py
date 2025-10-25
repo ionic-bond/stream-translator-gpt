@@ -75,6 +75,39 @@ class FasterWhisper(AudioTranscriber):
         return transcript
 
 
+class SimulStreaming(AudioTranscriber):
+
+    def __init__(self, model: str, language: str) -> None:
+        from .simul_streaming.simulstreaming_whisper import SimulWhisperASR, SimulWhisperOnline
+
+        print(f'{INFO}Loading SimulStreaming model: {model}')
+        simulstreaming_params = {
+            "language": language,
+            "model": model,
+            "cif_ckpt_path": None,
+            "frame_threshold": 25,
+            "audio_max_len": 20.0,
+            "audio_min_len": 0.0,
+            "segment_length": 0.5,
+            "task": "transcribe",
+            "beams": 1,
+            "decoder_type": "greedy",
+            "never_fire": False,
+            "init_prompt": None,
+            "static_init_prompt": None,
+            "max_context_tokens": None,
+            "logdir": None,
+        }
+        asr = SimulWhisperASR(**simulstreaming_params)
+        self.asr_online = SimulWhisperOnline(asr)
+
+    def transcribe(self, audio: np.array, **transcribe_options) -> str:
+        self.asr_online.init()
+        self.asr_online.insert_audio_chunk(audio)
+        result = self.asr_online.finish()
+        return result.get('text', '')
+
+
 class RemoteOpenaiWhisper(AudioTranscriber):
     # https://platform.openai.com/docs/api-reference/audio/createTranscription?lang=python
 

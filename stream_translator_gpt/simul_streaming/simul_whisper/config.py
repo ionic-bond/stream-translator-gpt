@@ -6,7 +6,7 @@ from typing import Literal
 @dataclass
 class SimulWhisperConfig:
     '''Options that are common for all simul policies that could be implemented in SimulWhisper.'''
-    model_path: str
+    model: str
     language: str = field(default="zh")
     nonspeech_prob: float = 1.0
     audio_min_len: float = 1.0
