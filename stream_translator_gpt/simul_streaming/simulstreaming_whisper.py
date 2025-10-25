@@ -1,13 +1,10 @@
 from .whisper_streaming.base import OnlineProcessorInterface, ASRBase
 
 import sys
-import logging
 import torch
 
 from .simul_whisper.config import AlignAttConfig
 from .simul_whisper.simul_whisper import PaddedAlignAttWhisper
-
-logger = logging.getLogger(__name__)
 
 
 class SimulWhisperASR(ASRBase):
@@ -33,12 +30,9 @@ class SimulWhisperASR(ASRBase):
             static_init_prompt=static_init_prompt,
             logdir=logdir,
         )
-        logger.info(f"Language: {language}")
         self.model = PaddedAlignAttWhisper(cfg)
 
     def transcribe(self, audio, init_prompt=""):
-        logger.info("SimulWhisperASR's transcribe() should not be used. It's here only temporarily." \
-        "Instead, use SimulWhisperOnline.process_iter().")
         raise NotImplementedError("Use SimulWhisperOnline.process_iter() instead of transcribe().")
 
     def warmup(self, audio, init_prompt=""):
@@ -113,7 +107,6 @@ class SimulWhisperOnline(OnlineProcessorInterface):
                 'tokens': st
             }
             ret.append(out)
-            logger.debug(f"TS-WORD-INFO: {out}")
         return ret
 
     def hide_incomplete_unicode(self, tokens):
@@ -123,13 +116,11 @@ class SimulWhisperOnline(OnlineProcessorInterface):
         This function hides the last incomplete unicode character and adds it in the next iteration.
         """
         if self.unicode_buffer != []:
-            logger.debug(f"Hiding incomplete unicode character: {self.unicode_buffer}")
             tokens = self.unicode_buffer + tokens
             self.unicode_buffer = []  # clear the buffer after processing
         chars, _ = self.model.tokenizer.split_tokens_on_unicode(tokens)
         if len(chars) > 0 and chars[-1].endswith('�'):
             self.unicode_buffer = tokens[-1:]  # keep the last incomplete unicode character
-            logger.debug(f"Hiding incomplete unicode character: {tokens[-1:]}")
             return tokens[:-1]  # remove the last token, which is incomplete unicode character
         return tokens
 
@@ -170,7 +161,6 @@ class SimulWhisperOnline(OnlineProcessorInterface):
         return {'start': self.beg, 'end': e, 'text': text, 'tokens': tokens, 'words': ts_words}
 
     def finish(self):
-        logger.info("Finish")
         self.is_last = True
         o = self.process_iter()
         self.is_last = False

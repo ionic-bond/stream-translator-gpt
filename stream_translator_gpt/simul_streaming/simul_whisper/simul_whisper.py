@@ -1,7 +1,6 @@
 # This code was originally in simul_whisper/transcriber/simul_whisper.py . It is adapted a lot for SimulStreaming.
 
 import os
-import logging
 
 import torch
 import torch.nn.functional as F
@@ -21,7 +20,6 @@ import numpy as np
 from .generation_progress import *
 
 DEC_PAD = 50257
-logger = logging.getLogger(__name__)
 
 import sys
 import wave
@@ -42,8 +40,6 @@ class PaddedAlignAttWhisper:
             os.makedirs(cfg.logdir)
         model_name = cfg.model
         self.model = load_model(name=model_name)
-
-        logger.info(f"Model dimensions: {self.model.dims}")
 
         self.decode_options = DecodingOptions(language=cfg.language, without_timestamps=True, task=cfg.task)
         self.tokenizer_is_multilingual = not model_name.endswith(".en")
@@ -109,7 +105,6 @@ class PaddedAlignAttWhisper:
         if self.tokenizer.no_speech is not None:
             suppress_tokens.append(self.tokenizer.no_speech)
         suppress_tokens = tuple(sorted(set(suppress_tokens)))
-        logger.debug(f"Suppress tokens: {suppress_tokens}")
         sup_tokens = SuppressTokens(suppress_tokens)
         self.suppress_tokens = lambda logits: sup_tokens.apply(logits, None)
         # blank tokens are suppresed for new segments near the line 334
@@ -128,7 +123,6 @@ class PaddedAlignAttWhisper:
 
         # decoder type: greedy or beam
         if cfg.decoder_type == "greedy":
-            logger.info("Using greedy decoder")
             self.token_decoder = GreedyDecoder(0.0, self.tokenizer.eot)
             self.decoder_type = "greedy"
 
@@ -156,7 +150,6 @@ class PaddedAlignAttWhisper:
             self.context.text += self.cfg.init_prompt
 
     def init_tokens(self):
-        logger.debug(f"init tokens, {len(self.segments)}")
         # init tokens (mandatory prompt)
         self.initial_tokens = torch.tensor(self.tokenizer.sot_sequence_including_notimestamps,
                                            dtype=torch.long,
@@ -164,53 +157,38 @@ class PaddedAlignAttWhisper:
         self.initial_token_length = self.initial_tokens.shape[1]
         self.sot_index = self.tokenizer.sot_sequence.index(self.tokenizer.sot)
         #        self.segments = []
-        logger.debug(f"init tokens after, {len(self.segments)}")
         self.tokens = [self.initial_tokens]
 
     def trim_context(self):
-        logger.info("Trimming context")
         c = len(self.context.as_token_ids()) - len(self.context.prefix_token_ids)
-        #        logger.debug(f"c= {len(self.context.as_token_ids())}, {len(self.context.prefix_token_ids)}")
-        logger.info(f"Context text: {self.context.as_text()}")
-        #        logger.debug(f"Context tensor: {self.context.as_tensor()}")
         l = sum(t.shape[1] for t in self.tokens) + c
-        #        logger.debug(f"len {l}, c {c}, max_context_tokens {self.max_context_tokens}")
         if self.cfg.static_init_prompt is None:
             after = 0
         else:
             after = len(self.cfg.static_init_prompt)
-#        logger.debug(f"len {l}, c {c}, max_context_tokens {self.max_context_tokens}")
         while c > self.max_context_tokens or l > self.max_text_len - 20:
             t = self.context.trim_words(after=after)
             l -= t
             c -= t
-            logger.debug(f"len {l}, c {c}, max_context_tokens {self.max_context_tokens}")
             if t == 0:
                 break
-#        logger.debug(f"len {l}, c {c}, max_context_tokens {self.max_context_tokens}")
-        logger.info(f"Context after trim: {self.context.text} (len: {l})")
 
     def logits(self, tokens: torch.Tensor, audio_features: torch.Tensor) -> torch.Tensor:
         if self.cfg.decoder_type == "greedy":
             logit = self.model.decoder(tokens, audio_features, kv_cache=self.kv_cache)
         else:
-            logger.debug(f"Logits shape: {tokens.shape}")
             logit = self.inference.logits(tokens, audio_features)
         return logit
 
     def refresh_segment(self, complete=False):
 
-        logger.debug("Refreshing segment:")
         self.init_tokens()
         self.last_attend_frame = -self.cfg.rewind_threshold
         self.detected_language = None
         self.init_context()
-        logger.debug(f"Context: {self.context}")
         if not complete and len(self.segments) > 2:
-            logger.debug("keeping last two segments because they are and it is not complete.")
             self.segments = self.segments[-2:]
         else:
-            logger.debug("removing all segments.")
             self.segments = []
         self.log_segments += 1
 
@@ -237,15 +215,8 @@ class PaddedAlignAttWhisper:
             current_tokens = torch.cat(toks, dim=1)
         else:
             current_tokens = toks[0]
-        logger.debug("debug print current_tokens:")
-        self.debug_print_tokens(current_tokens)
         return current_tokens
 
-    def debug_print_tokens(self, tokens):
-        for i in range(self.cfg.beam_size):
-            logger.debug(self.tokenizer.decode_with_timestamps(tokens[i].tolist()))
-
-    ### audio buffer
 
     def segments_len(self):
         segments_len = sum(s.shape[0] for s in self.segments) / 16000
@@ -255,7 +226,6 @@ class PaddedAlignAttWhisper:
         segments_len = self.segments_len()
         # wait for long enough audio to start
         if segments_len < self.cfg.audio_min_len:
-            logger.debug("waiting for next segment")
             return False
         return True
 
@@ -271,7 +241,6 @@ class PaddedAlignAttWhisper:
             segments_len -= removed_len
             self.last_attend_frame -= int(TOKENS_PER_SECOND * removed_len)
             self.segments = self.segments[1:]
-            logger.debug(f"remove segments: {len(self.segments)} {len(self.tokens)}")
             if len(self.tokens) > 1:
                 self.context.append_token_ids(self.tokens[1][0, :])
                 self.tokens = [self.initial_tokens] + self.tokens[2:]
@@ -324,11 +293,9 @@ class PaddedAlignAttWhisper:
     def infer(self, is_last=False):
         new_segment = True
         if len(self.segments) == 0:
-            logger.debug("No segments, nothing to do")
             self.logdir_save([], [], {})
             return [], {}
         if not self._apply_minseglen():
-            logger.debug(f"applied minseglen {self.cfg.audio_min_len} > {self.segments_len()}.")
             input_segments = torch.cat(self.segments, dim=0)
             self.logdir_save(input_segments, [], {})
             return [], {}
@@ -353,21 +320,14 @@ class PaddedAlignAttWhisper:
         # encode
         encoder_feature = self.model.encoder(mel)
 
-        #        logger.debug(f"Encoder feature shape: {encoder_feature.shape}")
-        #        if mel.shape[-2:] != (self.model.dims.n_audio_ctx, self.model.dims.n_audio_state):
-        #            logger.debug("mel ")
         if self.cfg.language == "auto" and self.detected_language is None:
             language_tokens, language_probs = self.lang_id(encoder_feature)
-            logger.debug(f"Language tokens: {language_tokens}, probs: {language_probs}")
             top_lan, p = max(language_probs[0].items(), key=lambda x: x[1])
-            logger.info(f"Detected language: {top_lan} with p={p:.4f}")
             #self.tokenizer.language = top_lan
             #self.tokenizer.__post_init__()
             self.create_tokenizer(top_lan)
             self.detected_language = top_lan
             self.init_tokens()
-            logger.info(
-                f"Tokenizer language: {self.tokenizer.language}, {self.tokenizer.sot_sequence_including_notimestamps}")
 
         self.trim_context()
         current_tokens = self._current_tokens()
@@ -375,7 +335,6 @@ class PaddedAlignAttWhisper:
         fire_detected = self.fire_at_boundary(encoder_feature[:, :content_mel_len, :])
 
         ####################### Decoding loop
-        logger.info("Decoding loop starts\n")
 
         sum_logprobs = torch.zeros(self.cfg.beam_size, device=mel.device)
         completed = False
@@ -422,7 +381,6 @@ class PaddedAlignAttWhisper:
                 generation["no_speech_prob"] = no_speech_probs[0]
                 if no_speech_probs[0] > self.cfg.nonspeech_prob:
                     generation["no_speech"] = True
-                    logger.info("no speech, stop")
                     break
 
             logits = logits[:, -1, :]  # logits for the last token
@@ -440,21 +398,6 @@ class PaddedAlignAttWhisper:
             generation_progress_loop.append(("beam_tokens", Tokens(current_tokens[:, -1].clone())))
             generation_progress_loop.append(("sum_logprobs", sum_logprobs.tolist()))
             generation_progress_loop.append(("completed", completed))
-
-            logger.debug(f"Decoding completed: {completed}, sum_logprobs: {sum_logprobs.tolist()}, tokens: ")
-            self.debug_print_tokens(current_tokens)
-
-            # if self.decoder_type == "beam":
-            #     logger.debug(f"Finished sequences: {self.token_decoder.finished_sequences}")
-
-            #     logprobs = F.log_softmax(logits.float(), dim=-1)
-            #     idx = 0
-            #     logger.debug(f"Beam search topk: {logprobs[idx].topk(self.cfg.beam_size + 1)}")
-            #     logger.debug(f"Greedy search argmax: {logits.argmax(dim=-1)}")
-            # if completed:
-            #     self.debug_print_tokens(current_tokens)
-
-            #     logger.debug("decode stopped because decoder completed")
 
             attn_of_alignment_heads = [[] for _ in range(self.num_align_heads)]
             for i, attn_mat in enumerate(self.dec_attns):
@@ -474,24 +417,19 @@ class PaddedAlignAttWhisper:
                 t = torch.cat(mat, dim=1)
                 tmp.append(t)
             attn_of_alignment_heads = torch.stack(tmp, dim=1)
-            #            logger.debug(str(attn_of_alignment_heads.shape) + " tttady")
             std, mean = torch.std_mean(attn_of_alignment_heads, dim=-2, keepdim=True, unbiased=False)
             attn_of_alignment_heads = (attn_of_alignment_heads - mean) / std
             attn_of_alignment_heads = median_filter(attn_of_alignment_heads, 7)  # from whisper.timing
             attn_of_alignment_heads = attn_of_alignment_heads.mean(dim=1)
-            #            logger.debug(str(attn_of_alignment_heads.shape) + " po mean")
             attn_of_alignment_heads = attn_of_alignment_heads[:, :, :content_mel_len]
-            #            logger.debug(str(attn_of_alignment_heads.shape) + " pak ")
 
             # for each beam, the most attended frame is:
             most_attended_frames = torch.argmax(attn_of_alignment_heads[:, -1, :], dim=-1)
             generation_progress_loop.append(("most_attended_frames", most_attended_frames.clone().tolist()))
-            logger.debug(str(most_attended_frames.tolist()) + " most att frames")
 
             most_attended_frame = most_attended_frames[0].item()
 
             generation_progress.append(dict(generation_progress_loop))
-            logger.debug("current tokens" + str(current_tokens.shape))
             if completed:
                 #    # stripping the last token, the eot
                 current_tokens = current_tokens[:, :-1]
@@ -499,13 +437,9 @@ class PaddedAlignAttWhisper:
 
             # for some rare cases where the attention fails
             if not is_last and self.last_attend_frame - most_attended_frame > self.cfg.rewind_threshold:
-                # TODO: check this
                 if current_tokens.shape[1] > 1 and current_tokens[0, -2] >= DEC_PAD:
-                    logger.debug("ommit rewinding from special tokens")
                     self.last_attend_frame = most_attended_frame
                 else:
-                    logger.debug(f"[rewind detected] current attention pos: {most_attended_frame}, "
-                                 f"last attention pos: {self.last_attend_frame}; omit this segment")
                     self.last_attend_frame = -self.cfg.rewind_threshold
                     current_tokens = torch.cat(self.tokens, dim=1) if len(self.tokens) > 0 else self.tokens[0]
                     break
@@ -513,45 +447,10 @@ class PaddedAlignAttWhisper:
                 self.last_attend_frame = most_attended_frame
 
             if content_mel_len - most_attended_frame <= (4 if is_last else self.cfg.frame_threshold):
-                logger.debug(f"attention reaches the end: {most_attended_frame}/{content_mel_len}")
                 # stripping the last token, the one that is attended too close to the end
                 current_tokens = current_tokens[:, :-1]
                 break
 
-            # debug print
-            for i in range(self.cfg.beam_size):
-                logger.debug("attn: {}, current pos: {}, current token: {}({})".format(
-                    attn_of_alignment_heads.shape if attn_of_alignment_heads is not None else None,
-                    most_attended_frames[i], current_tokens[i, -1].item(),
-                    self.tokenizer.decode([current_tokens[i, -1].item()])))
-
-
-#        for k,v in generation.items():
-#            print(k,v,file=sys.stderr)
-#        for x in generation_progress:
-#            for y in x.items():
-#                print("\t\t",*y,file=sys.stderr)
-#            print("\t","----", file=sys.stderr)
-#        print("\t", "end of generation_progress_loop", file=sys.stderr)
-#    sys.exit(1)
-####################### End of decoding loop
-
-        logger.info("End of decoding loop")
-
-        # if attn_of_alignment_heads is not None:
-        #     seg_len = int(segment.shape[0] / 16000 * TOKENS_PER_SECOND)
-
-        #     # Lets' now consider only the top hypothesis in the beam search
-        #     top_beam_attn_of_alignment_heads = attn_of_alignment_heads[0]
-
-        #     # debug print: how is the new token attended?
-        #     new_token_attn = top_beam_attn_of_alignment_heads[token_len_before_decoding:, -seg_len:]
-        #     logger.debug(f"New token attention shape: {new_token_attn.shape}")
-        #     if new_token_attn.shape[0] == 0:  # it's not attended in the current audio segment
-        #         logger.debug("no token generated")
-        #     else:  # it is, and the max attention is:
-        #         new_token_max_attn, _ = new_token_attn.max(dim=-1)
-        #         logger.debug(f"segment max attention: {new_token_max_attn.mean().item()/len(self.segments)}")
 
         # let's now operate only with the top beam hypothesis
         tokens_to_split = current_tokens[0, token_len_before_decoding:]
@@ -563,26 +462,16 @@ class PaddedAlignAttWhisper:
             generation["result"] = {"split_words": split_words[:-1], "split_tokens": split_tokens[:-1]}
             generation["result_truncated"] = {"split_words": split_words[-1:], "split_tokens": split_tokens[-1:]}
 
-            #            text_to_split = self.tokenizer.decode(tokens_to_split)
-            #            logger.debug(f"text_to_split: {text_to_split}")
-            #            logger.debug("text at current step: {}".format(text_to_split.replace(" ", "<space>")))
-            #            text_before_space = " ".join(text_to_split.split(" ")[:-1])
-            #            logger.debug("before the last space: {}".format(text_before_space.replace(" ", "<space>")))
             if len(split_words) > 1:
                 new_hypothesis = [i for sublist in split_tokens[:-1] for i in sublist]
             else:
                 new_hypothesis = []
 
         ### new hypothesis
-        logger.debug(f"new_hypothesis: {new_hypothesis}")
         new_tokens = torch.tensor([new_hypothesis],
                                   dtype=torch.long).repeat_interleave(self.cfg.beam_size,
                                                                       dim=0).to(device=self.model.device,)
         self.tokens.append(new_tokens)
-        # TODO: test if this is redundant or not
-        #        ret = ret[ret<DEC_PAD]
-
-        logger.info(f"Output: {self.tokenizer.decode(new_hypothesis)}")
 
         self._clean_cache()
 
@@ -602,8 +491,6 @@ class PaddedAlignAttWhisper:
         dir = os.path.join(self.cfg.logdir, f"seg_{self.log_segments:05d}")
         if not os.path.exists(dir):
             os.makedirs(dir)
-
-        logger.debug(f"Saving to {dir}, iteration {self.logdir_i:05d}")
 
         # saving wav:
         wav_path = os.path.join(dir, f"iter_{self.logdir_i:05d}_audio.wav")
@@ -630,5 +517,3 @@ class PaddedAlignAttWhisper:
             print("CONTEXT+FORCED:", context, sep="\t", file=f)
             print("HYPOTHESIS:", text, sep="\t", file=f)
 
-        # TODO: generation progress can be also saved in a readable format
-        #logger.debug(f"generation progress: {generation}")
