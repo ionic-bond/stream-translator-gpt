@@ -11,7 +11,7 @@ from .llm_translator import LLMClint, ParallelTranslator, SerialTranslator
 from .result_exporter import ResultExporter
 
 
-def main(url, format, cookies, input_proxy, device_index, device_recording_interval, frame_duration,
+def main(url, format, cookies, input_proxy, device_index, device_recording_interval,
          continuous_no_speech_threshold, min_audio_length, max_audio_length, prefix_retention_length, vad_threshold,
          model, language, use_faster_whisper, use_simul_streaming, use_whisper_api, use_openai_transcription_api,
          openai_transcription_model, whisper_filters, openai_api_key, google_api_key, translation_prompt,
@@ -132,7 +132,6 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
                             **transcribe_options)
     start_daemon_thread(
         AudioSlicer.work,
-        frame_duration=frame_duration,
         continuous_no_speech_threshold=continuous_no_speech_threshold,
         min_audio_length=min_audio_length,
         max_audio_length=max_audio_length,
@@ -144,7 +143,6 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
     if url.lower() == 'device':
         DeviceAudioGetter.work(
             device_index=device_index,
-            frame_duration=frame_duration,
             recording_interval=device_recording_interval,
             output_queue=getter_to_slicer_queue,
         )
@@ -154,13 +152,11 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
             format=format,
             cookies=cookies,
             proxy=input_proxy,
-            frame_duration=frame_duration,
             output_queue=getter_to_slicer_queue,
         )
     else:
         LocalFileAudioGetter.work(
             file_path=url,
-            frame_duration=frame_duration,
             output_queue=getter_to_slicer_queue,
         )
 
@@ -204,11 +200,6 @@ def cli():
                         help='The shorter the recording interval, the lower the latency,'
                         'but it will increase CPU usage.'
                         'It is recommended to set it between 0.1 and 1.0.')
-    parser.add_argument('--frame_duration',
-                        type=float,
-                        default=0.1,
-                        help='The unit that processes live streaming data in seconds, '
-                        'should be >= 0.03')
     parser.add_argument('--continuous_no_speech_threshold',
                         type=float,
                         default=0.5,

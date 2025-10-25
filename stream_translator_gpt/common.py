@@ -6,7 +6,11 @@ from datetime import datetime, timezone
 from urllib.parse import urlparse
 
 import numpy as np
-from whisper.audio import SAMPLE_RATE
+
+SAMPLE_RATE = 16000
+# Requested by silero-vad > v5
+SAMPLES_PER_FRAME = 512
+FRAME_DURATION = SAMPLES_PER_FRAME / SAMPLE_RATE
 
 RED = '\033[91m'
 YELLOW = '\033[93m'

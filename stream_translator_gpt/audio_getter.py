@@ -9,7 +9,7 @@ import time
 import ffmpeg
 import numpy as np
 
-from .common import SAMPLE_RATE, LoopWorkerBase, INFO
+from .common import SAMPLE_RATE, SAMPLES_PER_FRAME, LoopWorkerBase, INFO
 
 
 def _transport(ytdlp_proc, ffmpeg_proc):
@@ -48,12 +48,12 @@ def _open_stream(url: str, format: str, cookies: str, proxy: str):
 
 class StreamAudioGetter(LoopWorkerBase):
 
-    def __init__(self, url: str, format: str, cookies: str, proxy: str, frame_duration: float) -> None:
+    def __init__(self, url: str, format: str, cookies: str, proxy: str) -> None:
         self._cleanup_ytdlp_cache()
 
         print(f'{INFO}Opening stream: {url}')
         self.ffmpeg_process, self.ytdlp_process = _open_stream(url, format, cookies, proxy)
-        self.byte_size = round(frame_duration * SAMPLE_RATE * 4)  # Factor 4 comes from float32 (4 bytes per sample)
+        self.byte_size = round(SAMPLES_PER_FRAME * 4)  # Factor 4 comes from float32 (4 bytes per sample)
         signal.signal(signal.SIGINT, self._exit_handler)
 
     def __del__(self):
@@ -87,7 +87,7 @@ class StreamAudioGetter(LoopWorkerBase):
 
 class LocalFileAudioGetter(LoopWorkerBase):
 
-    def __init__(self, file_path: str, frame_duration: float) -> None:
+    def __init__(self, file_path: str) -> None:
         print(f'{INFO}Opening local file: {file_path}')
         try:
             self.ffmpeg_process = (ffmpeg.input(file_path,
@@ -99,7 +99,7 @@ class LocalFileAudioGetter(LoopWorkerBase):
                                                                                                    pipe_stdout=True))
         except ffmpeg.Error as e:
             raise RuntimeError(f'Failed to load audio: {e.stderr.decode()}') from e
-        self.byte_size = round(frame_duration * SAMPLE_RATE * 4)  # Factor 4 comes from float32 (4 bytes per sample)
+        self.byte_size = round(SAMPLES_PER_FRAME * 4)  # Factor 4 comes from float32 (4 bytes per sample)
         signal.signal(signal.SIGINT, self._exit_handler)
 
     def _exit_handler(self, signum, frame):
@@ -121,16 +121,19 @@ class LocalFileAudioGetter(LoopWorkerBase):
 
 class DeviceAudioGetter(LoopWorkerBase):
 
-    def __init__(self, device_index: int, frame_duration: float, recording_interval: float) -> None:
+    def __init__(self, device_index: int, recording_interval: float) -> None:
         import sounddevice as sd
-        if device_index:
-            sd.default.device[0] = device_index
-        sd.default.dtype[0] = np.float32
-        self.frame_duration = frame_duration
-        self.recording_frame_num = max(1, round(recording_interval / frame_duration))
 
-        device_name = sd.query_devices(sd.default.device[0])['name']
+        if not device_index:
+            device_index = sd.default.device[0]
+        else:
+            sd.default.device[0] = device_index
+        self.device_index = device_index
+        device_name = sd.query_devices(device_index)['name']
         print(f'{INFO}Recording device: {device_name}')
+
+        self.recording_interval = recording_interval
+        self.remaining_audio = np.array([], dtype=np.float32)
 
     def loop(self, output_queue: queue.SimpleQueue[np.array]):
 
@@ -138,15 +141,23 @@ class DeviceAudioGetter(LoopWorkerBase):
             if status:
                 print(status)
 
-            audio = indata.flatten()
-            split_audios = np.array_split(audio, self.recording_frame_num)
-            for split_audio in split_audios:
-                output_queue.put(split_audio)
+            audio = np.concatenate([self.remaining_audio, indata.flatten().astype(np.float32)])
+            num_samples = len(audio)
+            num_chunks = num_samples // SAMPLES_PER_FRAME
+            remaining_samples = num_samples % SAMPLES_PER_FRAME
+
+            for i in range(num_chunks):
+                chunk = audio[i * SAMPLES_PER_FRAME : (i + 1) * SAMPLES_PER_FRAME]
+                output_queue.put(chunk)
+
+            self.remaining_audio = audio[-remaining_samples:] if remaining_samples > 0 else np.array([], dtype=np.float32)
 
         import sounddevice as sd
         with sd.InputStream(samplerate=SAMPLE_RATE,
-                            blocksize=round(SAMPLE_RATE * self.frame_duration * self.recording_frame_num),
+                            blocksize=round(SAMPLE_RATE * self.recording_interval),
+                            device=self.device_index,
                             channels=1,
+                            dtype=np.float32,
                             callback=audio_callback):
             while True:
                 time.sleep(5)

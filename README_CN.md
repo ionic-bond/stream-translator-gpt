@@ -153,7 +153,6 @@ python3 ./stream-translator-gpt/translator.py
 | `--list_devices`                   |                           | 打印所有音频设备信息然后退出。                                                                                             |
 | `--device_recording_interval`      | 0.5                       | 录音间隔越短，延迟越低，但会增加CPU使用率。建议将其设置在0.1到1.0之间。                                                    |
 | **音频切割选项**                   |
-| `--frame_duration`                 | 0.1                       | 处理实时流数据的单位（以秒为单位），需大于等于0.03。                                                                       |
 | `--continuous_no_speech_threshold` | 0.5                       | 如果连续一段时间内没有语音，则进行切片（以秒为单位）。                                                                     |
 | `--min_audio_length`               | 1.5                       | 切片音频的最小长度（以秒为单位）。                                                                                         |
 | `--max_audio_length`               | 15.0                      | 切片音频的最大长度（以秒为单位）。                                                                                         |

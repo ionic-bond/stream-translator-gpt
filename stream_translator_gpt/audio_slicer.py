@@ -5,7 +5,7 @@ import warnings
 
 import numpy as np
 
-from .common import TranslationTask, SAMPLE_RATE, LoopWorkerBase
+from .common import TranslationTask, SAMPLE_RATE, FRAME_DURATION, LoopWorkerBase
 
 warnings.filterwarnings('ignore')
 
@@ -38,13 +38,13 @@ class VAD:
 
 class AudioSlicer(LoopWorkerBase):
 
-    def __init__(self, frame_duration: float, continuous_no_speech_threshold: float, min_audio_length: float,
+    def __init__(self, continuous_no_speech_threshold: float, min_audio_length: float,
                  max_audio_length: float, prefix_retention_length: float, vad_threshold: float):
         self.vad = VAD()
-        self.continuous_no_speech_threshold = round(continuous_no_speech_threshold / frame_duration)
-        self.min_audio_length = round(min_audio_length / frame_duration)
-        self.max_audio_length = round(max_audio_length / frame_duration)
-        self.prefix_retention_length = round(prefix_retention_length / frame_duration)
+        self.continuous_no_speech_threshold = round(continuous_no_speech_threshold / FRAME_DURATION)
+        self.min_audio_length = round(min_audio_length / FRAME_DURATION)
+        self.max_audio_length = round(max_audio_length / FRAME_DURATION)
+        self.prefix_retention_length = round(prefix_retention_length / FRAME_DURATION)
         self.vad_threshold = vad_threshold
         self.sampling_rate = SAMPLE_RATE
         self.audio_buffer = []
@@ -52,7 +52,6 @@ class AudioSlicer(LoopWorkerBase):
         self.speech_count = 0
         self.no_speech_count = 0
         self.continuous_no_speech_count = 0
-        self.frame_duration = frame_duration
         self.counter = 0
         self.last_slice_second = 0.0
 
@@ -89,8 +88,7 @@ class AudioSlicer(LoopWorkerBase):
         self.speech_count = 0
         self.no_speech_count = 0
         self.continuous_no_speech_count = 0
-        # self.vad.reset_states()
-        slice_second = self.counter * self.frame_duration
+        slice_second = self.counter * FRAME_DURATION
         last_slice_second = self.last_slice_second
         self.last_slice_second = slice_second
         return concatenate_audio, (last_slice_second, slice_second)
@@ -103,3 +101,6 @@ class AudioSlicer(LoopWorkerBase):
                 sliced_audio, time_range = self.slice()
                 task = TranslationTask(sliced_audio, time_range)
                 output_queue.put(task)
+            if self.counter % 10000 == 0:
+                # About 5 minutes
+                self.vad.reset_states()
