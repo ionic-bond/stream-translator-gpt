@@ -1,6 +1,5 @@
 from .whisper_streaming.base import OnlineProcessorInterface, ASRBase
 
-
 import sys
 import logging
 import torch
@@ -9,12 +8,6 @@ from .simul_whisper.config import AlignAttConfig
 from .simul_whisper.simul_whisper import PaddedAlignAttWhisper
 
 logger = logging.getLogger(__name__)
-
-
-
-
-
-
 
 
 class SimulWhisperASR(ASRBase):
@@ -183,8 +176,3 @@ class SimulWhisperOnline(OnlineProcessorInterface):
         self.is_last = False
         self.model.refresh_segment(complete=True)
         return o
-
-
-
-
-    
