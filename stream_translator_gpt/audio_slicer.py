@@ -38,8 +38,8 @@ class VAD:
 
 class AudioSlicer(LoopWorkerBase):
 
-    def __init__(self, continuous_no_speech_threshold: float, min_audio_length: float,
-                 max_audio_length: float, prefix_retention_length: float, vad_threshold: float):
+    def __init__(self, continuous_no_speech_threshold: float, min_audio_length: float, max_audio_length: float,
+                 prefix_retention_length: float, vad_threshold: float):
         self.vad = VAD()
         self.continuous_no_speech_threshold = round(continuous_no_speech_threshold / FRAME_DURATION)
         self.min_audio_length = round(min_audio_length / FRAME_DURATION)

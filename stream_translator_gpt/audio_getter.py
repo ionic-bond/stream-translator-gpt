@@ -147,10 +147,11 @@ class DeviceAudioGetter(LoopWorkerBase):
             remaining_samples = num_samples % SAMPLES_PER_FRAME
 
             for i in range(num_chunks):
-                chunk = audio[i * SAMPLES_PER_FRAME : (i + 1) * SAMPLES_PER_FRAME]
+                chunk = audio[i * SAMPLES_PER_FRAME:(i + 1) * SAMPLES_PER_FRAME]
                 output_queue.put(chunk)
 
-            self.remaining_audio = audio[-remaining_samples:] if remaining_samples > 0 else np.array([], dtype=np.float32)
+            self.remaining_audio = audio[-remaining_samples:] if remaining_samples > 0 else np.array([],
+                                                                                                     dtype=np.float32)
 
         import sounddevice as sd
         with sd.InputStream(samplerate=SAMPLE_RATE,

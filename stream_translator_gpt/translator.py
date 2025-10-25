@@ -11,9 +11,9 @@ from .llm_translator import LLMClint, ParallelTranslator, SerialTranslator
 from .result_exporter import ResultExporter
 
 
-def main(url, format, cookies, input_proxy, device_index, device_recording_interval,
-         continuous_no_speech_threshold, min_audio_length, max_audio_length, prefix_retention_length, vad_threshold,
-         model, language, use_faster_whisper, use_simul_streaming, use_whisper_api, use_openai_transcription_api,
+def main(url, format, cookies, input_proxy, device_index, device_recording_interval, continuous_no_speech_threshold,
+         min_audio_length, max_audio_length, prefix_retention_length, vad_threshold, model, language,
+         use_faster_whisper, use_simul_streaming, use_whisper_api, use_openai_transcription_api,
          openai_transcription_model, whisper_filters, openai_api_key, google_api_key, translation_prompt,
          translation_history_size, gpt_model, gemini_model, translation_timeout, gpt_base_url, gemini_base_url,
          processing_proxy, use_json_result, retry_if_translation_fails, output_timestamps, hide_transcribe_result,
