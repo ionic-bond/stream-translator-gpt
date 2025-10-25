@@ -112,7 +112,9 @@ LANGUAGES = {
 
 # language code lookup by name, with a few language aliases
 TO_LANGUAGE_CODE = {
-    **{language: code for code, language in LANGUAGES.items()},
+    **{
+        language: code for code, language in LANGUAGES.items()
+    },
     "burmese": "my",
     "valencian": "ca",
     "flemish": "nl",
@@ -148,7 +150,7 @@ class Tokenizer:
         translate: int = self.special_tokens["<|translate|>"]
         transcribe: int = self.special_tokens["<|transcribe|>"]
 
-        langs = tuple(LANGUAGES.keys())[: self.num_languages]
+        langs = tuple(LANGUAGES.keys())[:self.num_languages]
         sot_sequence = [sot]
         if self.language is not None:
             sot_sequence.append(sot + 1 + langs.index(self.language))
@@ -228,7 +230,7 @@ class Tokenizer:
         for token, token_id in self.special_tokens.items():
             if token.strip("<|>") in LANGUAGES:
                 result.append(token_id)
-        return tuple(result)[: self.num_languages]
+        return tuple(result)[:self.num_languages]
 
     @cached_property
     def all_language_codes(self) -> Tuple[str]:
@@ -251,9 +253,7 @@ class Tokenizer:
         keeping basic punctuations like commas, periods, question marks, exclamation points, etc.
         """
         symbols = list('"#()*+/:;<=>@[\\]^_`{|}~「」『』')
-        symbols += (
-            "<< >> <<< >>> -- --- -( -[ (' (\" (( )) ((( ))) [[ ]] {{ }} ♪♪ ♪♪♪".split()
-        )
+        symbols += ("<< >> <<< >>> -- --- -( -[ (' (\" (( )) ((( ))) [[ ]] {{ }} ♪♪ ♪♪♪".split())
 
         # symbols that may be a single token or multiple tokens depending on the tokenizer.
         # In case they're multiple tokens, suppress the first token, which is safe because:
@@ -266,8 +266,8 @@ class Tokenizer:
         result = {self.encoding.encode(" -")[0], self.encoding.encode(" '")[0]}
         for symbol in symbols + list(miscellaneous):
             for tokens in [
-                self.encoding.encode(symbol),
-                self.encoding.encode(" " + symbol),
+                    self.encoding.encode(symbol),
+                    self.encoding.encode(" " + symbol),
             ]:
                 if len(tokens) == 1 or symbol in miscellaneous:
                     result.add(tokens[0])
@@ -296,11 +296,8 @@ class Tokenizer:
             current_tokens.append(token)
             decoded = self.decode_with_timestamps(current_tokens)
 
-            if (
-                replacement_char not in decoded
-                or decoded_full[unicode_offset + decoded.index(replacement_char)]
-                == replacement_char
-            ):
+            if (replacement_char not in decoded or
+                    decoded_full[unicode_offset + decoded.index(replacement_char)] == replacement_char):
                 words.append(decoded)
                 word_tokens.append(current_tokens)
                 current_tokens = []
@@ -330,10 +327,7 @@ class Tokenizer:
 @lru_cache(maxsize=None)
 def get_encoding(name: str = "gpt2", num_languages: int = 99):
     vocab_path = os.path.join(os.path.dirname(__file__), "assets", f"{name}.tiktoken")
-    ranks = {
-        base64.b64decode(token): int(rank)
-        for token, rank in (line.split() for line in open(vocab_path) if line)
-    }
+    ranks = {base64.b64decode(token): int(rank) for token, rank in (line.split() for line in open(vocab_path) if line)}
     n_vocab = len(ranks)
     special_tokens = {}
 
@@ -365,11 +359,11 @@ def get_encoding(name: str = "gpt2", num_languages: int = 99):
 
 @lru_cache(maxsize=None)
 def get_tokenizer(
-    multilingual: bool,
-    *,
-    num_languages: int = 99,
-    language: Optional[str] = None,
-    task: Optional[str] = None,  # Literal["transcribe", "translate", None]
+        multilingual: bool,
+        *,
+        num_languages: int = 99,
+        language: Optional[str] = None,
+        task: Optional[str] = None,  # Literal["transcribe", "translate", None]
 ) -> Tokenizer:
     if language is not None:
         language = language.lower()
@@ -390,6 +384,4 @@ def get_tokenizer(
 
     encoding = get_encoding(name=encoding_name, num_languages=num_languages)
 
-    return Tokenizer(
-        encoding=encoding, num_languages=num_languages, language=language, task=task
-    )
+    return Tokenizer(encoding=encoding, num_languages=num_languages, language=language, task=task)

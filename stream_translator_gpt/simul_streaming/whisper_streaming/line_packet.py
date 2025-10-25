@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 """Functions for sending and receiving individual lines of text over a socket.
 
 A line is transmitted using one or more fixed-size packets of UTF-8 bytes
@@ -42,7 +41,7 @@ def send_one_line(socket, text, pad_zeros=False):
             padding_length = PACKET_SIZE - bytes_remaining
             packet = data[offset:] + (b'\0' * padding_length if pad_zeros else b'')
         else:
-            packet = data[offset:offset+PACKET_SIZE]
+            packet = data[offset:offset + PACKET_SIZE]
         socket.sendall(packet)
 
 
@@ -88,6 +87,6 @@ def receive_lines(socket):
     # TODO Is there a better way of handling bad input than 'replace'?
     text = data.decode('utf-8', errors='replace').strip('\0')
     lines = text.split('\n')
-    if len(lines)==1 and not lines[0]:
+    if len(lines) == 1 and not lines[0]:
         return None
     return lines

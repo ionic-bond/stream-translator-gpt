@@ -11,15 +11,15 @@ logger = logging.getLogger(__name__)
 
 SAMPLING_RATE = 16000
 
-
 ######### Server objects
 
 import whisper_streaming.line_packet as line_packet
 import socket
 
+
 class Connection:
     '''it wraps conn object'''
-    PACKET_SIZE = 32000*5*60 # 5 minutes # was: 65536
+    PACKET_SIZE = 32000 * 5 * 60  # 5 minutes # was: 65536
 
     def __init__(self, conn):
         self.conn = conn
@@ -45,10 +45,12 @@ class Connection:
         except ConnectionResetError:
             return None
 
+
 import io
 import soundfile
 
-# wraps socket and ASR object, and serves one client connection. 
+
+# wraps socket and ASR object, and serves one client connection.
 # next client should be served by a new instance of this object
 class ServerProcessor:
 
@@ -64,14 +66,19 @@ class ServerProcessor:
         # blocks operation if less than self.min_chunk seconds is available
         # unblocks if connection is closed or a chunk is available
         out = []
-        minlimit = self.min_chunk*SAMPLING_RATE
+        minlimit = self.min_chunk * SAMPLING_RATE
         while sum(len(x) for x in out) < minlimit:
             raw_bytes = self.connection.non_blocking_receive_audio()
             if not raw_bytes:
                 break
 #            print("received audio:",len(raw_bytes), "bytes", raw_bytes[:10])
-            sf = soundfile.SoundFile(io.BytesIO(raw_bytes), channels=1,endian="LITTLE",samplerate=SAMPLING_RATE, subtype="PCM_16",format="RAW")
-            audio, _ = librosa.load(sf,sr=SAMPLING_RATE,dtype=np.float32)
+            sf = soundfile.SoundFile(io.BytesIO(raw_bytes),
+                                     channels=1,
+                                     endian="LITTLE",
+                                     samplerate=SAMPLING_RATE,
+                                     subtype="PCM_16",
+                                     format="RAW")
+            audio, _ = librosa.load(sf, sr=SAMPLING_RATE, dtype=np.float32)
             out.append(audio)
         if not out:
             return None
@@ -88,7 +95,8 @@ class ServerProcessor:
         #    - beg and end timestamp of the text segment, as estimated by Whisper model. The timestamps are not accurate, but they're useful anyway
         # - the next words: segment transcript
         if iteration_output:
-            message = "%1.0f %1.0f %s" % (iteration_output['start'] * 1000, iteration_output['end'] * 1000, iteration_output['text'])
+            message = "%1.0f %1.0f %s" % (iteration_output['start'] * 1000, iteration_output['end'] * 1000,
+                                          iteration_output['text'])
             print(message, flush=True, file=sys.stderr)
             self.connection.send(message)
         else:
@@ -109,8 +117,10 @@ class ServerProcessor:
                 logger.info("broken pipe -- connection closed?")
                 break
 
+
 #        o = online.finish()  # this should be working
 #        self.send_result(o)
+
 
 def main_server(factory, add_args):
     '''
@@ -124,9 +134,13 @@ def main_server(factory, add_args):
     # server options
     parser.add_argument("--host", type=str, default='localhost')
     parser.add_argument("--port", type=int, default=43007)
-    parser.add_argument("--warmup-file", type=str, dest="warmup_file", 
-            help="The path to a speech audio wav file to warm up Whisper so that the very first chunk processing is fast. It can be e.g. "
-            "https://github.com/ggerganov/whisper.cpp/raw/master/samples/jfk.wav .")
+    parser.add_argument(
+        "--warmup-file",
+        type=str,
+        dest="warmup_file",
+        help=
+        "The path to a speech audio wav file to warm up Whisper so that the very first chunk processing is fast. It can be e.g. "
+        "https://github.com/ggerganov/whisper.cpp/raw/master/samples/jfk.wav .")
 
     # options from whisper_online
     processor_args(parser)
@@ -135,10 +149,9 @@ def main_server(factory, add_args):
 
     args = parser.parse_args()
 
-    set_logging(args,logger)
+    set_logging(args, logger)
 
-    # setting whisper object by args 
-
+    # setting whisper object by args
 
     asr, online = asr_factory(args, factory)
     if args.vac:
@@ -146,16 +159,16 @@ def main_server(factory, add_args):
     else:
         min_chunk = args.min_chunk_size
 
-    # warm up the ASR because the very first transcribe takes more time than the others. 
+    # warm up the ASR because the very first transcribe takes more time than the others.
     # Test results in https://github.com/ufal/whisper_streaming/pull/81
     msg = "Whisper is not warmed up. The first chunk processing may take longer."
     if args.warmup_file:
         if os.path.isfile(args.warmup_file):
-            a = load_audio_chunk(args.warmup_file,0,1)
+            a = load_audio_chunk(args.warmup_file, 0, 1)
             asr.warmup(a)
             logger.info("Whisper is warmed up.")
         else:
-            logger.critical("The warm up file is not available. "+msg)
+            logger.critical("The warm up file is not available. " + msg)
             sys.exit(1)
     else:
         logger.warning(msg)
@@ -165,7 +178,7 @@ def main_server(factory, add_args):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((args.host, args.port))
         s.listen(1)
-        logger.info('Listening on'+str((args.host, args.port)))
+        logger.info('Listening on' + str((args.host, args.port)))
         while True:
             conn, addr = s.accept()
             logger.info('Connected to client on {}'.format(addr))

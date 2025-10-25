@@ -27,9 +27,7 @@ def median_filter(x: torch.Tensor, filter_width: int):
         # `F.pad` does not support 1D or 2D inputs for reflect padding but supports 3D and 4D
         x = x[None, None, :]
 
-    assert (
-        filter_width > 0 and filter_width % 2 == 1
-    ), "`filter_width` should be an odd number"
+    assert (filter_width > 0 and filter_width % 2 == 1), "`filter_width` should be an odd number"
 
     result = None
     x = F.pad(x, (filter_width // 2, filter_width // 2, 0, 0), mode="reflect")
@@ -39,10 +37,8 @@ def median_filter(x: torch.Tensor, filter_width: int):
 
             result = median_filter_cuda(x, filter_width)
         except (RuntimeError, subprocess.CalledProcessError):
-            warnings.warn(
-                "Failed to launch Triton kernels, likely due to missing CUDA toolkit; "
-                "falling back to a slower median kernel implementation..."
-            )
+            warnings.warn("Failed to launch Triton kernels, likely due to missing CUDA toolkit; "
+                          "falling back to a slower median kernel implementation...")
 
     if result is None:
         # sort() is faster than torch.median (https://github.com/pytorch/pytorch/issues/51450)
@@ -56,8 +52,8 @@ def median_filter(x: torch.Tensor, filter_width: int):
 
 @numba.jit(nopython=True)
 def backtrace(trace: np.ndarray):
-    i = trace.shape[0] - 1 # trace: (N+1, M+1), i=N
-    j = trace.shape[1] - 1 # j=M
+    i = trace.shape[0] - 1  # trace: (N+1, M+1), i=N
+    j = trace.shape[1] - 1  # j=M
     # 边界点其实无意义？
     trace[0, :] = 2
     trace[:, 0] = 1
@@ -83,8 +79,8 @@ def backtrace(trace: np.ndarray):
 @numba.jit(nopython=True, parallel=True)
 def dtw_cpu(x: np.ndarray):
     N, M = x.shape
-    cost = np.ones((N + 1, M + 1), dtype=np.float32) * np.inf # cost: x[0, 0]到x[i-1, j-1]的最小代价
-    trace = -np.ones((N + 1, M + 1), dtype=np.float32) # trace: 
+    cost = np.ones((N + 1, M + 1), dtype=np.float32) * np.inf  # cost: x[0, 0]到x[i-1, j-1]的最小代价
+    trace = -np.ones((N + 1, M + 1), dtype=np.float32)  # trace:
 
     cost[0, 0] = 0
     for j in range(1, M + 1):
@@ -112,9 +108,7 @@ def dtw_cuda(x, BLOCK_SIZE=1024):
     M, N = x.shape
     assert M < BLOCK_SIZE, f"M should be smaller than {BLOCK_SIZE=}"
 
-    x_skew = (
-        F.pad(x, (0, M + 1), value=np.inf).flatten()[: M * (N + M)].reshape(M, N + M)
-    )
+    x_skew = (F.pad(x, (0, M + 1), value=np.inf).flatten()[:M * (N + M)].reshape(M, N + M))
     x_skew = x_skew.T.contiguous()
     cost = torch.ones(N + M + 2, M + 2) * np.inf
     cost[0, 0] = 0
@@ -133,9 +127,7 @@ def dtw_cuda(x, BLOCK_SIZE=1024):
         BLOCK_SIZE=BLOCK_SIZE,
     )
 
-    trace = trace.T.flatten()[: (M + 1) * (M + N + 3)].reshape(M + 1, M + N + 3)[
-        :, : N + 1
-    ]
+    trace = trace.T.flatten()[:(M + 1) * (M + N + 3)].reshape(M + 1, M + N + 3)[:, :N + 1]
     return backtrace(trace.cpu().numpy())
 
 
@@ -144,10 +136,8 @@ def dtw(x: torch.Tensor) -> np.ndarray:
         try:
             return dtw_cuda(x)
         except (RuntimeError, subprocess.CalledProcessError):
-            warnings.warn(
-                "Failed to launch Triton kernels, likely due to missing CUDA toolkit; "
-                "falling back to a slower DTW implementation..."
-            )
+            warnings.warn("Failed to launch Triton kernels, likely due to missing CUDA toolkit; "
+                          "falling back to a slower DTW implementation...")
 
     return dtw_cpu(x.double().cpu().numpy())
 
@@ -174,28 +164,24 @@ def find_alignment(
     if len(text_tokens) == 0:
         return []
 
-    tokens = torch.tensor(
-        [
-            *tokenizer.sot_sequence,
-            tokenizer.no_timestamps,
-            *text_tokens,
-            tokenizer.eot,
-        ]
-    ).to(model.device)
+    tokens = torch.tensor([
+        *tokenizer.sot_sequence,
+        tokenizer.no_timestamps,
+        *text_tokens,
+        tokenizer.eot,
+    ]).to(model.device)
 
     # install hooks on the cross attention layers to retrieve the attention weights
     QKs = [None] * model.dims.n_text_layer
     hooks = [
-        block.cross_attn.register_forward_hook(
-            lambda _, ins, outs, index=i: QKs.__setitem__(index, outs[-1][0])
-        )
+        block.cross_attn.register_forward_hook(lambda _, ins, outs, index=i: QKs.__setitem__(index, outs[-1][0]))
         for i, block in enumerate(model.decoder.blocks)
     ]
 
     # 进行前传，获得token概率
     with torch.no_grad():
         logits = model(mel.unsqueeze(0), tokens.unsqueeze(0))[0]
-        sampled_logits = logits[len(tokenizer.sot_sequence) :, : tokenizer.eot]
+        sampled_logits = logits[len(tokenizer.sot_sequence):, :tokenizer.eot]
         token_probs = sampled_logits.softmax(dim=-1)
         text_token_probs = token_probs[np.arange(len(text_tokens)), text_tokens]
         text_token_probs = text_token_probs.tolist()
@@ -208,7 +194,7 @@ def find_alignment(
     # print(model.alignment_heads)
     # exit(0)
     weights = torch.stack([QKs[_l][_h] for _l, _h in model.alignment_heads.indices().T])
-    weights = weights[:, :, : num_frames // 2]
+    weights = weights[:, :, :num_frames // 2]
     weights = (weights * qk_scale).softmax(dim=-1)
     std, mean = torch.std_mean(weights, dim=-2, keepdim=True, unbiased=False)
     weights = (weights - mean) / std
@@ -216,7 +202,7 @@ def find_alignment(
 
     matrix = weights.mean(axis=0)
     print("attention", matrix.shape, matrix[:5, :5])
-    matrix = matrix[len(tokenizer.sot_sequence) : -1]
+    matrix = matrix[len(tokenizer.sot_sequence):-1]
     print("attention", matrix.shape, matrix[:5, :5])
     text_indices, time_indices = dtw(-matrix)
 
@@ -243,16 +229,11 @@ def find_alignment(
     # print("jump_times", jump_times)
     start_times = jump_times[word_boundaries[:-1]]
     end_times = jump_times[word_boundaries[1:]]
-    word_probabilities = [
-        np.mean(text_token_probs[i:j])
-        for i, j in zip(word_boundaries[:-1], word_boundaries[1:])
-    ]
+    word_probabilities = [np.mean(text_token_probs[i:j]) for i, j in zip(word_boundaries[:-1], word_boundaries[1:])]
 
     return [
         WordTiming(word, tokens, start, end, probability)
-        for word, tokens, start, end, probability in zip(
-            words, word_tokens, start_times, end_times, word_probabilities
-        )
+        for word, tokens, start, end, probability in zip(words, word_tokens, start_times, end_times, word_probabilities)
     ]
 
 
@@ -305,10 +286,7 @@ def add_word_timestamps(
     if len(segments) == 0:
         return
 
-    text_tokens_per_segment = [
-        [token for token in segment["tokens"] if token < tokenizer.eot]
-        for segment in segments
-    ]
+    text_tokens_per_segment = [[token for token in segment["tokens"] if token < tokenizer.eot] for segment in segments]
 
     text_tokens = list(itertools.chain.from_iterable(text_tokens_per_segment))
     alignment = find_alignment(model, tokenizer, text_tokens, mel, num_frames, **kwargs)
@@ -348,8 +326,7 @@ def add_word_timestamps(
                         start=round(time_offset + timing.start, 2),
                         end=round(time_offset + timing.end, 2),
                         probability=timing.probability,
-                    )
-                )
+                    ))
 
             saved_tokens += len(timing.tokens)
             word_index += 1
@@ -360,39 +337,22 @@ def add_word_timestamps(
             # ensure the first and second word after a pause is not longer than
             # twice the median word duration.
             if words[0]["end"] - last_speech_timestamp > median_duration * 4 and (
-                words[0]["end"] - words[0]["start"] > max_duration
-                or (
-                    len(words) > 1
-                    and words[1]["end"] - words[0]["start"] > max_duration * 2
-                )
-            ):
-                if (
-                    len(words) > 1
-                    and words[1]["end"] - words[1]["start"] > max_duration
-                ):
+                    words[0]["end"] - words[0]["start"] > max_duration or
+                (len(words) > 1 and words[1]["end"] - words[0]["start"] > max_duration * 2)):
+                if (len(words) > 1 and words[1]["end"] - words[1]["start"] > max_duration):
                     boundary = max(words[1]["end"] / 2, words[1]["end"] - max_duration)
                     words[0]["end"] = words[1]["start"] = boundary
                 words[0]["start"] = max(0, words[0]["end"] - max_duration)
 
             # prefer the segment-level start timestamp if the first word is too long.
-            if (
-                segment["start"] < words[0]["end"]
-                and segment["start"] - 0.5 > words[0]["start"]
-            ):
-                words[0]["start"] = max(
-                    0, min(words[0]["end"] - median_duration, segment["start"])
-                )
+            if (segment["start"] < words[0]["end"] and segment["start"] - 0.5 > words[0]["start"]):
+                words[0]["start"] = max(0, min(words[0]["end"] - median_duration, segment["start"]))
             else:
                 segment["start"] = words[0]["start"]
 
             # prefer the segment-level end timestamp if the last word is too long.
-            if (
-                segment["end"] > words[-1]["start"]
-                and segment["end"] + 0.5 < words[-1]["end"]
-            ):
-                words[-1]["end"] = max(
-                    words[-1]["start"] + median_duration, segment["end"]
-                )
+            if (segment["end"] > words[-1]["start"] and segment["end"] + 0.5 < words[-1]["end"]):
+                words[-1]["end"] = max(words[-1]["start"] + median_duration, segment["end"])
             else:
                 segment["end"] = words[-1]["end"]
 

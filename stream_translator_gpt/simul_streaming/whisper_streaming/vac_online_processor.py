@@ -3,8 +3,10 @@ from whisper_streaming.silero_vad_iterator import FixedVADIterator
 import numpy as np
 
 import logging
+
 logger = logging.getLogger(__name__)
 import sys
+
 
 class VACOnlineASRProcessor(OnlineProcessorInterface):
     '''Wraps OnlineASRProcessor with VAC (Voice Activity Controller).
@@ -22,10 +24,7 @@ class VACOnlineASRProcessor(OnlineProcessorInterface):
 
         # VAC:
         import torch
-        model, _ = torch.hub.load(
-            repo_or_dir='snakers4/silero-vad',
-            model='silero_vad'
-        )
+        model, _ = torch.hub.load(repo_or_dir='snakers4/silero-vad', model='silero_vad')
         self.vac = FixedVADIterator(model)  # we use the default options there: 500ms silence, 100ms padding, etc.
 
         self.init()
@@ -38,11 +37,11 @@ class VACOnlineASRProcessor(OnlineProcessorInterface):
         self.is_currently_final = False
 
         self.status = None  # or "voice" or "nonvoice"
-        self.audio_buffer = np.array([],dtype=np.float32)
+        self.audio_buffer = np.array([], dtype=np.float32)
         self.buffer_offset = 0  # in frames
 
     def clear_buffer(self):
-        self.audio_buffer = np.array([],dtype=np.float32)
+        self.audio_buffer = np.array([], dtype=np.float32)
 
     def insert_audio_chunk(self, audio):
         res = self.vac(audio)
@@ -53,7 +52,7 @@ class VACOnlineASRProcessor(OnlineProcessorInterface):
             if 'start' in res and 'end' not in res:
                 self.status = 'voice'
                 send_audio = self.audio_buffer[frame:]
-                self.online.init(offset=(frame + self.buffer_offset)/self.SAMPLING_RATE)
+                self.online.init(offset=(frame + self.buffer_offset) / self.SAMPLING_RATE)
                 self.online.insert_audio_chunk(send_audio)
                 self.current_online_chunk_buffer_size += len(send_audio)
                 self.buffer_offset += len(self.audio_buffer)
@@ -74,7 +73,7 @@ class VACOnlineASRProcessor(OnlineProcessorInterface):
                 self.status = 'nonvoice'
                 if beg < end:
                     send_audio = self.audio_buffer[beg:end]
-                    self.online.init(offset=((beg + self.buffer_offset)/self.SAMPLING_RATE))
+                    self.online.init(offset=((beg + self.buffer_offset) / self.SAMPLING_RATE))
                     self.online.insert_audio_chunk(send_audio)
                     self.current_online_chunk_buffer_size += len(send_audio)
                 self.is_currently_final = True
@@ -96,7 +95,7 @@ class VACOnlineASRProcessor(OnlineProcessorInterface):
     def process_iter(self):
         if self.is_currently_final:
             return self.finish()
-        elif self.current_online_chunk_buffer_size > self.SAMPLING_RATE*self.online_chunk_size:
+        elif self.current_online_chunk_buffer_size > self.SAMPLING_RATE * self.online_chunk_size:
             self.current_online_chunk_buffer_size = 0
             ret = self.online.process_iter()
             return ret

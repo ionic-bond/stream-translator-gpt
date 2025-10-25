@@ -1,7 +1,8 @@
 import regex
 from functools import lru_cache
-class SentenceSegmenter:
 
+
+class SentenceSegmenter:
     """
     Regex sentence splitter for Latin languages, Japanese and Chinese.
     It is based on sacrebleu TokenizerV14International(BaseTokenizer).
@@ -20,19 +21,19 @@ class SentenceSegmenter:
         # end of sentence characters:
         terminals = self.terminals
         self._re = [
-            # Separate out punctuations preceeded by a non-digit. 
-            # If followed by space-like sequence of characters, they are 
+            # Separate out punctuations preceeded by a non-digit.
+            # If followed by space-like sequence of characters, they are
             # appended to the punctuation, not to the next sequence.
-            (regex.compile(r'(\P{N})(['+terminals+r'])(\p{Z}*)'), r'\1\2\3'+self.sep),
+            (regex.compile(r'(\P{N})([' + terminals + r'])(\p{Z}*)'), r'\1\2\3' + self.sep),
             # Separate out punctuations followed by a non-digit
-            (regex.compile(r'('+terminals+r')(\P{N})'), r'\1'+self.sep+r'\2'),
-#            # Separate out symbols
+            (regex.compile(r'(' + terminals + r')(\P{N})'), r'\1' + self.sep + r'\2'),
+            #            # Separate out symbols
             # -> no, we don't tokenize but segment the punctuation
-#            (regex.compile(r'(\p{S})'), r' \1 '),
+            #            (regex.compile(r'(\p{S})'), r' \1 '),
         ]
 
     @lru_cache(maxsize=2**16)
     def __call__(self, line):
         for (_re, repl) in self._re:
             line = _re.sub(repl, line)
-        return [ t for t in line.split(self.sep) if t != '' ]
+        return [t for t in line.split(self.sep) if t != '']

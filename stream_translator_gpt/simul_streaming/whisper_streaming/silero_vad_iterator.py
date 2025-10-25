@@ -6,15 +6,17 @@ import torch
 
 # Their licence is MIT, same as ours: https://github.com/snakers4/silero-vad/blob/94811cbe1207ec24bc0f5370b895364b8934936f/LICENSE
 
-class VADIterator:
-    def __init__(self,
-                 model,
-                 threshold: float = 0.5,
-                 sampling_rate: int = 16000,
-                 min_silence_duration_ms: int = 500,  # makes sense on one recording that I checked
-                 speech_pad_ms: int = 100             # same 
-                 ):
 
+class VADIterator:
+
+    def __init__(
+            self,
+            model,
+            threshold: float = 0.5,
+            sampling_rate: int = 16000,
+            min_silence_duration_ms: int = 500,  # makes sense on one recording that I checked
+            speech_pad_ms: int = 100  # same 
+    ):
         """
         Class for stream imitation
 
@@ -84,7 +86,11 @@ class VADIterator:
         if (speech_prob >= self.threshold) and not self.triggered:
             self.triggered = True
             speech_start = max(0, self.current_sample - self.speech_pad_samples - window_size_samples)
-            return {'start': int(speech_start) if not return_seconds else round(speech_start / self.sampling_rate, time_resolution)}
+            return {
+                'start':
+                    int(speech_start) if not return_seconds else round(speech_start /
+                                                                       self.sampling_rate, time_resolution)
+            }
 
         if (speech_prob < self.threshold - 0.15) and self.triggered:
             if not self.temp_end:
@@ -95,14 +101,21 @@ class VADIterator:
                 speech_end = self.temp_end + self.speech_pad_samples - window_size_samples
                 self.temp_end = 0
                 self.triggered = False
-                return {'end': int(speech_end) if not return_seconds else round(speech_end / self.sampling_rate, time_resolution)}
+                return {
+                    'end':
+                        int(speech_end) if not return_seconds else round(speech_end /
+                                                                         self.sampling_rate, time_resolution)
+                }
 
         return None
 
+
 #######################
-# because Silero now requires exactly 512-sized audio chunks 
+# because Silero now requires exactly 512-sized audio chunks
 
 import numpy as np
+
+
 class FixedVADIterator(VADIterator):
     '''It fixes VADIterator by allowing to process any audio length, not only exactly 512 frames at once.
     If audio to be processed at once is long and multiple voiced segments detected, 
@@ -111,10 +124,10 @@ class FixedVADIterator(VADIterator):
 
     def reset_states(self):
         super().reset_states()
-        self.buffer = np.array([],dtype=np.float32)
+        self.buffer = np.array([], dtype=np.float32)
 
     def __call__(self, x, return_seconds=False):
-        self.buffer = np.append(self.buffer, x) 
+        self.buffer = np.append(self.buffer, x)
         ret = None
         while len(self.buffer) >= 512:
             r = super().__call__(self.buffer[:512], return_seconds=return_seconds)
@@ -129,22 +142,20 @@ class FixedVADIterator(VADIterator):
                     del ret['end']
         return ret if ret != {} else None
 
+
 if __name__ == "__main__":
     # test/demonstrate the need for FixedVADIterator:
 
     import torch
-    model, _ = torch.hub.load(
-        repo_or_dir='snakers4/silero-vad',
-        model='silero_vad'
-    )
+    model, _ = torch.hub.load(repo_or_dir='snakers4/silero-vad', model='silero_vad')
     vac = FixedVADIterator(model)
-#   vac = VADIterator(model)  # the second case crashes with this
+    #   vac = VADIterator(model)  # the second case crashes with this
 
     # this works: for both
-    audio_buffer = np.array([0]*(512),dtype=np.float32)
+    audio_buffer = np.array([0] * (512), dtype=np.float32)
     vac(audio_buffer)
 
-    # this crashes on the non FixedVADIterator with 
+    # this crashes on the non FixedVADIterator with
     # ops.prim.RaiseException("Input audio chunk is too short", "builtins.ValueError")
-    audio_buffer = np.array([0]*(512-1),dtype=np.float32)
+    audio_buffer = np.array([0] * (512 - 1), dtype=np.float32)
     vac(audio_buffer)

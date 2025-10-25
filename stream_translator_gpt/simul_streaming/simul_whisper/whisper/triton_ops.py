@@ -11,9 +11,7 @@ except ImportError:
 
 
 @triton.jit
-def dtw_kernel(
-    cost, trace, x, x_stride, cost_stride, trace_stride, N, M, BLOCK_SIZE: tl.constexpr
-):
+def dtw_kernel(cost, trace, x, x_stride, cost_stride, trace_stride, N, M, BLOCK_SIZE: tl.constexpr):
     offsets = tl.arange(0, BLOCK_SIZE)
     mask = offsets < M
 
@@ -42,10 +40,9 @@ def dtw_kernel(
 
 @lru_cache(maxsize=None)
 def median_kernel(filter_width: int):
+
     @triton.jit
-    def kernel(
-        y, x, x_stride, y_stride, BLOCK_SIZE: tl.constexpr
-    ):  # x.shape[-1] == filter_width
+    def kernel(y, x, x_stride, y_stride, BLOCK_SIZE: tl.constexpr):  # x.shape[-1] == filter_width
         row_idx = tl.program_id(0)
         offsets = tl.arange(0, BLOCK_SIZE)
         mask = offsets < y_stride
@@ -63,33 +60,20 @@ def median_kernel(filter_width: int):
 
     new_src = kernel.src.replace(
         "    LOAD_ALL_ROWS_HERE",
-        "\n".join(
-            [
-                f"    row{i} = tl.load(x_ptr + offsets + {i}, mask=mask)"
-                for i in range(filter_width)
-            ]
-        ),
+        "\n".join([f"    row{i} = tl.load(x_ptr + offsets + {i}, mask=mask)" for i in range(filter_width)]),
     )
     new_src = new_src.replace(
         "    BUBBLESORT_HERE",
-        "\n\n".join(
-            [
-                "\n\n".join(
-                    [
-                        "\n".join(
-                            [
-                                f"    smaller = tl.where(row{j} < row{j + 1}, row{j}, row{j + 1})",
-                                f"    larger = tl.where(row{j} > row{j + 1}, row{j}, row{j + 1})",
-                                f"    row{j} = smaller",
-                                f"    row{j + 1} = larger",
-                            ]
-                        )
-                        for j in range(filter_width - i - 1)
-                    ]
-                )
-                for i in range(filter_width // 2 + 1)
-            ]
-        ),
+        "\n\n".join([
+            "\n\n".join([
+                "\n".join([
+                    f"    smaller = tl.where(row{j} < row{j + 1}, row{j}, row{j + 1})",
+                    f"    larger = tl.where(row{j} > row{j + 1}, row{j}, row{j + 1})",
+                    f"    row{j} = smaller",
+                    f"    row{j + 1} = larger",
+                ]) for j in range(filter_width - i - 1)
+            ]) for i in range(filter_width // 2 + 1)
+        ]),
     )
     new_src = new_src.replace("MIDDLE_ROW_HERE", f"row{filter_width // 2}")
 

@@ -1,5 +1,7 @@
 import torch
 import sys
+
+
 class TokenBuffer:
 
     def __init__(self, text="", tokenizer=None, device=None, prefix_token_ids=[]):
@@ -13,7 +15,7 @@ class TokenBuffer:
         if tokenizer is None:
             tokenizer = self.tokenizer
         if tokenizer is None:
-            raise ValueError("Tokenizer is not set.") 
+            raise ValueError("Tokenizer is not set.")
         return self.prefix_token_ids + tokenizer.encode(self.text)
 
     def as_tensor(self, device=None):
@@ -22,25 +24,23 @@ class TokenBuffer:
         if device is None:
             raise ValueError("Device is not set.")
         tok_ids = self.as_token_ids()
-        return torch.tensor(tok_ids, 
-                     dtype=torch.long, device=device).unsqueeze(0)
+        return torch.tensor(tok_ids, dtype=torch.long, device=device).unsqueeze(0)
 
     def as_tensor_beam(self, beam, device=None):
         t = self.as_tensor(device=device)
         return t.repeat_interleave(beam, dim=0)
-
 
     def as_text(self):
         return self.text
 
     @staticmethod
     def empty(*a, **kw):
-        return TokenBuffer(*a,**kw)
+        return TokenBuffer(*a, **kw)
 
     @staticmethod
     def from_text(text, *a, **kw):
         return TokenBuffer(*a, text=text, **kw)
-    
+
     def is_empty(self):
         return self.text is None or self.text == ""
 
@@ -54,8 +54,8 @@ class TokenBuffer:
 
         ids = tokenizer.encode(self.text[after:])
         words, wids = self.tokenizer.split_to_word_tokens(ids)
-#        print(words, file=sys.stderr)
-#        print(wids, file=sys.stderr)
+        #        print(words, file=sys.stderr)
+        #        print(wids, file=sys.stderr)
         if not words:
             return 0
         self.text = self.text[:after] + "".join(words[num:])
