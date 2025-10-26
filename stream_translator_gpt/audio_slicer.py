@@ -23,14 +23,13 @@ class VAD:
         current_dir = os.path.dirname(__file__)
         self.model = _init_jit_model(os.path.join(current_dir, 'silero_vad.jit'))
 
-    def is_speech(self, audio: np.array, threshold: float = 0.5, sampling_rate: int = 16000):
+    def get_speech_prob(self, audio: np.array):
         if not torch.is_tensor(audio):
             try:
                 audio = torch.Tensor(audio)
             except:
                 raise TypeError('Audio cannot be casted to tensor. Cast it manually')
-        speech_prob = self.model(audio, sampling_rate).item()
-        return speech_prob >= threshold
+        return self.model(audio, SAMPLE_RATE).item()
 
     def reset_states(self):
         self.model.reset_states()
@@ -46,7 +45,7 @@ class AudioSlicer(LoopWorkerBase):
         self.max_audio_length = round(max_audio_length / FRAME_DURATION)
         self.prefix_retention_length = round(prefix_retention_length / FRAME_DURATION)
         self.vad_threshold = vad_threshold
-        self.sampling_rate = SAMPLE_RATE
+        self.vad_neg_threshold = vad_threshold * 0.7 if vad_threshold < 0.5 else vad_threshold - 0.15
         self.audio_buffer = []
         self.prefix_audio_buffer = []
         self.speech_count = 0
@@ -57,7 +56,9 @@ class AudioSlicer(LoopWorkerBase):
 
     def put(self, audio: np.array):
         self.counter += 1
-        if self.vad.is_speech(audio, self.vad_threshold, self.sampling_rate):
+        speech_prob = self.vad.get_speech_prob(audio)
+        is_speech = speech_prob > (self.vad_neg_threshold if self.speech_count else self.vad_threshold)
+        if is_speech:
             self.audio_buffer.append(audio)
             self.speech_count += 1
             self.continuous_no_speech_count = 0
@@ -67,7 +68,7 @@ class AudioSlicer(LoopWorkerBase):
             self.audio_buffer.append(audio)
             self.no_speech_count += 1
             self.continuous_no_speech_count += 1
-        if self.speech_count and self.no_speech_count / 5 > self.speech_count:
+        if self.speech_count and self.no_speech_count / 4 > self.speech_count:
             self.slice()
 
     def should_slice(self):
