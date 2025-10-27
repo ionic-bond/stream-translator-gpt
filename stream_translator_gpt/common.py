@@ -8,8 +8,7 @@ from urllib.parse import urlparse
 import numpy as np
 
 SAMPLE_RATE = 16000
-# Requested by silero-vad > v5
-SAMPLES_PER_FRAME = 512
+SAMPLES_PER_FRAME = 512     # Requested by silero-vad >= v5
 FRAME_DURATION = SAMPLES_PER_FRAME / SAMPLE_RATE
 
 RED = '\033[91m'

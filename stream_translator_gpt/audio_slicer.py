@@ -1,3 +1,4 @@
+import collections
 import os
 import queue
 import torch
@@ -22,6 +23,7 @@ class VAD:
     def __init__(self):
         current_dir = os.path.dirname(__file__)
         self.model = _init_jit_model(os.path.join(current_dir, 'silero_vad.jit'))
+        self.reset_states()
 
     def get_speech_prob(self, audio: np.array):
         if not torch.is_tensor(audio):
@@ -35,17 +37,21 @@ class VAD:
         self.model.reset_states()
 
 
+def _get_neg_threshold(threshold: float):
+    if threshold < 0.5:
+        return threshold * 0.7
+    else:
+        return threshold - 0.15
+
+
 class AudioSlicer(LoopWorkerBase):
 
     def __init__(self, continuous_no_speech_threshold: float, min_audio_length: float, max_audio_length: float,
-                 prefix_retention_length: float, vad_threshold: float):
-        self.vad = VAD()
+                 prefix_retention_length: float, vad_threshold: float, vad_threshold_adaptation: bool):
         self.continuous_no_speech_threshold = round(continuous_no_speech_threshold / FRAME_DURATION)
         self.min_audio_length = round(min_audio_length / FRAME_DURATION)
         self.max_audio_length = round(max_audio_length / FRAME_DURATION)
         self.prefix_retention_length = round(prefix_retention_length / FRAME_DURATION)
-        self.vad_threshold = vad_threshold
-        self.vad_neg_threshold = vad_threshold * 0.7 if vad_threshold < 0.5 else vad_threshold - 0.15
         self.audio_buffer = []
         self.prefix_audio_buffer = []
         self.speech_count = 0
@@ -53,6 +59,17 @@ class AudioSlicer(LoopWorkerBase):
         self.continuous_no_speech_count = 0
         self.counter = 0
         self.last_slice_second = 0.0
+
+        self.vad = VAD()
+        self.vad_threshold = vad_threshold
+        self.vad_neg_threshold = _get_neg_threshold(vad_threshold)
+        self.vad_threshold_adaptation = vad_threshold_adaptation
+        if self.vad_threshold_adaptation:
+            self.vad_lookback_length = round(60 / FRAME_DURATION)     # 60 seconds
+            self.vad_prob_buffer = collections.deque(maxlen=self.vad_lookback_length)
+            self.vad_recalc_interval = round(30 / FRAME_DURATION)     # 30 seconds
+            self.vad_recalc_quantile = 0.5
+            self.min_vad_threshold = 0.01
 
     def put(self, audio: np.array):
         self.counter += 1
@@ -70,6 +87,17 @@ class AudioSlicer(LoopWorkerBase):
             self.continuous_no_speech_count += 1
         if self.speech_count and self.no_speech_count / 4 > self.speech_count:
             self.slice()
+
+        if self.vad_threshold_adaptation:
+            self.vad_prob_buffer.append(speech_prob)
+            if self.counter >= self.vad_lookback_length and self.counter % self.vad_recalc_interval == 0:
+                data = np.array(self.vad_prob_buffer)
+                new_vad_threshold = np.quantile(data, self.vad_recalc_quantile, method='linear')
+                self.vad_threshold = self.vad_threshold * 0.5 + new_vad_threshold * 0.5
+                self.vad_threshold = max(self.vad_threshold, self.min_vad_threshold)
+                self.vad_neg_threshold = _get_neg_threshold(self.vad_threshold)
+                # print(f'time: {self.counter * FRAME_DURATION}, new_vad_threshold: {new_vad_threshold}, vad_threshold: {self.vad_threshold}, vad_neg_threshold: {self.vad_neg_threshold}, buffer size: {len(self.vad_prob_buffer)}')
+
 
     def should_slice(self):
         audio_len = len(self.audio_buffer)
@@ -95,6 +123,7 @@ class AudioSlicer(LoopWorkerBase):
         return concatenate_audio, (last_slice_second, slice_second)
 
     def loop(self, input_queue: queue.SimpleQueue[np.array], output_queue: queue.SimpleQueue[TranslationTask]):
+        vad_reset_interval = round(60 * 5 / FRAME_DURATION)     # 5 minutes
         while True:
             audio = input_queue.get()
             self.put(audio)
@@ -102,6 +131,5 @@ class AudioSlicer(LoopWorkerBase):
                 sliced_audio, time_range = self.slice()
                 task = TranslationTask(sliced_audio, time_range)
                 output_queue.put(task)
-            if self.counter % 10000 == 0:
-                # About 5 minutes
+            if self.counter % vad_reset_interval == 0:
                 self.vad.reset_states()

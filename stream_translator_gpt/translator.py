@@ -12,7 +12,7 @@ from .result_exporter import ResultExporter
 
 
 def main(url, format, cookies, input_proxy, device_index, device_recording_interval, continuous_no_speech_threshold,
-         min_audio_length, max_audio_length, prefix_retention_length, vad_threshold, model, language,
+         min_audio_length, max_audio_length, prefix_retention_length, vad_threshold, disable_vad_threshold_adaptation, model, language,
          use_faster_whisper, use_simul_streaming, use_whisper_api, use_openai_transcription_api,
          openai_transcription_model, whisper_filters, openai_api_key, google_api_key, translation_prompt,
          translation_history_size, gpt_model, gemini_model, translation_timeout, gpt_base_url, gemini_base_url,
@@ -137,6 +137,7 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
         max_audio_length=max_audio_length,
         prefix_retention_length=prefix_retention_length,
         vad_threshold=vad_threshold,
+        vad_threshold_adaptation=not disable_vad_threshold_adaptation,
         input_queue=getter_to_slicer_queue,
         output_queue=slicer_to_transcriber_queue,
     )
@@ -216,6 +217,9 @@ def cli():
                         help='The threshold of Voice activity detection.'
                         'if the speech probability of a frame is higher than this value, '
                         'then this frame is speech.')
+    parser.add_argument('--disable_vad_threshold_adaptation',
+                        action='store_true',
+                        help='')
     parser.add_argument('--model',
                         type=str,
                         default='small',
@@ -238,11 +242,11 @@ def cli():
                         help='Number of candidates when sampling with non-zero temperature.')
     parser.add_argument('--use_faster_whisper',
                         action='store_true',
-                        help='Set this flag to use faster-whisper implementation instead of '
+                        help='Set this flag to use Faster Whisper implementation instead of '
                         'the original OpenAI implementation.')
     parser.add_argument('--use_simul_streaming',
                         action='store_true',
-                        help='Set this flag to use SimulStreaming implementation instead of '
+                        help='Set this flag to use Simul Streaming implementation instead of '
                         'the original OpenAI implementation.')
     parser.add_argument(
         '--use_whisper_api',
@@ -392,8 +396,10 @@ def cli():
         transcription_flag_num += 1
     if args['use_openai_transcription_api']:
         transcription_flag_num += 1
+    if args['use_simul_streaming']:
+        transcription_flag_num += 1
     if transcription_flag_num > 1:
-        print(f'{ERROR}Cannot use Faster Whisper, Whisper API and OpenAI Transcription API at the same time')
+        print(f'{ERROR}Cannot use Faster Whisper, Simul Streaming, Whisper API or OpenAI Transcription API at the same time')
         sys.exit(0)
 
     if (args['use_whisper_api'] or args['use_openai_transcription_api']) and not args['openai_api_key']:
