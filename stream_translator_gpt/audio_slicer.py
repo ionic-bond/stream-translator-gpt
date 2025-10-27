@@ -65,9 +65,9 @@ class AudioSlicer(LoopWorkerBase):
         self.vad_neg_threshold = _get_neg_threshold(vad_threshold)
         self.vad_threshold_adaptation = vad_threshold_adaptation
         if self.vad_threshold_adaptation:
-            self.vad_lookback_length = round(60 / FRAME_DURATION)     # 60 seconds
+            self.vad_lookback_length = round(60 / FRAME_DURATION)  # 60 seconds
             self.vad_prob_buffer = collections.deque(maxlen=self.vad_lookback_length)
-            self.vad_recalc_interval = round(30 / FRAME_DURATION)     # 30 seconds
+            self.vad_recalc_interval = round(30 / FRAME_DURATION)  # 30 seconds
             self.vad_recalc_quantile = 0.5
             self.min_vad_threshold = 0.01
 
@@ -98,7 +98,6 @@ class AudioSlicer(LoopWorkerBase):
                 self.vad_neg_threshold = _get_neg_threshold(self.vad_threshold)
                 # print(f'time: {self.counter * FRAME_DURATION}, new_vad_threshold: {new_vad_threshold}, vad_threshold: {self.vad_threshold}, vad_neg_threshold: {self.vad_neg_threshold}, buffer size: {len(self.vad_prob_buffer)}')
 
-
     def should_slice(self):
         audio_len = len(self.audio_buffer)
         if audio_len < self.min_audio_length:
@@ -123,7 +122,7 @@ class AudioSlicer(LoopWorkerBase):
         return concatenate_audio, (last_slice_second, slice_second)
 
     def loop(self, input_queue: queue.SimpleQueue[np.array], output_queue: queue.SimpleQueue[TranslationTask]):
-        vad_reset_interval = round(60 * 5 / FRAME_DURATION)     # 5 minutes
+        vad_reset_interval = round(60 * 5 / FRAME_DURATION)  # 5 minutes
         while True:
             audio = input_queue.get()
             self.put(audio)

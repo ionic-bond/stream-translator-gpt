@@ -12,8 +12,8 @@ from .result_exporter import ResultExporter
 
 
 def main(url, format, cookies, input_proxy, device_index, device_recording_interval, continuous_no_speech_threshold,
-         min_audio_length, max_audio_length, prefix_retention_length, vad_threshold, disable_vad_threshold_adaptation, model, language,
-         use_faster_whisper, use_simul_streaming, use_whisper_api, use_openai_transcription_api,
+         min_audio_length, max_audio_length, prefix_retention_length, vad_threshold, disable_vad_threshold_adaptation,
+         model, language, use_faster_whisper, use_simul_streaming, use_whisper_api, use_openai_transcription_api,
          openai_transcription_model, whisper_filters, openai_api_key, google_api_key, translation_prompt,
          translation_history_size, gpt_model, gemini_model, translation_timeout, gpt_base_url, gemini_base_url,
          processing_proxy, use_json_result, retry_if_translation_fails, output_timestamps, hide_transcribe_result,
@@ -217,9 +217,7 @@ def cli():
                         help='The threshold of Voice activity detection.'
                         'if the speech probability of a frame is higher than this value, '
                         'then this frame is speech.')
-    parser.add_argument('--disable_vad_threshold_adaptation',
-                        action='store_true',
-                        help='')
+    parser.add_argument('--disable_vad_threshold_adaptation', action='store_true', help='')
     parser.add_argument('--model',
                         type=str,
                         default='small',
@@ -399,7 +397,9 @@ def cli():
     if args['use_simul_streaming']:
         transcription_flag_num += 1
     if transcription_flag_num > 1:
-        print(f'{ERROR}Cannot use Faster Whisper, Simul Streaming, Whisper API or OpenAI Transcription API at the same time')
+        print(
+            f'{ERROR}Cannot use Faster Whisper, Simul Streaming, Whisper API or OpenAI Transcription API at the same time'
+        )
         sys.exit(0)
 
     if (args['use_whisper_api'] or args['use_openai_transcription_api']) and not args['openai_api_key']:
