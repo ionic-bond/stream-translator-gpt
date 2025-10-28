@@ -1,4 +1,5 @@
 import collections
+import math
 import os
 import queue
 import torch
@@ -22,6 +23,7 @@ class VAD:
 
     def __init__(self):
         current_dir = os.path.dirname(__file__)
+        # Current silero-vad version: v6
         self.model = _init_jit_model(os.path.join(current_dir, 'silero_vad.jit'))
         self.reset_states()
 
@@ -44,14 +46,30 @@ def _get_neg_threshold(threshold: float):
         return threshold - 0.15
 
 
+def _get_dynamic_no_speech_threshold(audio_length: float, initial_threshold: float, target_audio_length: float):
+    # Inverse Logistic Decay Function
+    try:
+        dynamic_threshold = initial_threshold / (1 + math.exp(1.0 * (audio_length - target_audio_length)))
+    except OverflowError:
+        dynamic_threshold = 0.0
+    dynamic_threshold = max(0, min(initial_threshold, dynamic_threshold))
+    # print(f'audio_length: {audio_length}, dynamic_threshold: {dynamic_threshold}')
+    return dynamic_threshold
+
+
 class AudioSlicer(LoopWorkerBase):
 
-    def __init__(self, continuous_no_speech_threshold: float, min_audio_length: float, max_audio_length: float,
-                 prefix_retention_length: float, vad_threshold: float, vad_threshold_adaptation: bool):
-        self.continuous_no_speech_threshold = round(continuous_no_speech_threshold / FRAME_DURATION)
-        self.min_audio_length = round(min_audio_length / FRAME_DURATION)
-        self.max_audio_length = round(max_audio_length / FRAME_DURATION)
-        self.prefix_retention_length = round(prefix_retention_length / FRAME_DURATION)
+    def __init__(self, min_audio_length: float, max_audio_length: float, target_audio_length: float, continuous_no_speech_threshold: float,
+                 dynamic_no_speech_threshold: bool, prefix_retention_length: float, vad_threshold: float, dynamic_vad_threshold: bool):
+        self.min_audio_length = min_audio_length
+        self.max_audio_length = max_audio_length
+        self.prefix_retention_count = round(prefix_retention_length / FRAME_DURATION)
+        self.target_audio_length = target_audio_length
+        self.dynamic_no_speech_threshold = dynamic_no_speech_threshold
+        if self.dynamic_no_speech_threshold:
+            self.initial_no_speech_threshold = continuous_no_speech_threshold * 2
+        else:
+            self.static_no_speech_threshold = continuous_no_speech_threshold
         self.audio_buffer = []
         self.prefix_audio_buffer = []
         self.speech_count = 0
@@ -63,13 +81,13 @@ class AudioSlicer(LoopWorkerBase):
         self.vad = VAD()
         self.vad_threshold = vad_threshold
         self.vad_neg_threshold = _get_neg_threshold(vad_threshold)
-        self.vad_threshold_adaptation = vad_threshold_adaptation
-        if self.vad_threshold_adaptation:
+        self.dynamic_vad_threshold = dynamic_vad_threshold
+        if self.dynamic_vad_threshold:
             self.vad_lookback_length = round(60 / FRAME_DURATION)  # 60 seconds
             self.vad_prob_buffer = collections.deque(maxlen=self.vad_lookback_length)
             self.vad_recalc_interval = round(30 / FRAME_DURATION)  # 30 seconds
             self.vad_recalc_quantile = 0.5
-            self.min_vad_threshold = 0.01
+            self.min_vad_threshold = 0.0001
 
     def put(self, audio: np.array):
         self.counter += 1
@@ -88,7 +106,7 @@ class AudioSlicer(LoopWorkerBase):
         if self.speech_count and self.no_speech_count / 4 > self.speech_count:
             self.slice()
 
-        if self.vad_threshold_adaptation:
+        if self.dynamic_vad_threshold:
             self.vad_prob_buffer.append(speech_prob)
             if self.counter >= self.vad_lookback_length and self.counter % self.vad_recalc_interval == 0:
                 data = np.array(self.vad_prob_buffer)
@@ -99,12 +117,16 @@ class AudioSlicer(LoopWorkerBase):
                 # print(f'time: {self.counter * FRAME_DURATION}, new_vad_threshold: {new_vad_threshold}, vad_threshold: {self.vad_threshold}, vad_neg_threshold: {self.vad_neg_threshold}, buffer size: {len(self.vad_prob_buffer)}')
 
     def should_slice(self):
-        audio_len = len(self.audio_buffer)
-        if audio_len < self.min_audio_length:
+        audio_length = len(self.audio_buffer) * FRAME_DURATION
+        if audio_length < self.min_audio_length:
             return False
-        if audio_len > self.max_audio_length:
+        if audio_length > self.max_audio_length:
             return True
-        if self.continuous_no_speech_count >= self.continuous_no_speech_threshold:
+        if self.dynamic_no_speech_threshold:
+            no_speech_threshold = _get_dynamic_no_speech_threshold(audio_length, self.initial_no_speech_threshold, self.target_audio_length)
+        else:
+            no_speech_threshold = self.static_no_speech_threshold
+        if self.continuous_no_speech_count * FRAME_DURATION >= no_speech_threshold:
             return True
         return False
 
@@ -112,7 +134,7 @@ class AudioSlicer(LoopWorkerBase):
         concatenate_buffer = self.prefix_audio_buffer + self.audio_buffer
         concatenate_audio = np.concatenate(concatenate_buffer)
         self.audio_buffer = []
-        self.prefix_audio_buffer = concatenate_buffer[-self.prefix_retention_length:]
+        self.prefix_audio_buffer = concatenate_buffer[-self.prefix_retention_count:]
         self.speech_count = 0
         self.no_speech_count = 0
         self.continuous_no_speech_count = 0

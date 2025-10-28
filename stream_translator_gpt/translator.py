@@ -11,8 +11,8 @@ from .llm_translator import LLMClint, ParallelTranslator, SerialTranslator
 from .result_exporter import ResultExporter
 
 
-def main(url, format, cookies, input_proxy, device_index, device_recording_interval, continuous_no_speech_threshold,
-         min_audio_length, max_audio_length, prefix_retention_length, vad_threshold, disable_vad_threshold_adaptation,
+def main(url, format, cookies, input_proxy, device_index, device_recording_interval,
+         min_audio_length, max_audio_length, target_audio_length, continuous_no_speech_threshold, disable_dynamic_no_speech_threshold, prefix_retention_length, vad_threshold, disable_dynamic_vad_threshold,
          model, language, use_faster_whisper, use_simul_streaming, use_whisper_api, use_openai_transcription_api,
          openai_transcription_model, whisper_filters, openai_api_key, google_api_key, translation_prompt,
          translation_history_size, gpt_model, gemini_model, translation_timeout, gpt_base_url, gemini_base_url,
@@ -132,12 +132,14 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
                             **transcribe_options)
     start_daemon_thread(
         AudioSlicer.work,
-        continuous_no_speech_threshold=continuous_no_speech_threshold,
         min_audio_length=min_audio_length,
         max_audio_length=max_audio_length,
+        target_audio_length=target_audio_length,
+        continuous_no_speech_threshold=continuous_no_speech_threshold,
+        dynamic_no_speech_threshold=not disable_dynamic_no_speech_threshold,
         prefix_retention_length=prefix_retention_length,
         vad_threshold=vad_threshold,
-        vad_threshold_adaptation=not disable_vad_threshold_adaptation,
+        dynamic_vad_threshold=not disable_dynamic_vad_threshold,
         input_queue=getter_to_slicer_queue,
         output_queue=slicer_to_transcriber_queue,
     )
@@ -201,12 +203,14 @@ def cli():
                         help='The shorter the recording interval, the lower the latency,'
                         'but it will increase CPU usage.'
                         'It is recommended to set it between 0.1 and 1.0.')
+    parser.add_argument('--min_audio_length', type=float, default=0.5, help='Minimum slice audio length in seconds.')
+    parser.add_argument('--max_audio_length', type=float, default=30.0, help='Maximum slice audio length in seconds.')
+    parser.add_argument('--target_audio_length', type=float, default=5.0, help='')
     parser.add_argument('--continuous_no_speech_threshold',
                         type=float,
-                        default=0.5,
+                        default=1.0,
                         help='Slice if there is no speech for a continuous period in second.')
-    parser.add_argument('--min_audio_length', type=float, default=1.5, help='Minimum slice audio length in seconds.')
-    parser.add_argument('--max_audio_length', type=float, default=15.0, help='Maximum slice audio length in seconds.')
+    parser.add_argument('--disable_dynamic_no_speech_threshold', action='store_true', help='')
     parser.add_argument('--prefix_retention_length',
                         type=float,
                         default=1.0,
@@ -217,7 +221,7 @@ def cli():
                         help='The threshold of Voice activity detection.'
                         'if the speech probability of a frame is higher than this value, '
                         'then this frame is speech.')
-    parser.add_argument('--disable_vad_threshold_adaptation', action='store_true', help='')
+    parser.add_argument('--disable_dynamic_vad_threshold', action='store_true', help='')
     parser.add_argument('--model',
                         type=str,
                         default='small',
