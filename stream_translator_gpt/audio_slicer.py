@@ -59,8 +59,9 @@ def _get_dynamic_no_speech_threshold(audio_length: float, initial_threshold: flo
 
 class AudioSlicer(LoopWorkerBase):
 
-    def __init__(self, min_audio_length: float, max_audio_length: float, target_audio_length: float, continuous_no_speech_threshold: float,
-                 dynamic_no_speech_threshold: bool, prefix_retention_length: float, vad_threshold: float, dynamic_vad_threshold: bool):
+    def __init__(self, min_audio_length: float, max_audio_length: float, target_audio_length: float,
+                 continuous_no_speech_threshold: float, dynamic_no_speech_threshold: bool,
+                 prefix_retention_length: float, vad_threshold: float, dynamic_vad_threshold: bool):
         self.min_audio_length = min_audio_length
         self.max_audio_length = max_audio_length
         self.prefix_retention_count = round(prefix_retention_length / FRAME_DURATION)
@@ -123,7 +124,8 @@ class AudioSlicer(LoopWorkerBase):
         if audio_length > self.max_audio_length:
             return True
         if self.dynamic_no_speech_threshold:
-            no_speech_threshold = _get_dynamic_no_speech_threshold(audio_length, self.initial_no_speech_threshold, self.target_audio_length)
+            no_speech_threshold = _get_dynamic_no_speech_threshold(audio_length, self.initial_no_speech_threshold,
+                                                                   self.target_audio_length)
         else:
             no_speech_threshold = self.static_no_speech_threshold
         if self.continuous_no_speech_count * FRAME_DURATION >= no_speech_threshold:
