@@ -53,7 +53,6 @@ def _get_dynamic_no_speech_threshold(audio_length: float, initial_threshold: flo
     except OverflowError:
         dynamic_threshold = 0.0
     dynamic_threshold = max(0, min(initial_threshold, dynamic_threshold))
-    # print(f'audio_length: {audio_length}, dynamic_threshold: {dynamic_threshold}')
     return dynamic_threshold
 
 
@@ -115,7 +114,6 @@ class AudioSlicer(LoopWorkerBase):
                 self.vad_threshold = self.vad_threshold * 0.5 + new_vad_threshold * 0.5
                 self.vad_threshold = max(self.vad_threshold, self.min_vad_threshold)
                 self.vad_neg_threshold = _get_neg_threshold(self.vad_threshold)
-                # print(f'time: {self.counter * FRAME_DURATION}, new_vad_threshold: {new_vad_threshold}, vad_threshold: {self.vad_threshold}, vad_neg_threshold: {self.vad_neg_threshold}, buffer size: {len(self.vad_prob_buffer)}')
 
     def should_slice(self):
         audio_length = len(self.audio_buffer) * FRAME_DURATION

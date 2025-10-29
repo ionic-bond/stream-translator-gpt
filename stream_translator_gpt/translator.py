@@ -317,10 +317,6 @@ def cli():
         help=
         'If set, will translate result text to target language via GPT / Gemini API. Example: \"Translate from Japanese to Chinese\"'
     )
-    parser.add_argument('--gpt_translation_prompt',
-                        type=str,
-                        default=None,
-                        help='This flag will soon be deprecated, please use \"--translation_prompt\" instead.')
     parser.add_argument(
         '--translation_history_size',
         type=int,
@@ -328,19 +324,11 @@ def cli():
         help=
         'The number of previous messages sent when calling the GPT / Gemini API. If the history size is 0, the translation will be run parallelly. If the history size > 0, the translation will be run serially.'
     )
-    parser.add_argument('--gpt_translation_history_size',
-                        type=int,
-                        default=None,
-                        help='This flag will soon be deprecated, please use \"--translation_history_size\" instead.')
     parser.add_argument(
         '--translation_timeout',
         type=int,
         default=10,
         help='If the GPT / Gemini translation exceeds this number of seconds, the translation will be discarded.')
-    parser.add_argument('--gpt_translation_timeout',
-                        type=int,
-                        default=None,
-                        help='This flag will soon be deprecated, please use \"--translation_timeout\" instead.')
     parser.add_argument('--gpt_base_url', type=str, default=None, help='Customize the API endpoint of GPT.')
     parser.add_argument('--gemini_base_url', type=str, default=None, help='Customize the API endpoint of Gemini.')
     parser.add_argument(
@@ -434,22 +422,6 @@ def cli():
     if (args['use_whisper_api'] or args['use_openai_transcription_api']) and not args['openai_api_key']:
         print(f'{ERROR}Please fill in the OpenAI API key when enabling OpenAI Transcription API')
         sys.exit(0)
-
-    if args['gpt_translation_prompt'] != None:
-        print(
-            f'{WARNING}\"--gpt_translation_prompt\" will soon be deprecated, please use \"--translation_prompt\" instead.'
-        )
-        args['translation_prompt'] = args['gpt_translation_prompt']
-    if args['gpt_translation_history_size'] != None:
-        print(
-            f'{WARNING}\"--gpt_translation_history_size\" will soon be deprecated, please use \"--translation_history_size\" instead.'
-        )
-        args['translation_history_size'] = args['gpt_translation_history_size']
-    if args['gpt_translation_timeout'] != None:
-        print(
-            f'{WARNING}\"--gpt_translation_timeout\" will soon be deprecated, please use \"--translation_timeout\" instead.'
-        )
-        args['translation_timeout'] = args['gpt_translation_timeout']
 
     if args['translation_prompt'] and not (args['openai_api_key'] or args['google_api_key']):
         print(f'{ERROR}Please fill in the OpenAI / Google API key when enabling LLM translation')
