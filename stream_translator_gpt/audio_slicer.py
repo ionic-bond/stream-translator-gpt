@@ -104,7 +104,7 @@ class AudioSlicer(LoopWorkerBase):
             self.audio_buffer.append(audio)
             self.no_speech_count += 1
             self.continuous_no_speech_count += 1
-        if self.speech_count and self.no_speech_count / 4 > self.speech_count:
+        if self.speech_count and self.no_speech_count / 5 > self.speech_count:
             self.slice()
 
         if self.dynamic_vad_threshold:

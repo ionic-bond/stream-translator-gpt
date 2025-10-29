@@ -163,25 +163,22 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
             output_queue=getter_to_slicer_queue,
         )
 
-    # Wait for others process finish.
+    print('Input terminated, waiting for all processing complete...')
     while (not getter_to_slicer_queue.empty() or not slicer_to_transcriber_queue.empty() or
            not transcriber_to_translator_queue.empty() or not translator_to_exporter_queue.empty()):
         time.sleep(5)
-    print('Stream ended')
+    print('All processing completed, program exits.')
 
 
 def cli():
     parser = argparse.ArgumentParser(description='Parameters for translator.py')
     parser.add_argument('URL',
                         type=str,
-                        help='The URL of the stream. '
-                        'If a local file path is filled in, it will be used as input. '
-                        'If fill in "device", the input will be obtained from your PC device.')
+                        help='The URL of the stream. If a local file path is filled in, it will be used as input. If fill in "device", the input will be obtained from your PC device.')
     parser.add_argument('--format',
                         type=str,
                         default='ba/wa*',
-                        help='Stream format code, this parameter will be passed directly to yt-dlp. '
-                        'You can get the list of available format codes by \"yt-dlp \{url\} -F\"')
+                        help='Stream format code, this parameter will be passed directly to yt-dlp. You can get the list of available format codes by \"yt-dlp \{url\} -F\"')
     parser.add_argument('--cookies',
                         type=str,
                         default=None,
@@ -194,70 +191,58 @@ def cli():
     parser.add_argument('--device_index',
                         type=int,
                         default=None,
-                        help='The index of the device that needs to be recorded. '
-                        'If not set, the system default recording device will be used.')
+                        help='The index of the device that needs to be recorded. If not set, the system default recording device will be used.')
     parser.add_argument('--list_devices', action='store_true', help='Print all audio devices info then exit.')
     parser.add_argument('--device_recording_interval',
                         type=float,
                         default=0.5,
-                        help='The shorter the recording interval, the lower the latency,'
-                        'but it will increase CPU usage.'
-                        'It is recommended to set it between 0.1 and 1.0.')
+                        help='The shorter the recording interval, the lower the latency, but it will increase CPU usage. It is recommended to set it between 0.1 and 1.0.')
     parser.add_argument('--min_audio_length', type=float, default=0.5, help='Minimum slice audio length in seconds.')
     parser.add_argument('--max_audio_length', type=float, default=30.0, help='Maximum slice audio length in seconds.')
-    parser.add_argument('--target_audio_length', type=float, default=5.0, help='')
+    parser.add_argument('--target_audio_length', type=float, default=5.0, help='When dynamic no speech threshold is enabled (enabled by default), the program will slice the audio as close to this length as possible.')
     parser.add_argument('--continuous_no_speech_threshold',
                         type=float,
                         default=1.0,
-                        help='Slice if there is no speech for a continuous period in second.')
-    parser.add_argument('--disable_dynamic_no_speech_threshold', action='store_true', help='')
+                        help='Slice if there is no speech during this number of seconds. If the dynamic no speech threshold is enabled (enabled by default), the actual threshold will be dynamically adjusted based on this value.')
+    parser.add_argument('--disable_dynamic_no_speech_threshold', action='store_true', help='Set this flag to disable dynamic no speech threshold.')
     parser.add_argument('--prefix_retention_length',
                         type=float,
-                        default=1.0,
+                        default=0.5,
                         help='The length of the retention prefix audio during slicing.')
     parser.add_argument('--vad_threshold',
                         type=float,
-                        default=0.25,
-                        help='The threshold of Voice activity detection.'
-                        'if the speech probability of a frame is higher than this value, '
-                        'then this frame is speech.')
-    parser.add_argument('--disable_dynamic_vad_threshold', action='store_true', help='')
+                        default=0.35,
+                        help='Range 0~1. the higher this value, the stricter the speech judgment. If dynamic VAD threshold is enabled (enabled by default), this threshold will be adjusted dynamically based on the input speech\'s VAD results.')
+    parser.add_argument('--disable_dynamic_vad_threshold', action='store_true', help='Set this flag to disable dynamic VAD threshold.')
     parser.add_argument('--model',
                         type=str,
                         default='small',
-                        help='Select Whisper/Faster-Whisper model size. '
-                        'See https://github.com/openai/whisper#available-models-and-languages for available models.')
+                        help='Select Whisper/Faster-Whisper/Simul Streaming model size. See https://github.com/openai/whisper#available-models-and-languages for available models.')
     parser.add_argument('--language',
                         type=str,
                         default='auto',
-                        help='Language spoken in the stream. '
-                        'Default option is to auto detect the spoken language. '
-                        'See https://github.com/openai/whisper#available-models-and-languages for available languages.')
+                        help='Language spoken in the stream. Default option is to auto detect the spoken language. See https://github.com/openai/whisper#available-models-and-languages for available languages.')
     parser.add_argument('--beam_size',
                         type=int,
                         default=5,
-                        help='Number of beams in beam search. '
-                        'Set to 0 to use greedy algorithm instead.')
+                        help='Number of beams in beam search. Set to 0 to use greedy algorithm instead.')
     parser.add_argument('--best_of',
                         type=int,
                         default=5,
                         help='Number of candidates when sampling with non-zero temperature.')
     parser.add_argument('--use_faster_whisper',
                         action='store_true',
-                        help='Set this flag to use Faster Whisper implementation instead of '
-                        'the original OpenAI implementation.')
+                        help='Set this flag to use Faster Whisper implementation instead of the original OpenAI implementation.')
     parser.add_argument('--use_simul_streaming',
                         action='store_true',
-                        help='Set this flag to use Simul Streaming implementation instead of '
-                        'the original OpenAI implementation.')
+                        help='Set this flag to use Simul Streaming implementation instead of the original OpenAI implementation.')
     parser.add_argument(
         '--use_whisper_api',
         action='store_true',
         help='This flag will soon be deprecated, please use \"--use_openai_transcription_api\" instead.')
     parser.add_argument('--use_openai_transcription_api',
                         action='store_true',
-                        help='Set this flag to use OpenAI transcription API instead of '
-                        'the original local Whipser.')
+                        help='Set this flag to use OpenAI transcription API instead of the original local Whipser.')
     parser.add_argument(
         '--openai_transcription_model',
         type=str,
@@ -266,33 +251,29 @@ def cli():
     parser.add_argument('--whisper_filters',
                         type=str,
                         default='emoji_filter',
-                        help='Filters apply to whisper results, separated by ",". '
-                        'We provide emoji_filter and japanese_stream_filter.')
+                        help='Filters apply to whisper results, separated by ",". We provide emoji_filter and japanese_stream_filter.')
     parser.add_argument(
         '--openai_api_key',
         type=str,
         default=None,
-        help='OpenAI API key if using GPT translation / Whisper API.'
-        'If you have multiple keys, you can separate them with \",\" and each key will be used in turn.')
+        help='OpenAI API key if using GPT translation / Whisper API. If you have multiple keys, you can separate them with \",\" and each key will be used in turn.')
     parser.add_argument(
         '--google_api_key',
         type=str,
         default=None,
-        help='Google API key if using Gemini translation.'
-        'If you have multiple keys, you can separate them with \",\" and each key will be used in turn.')
+        help='Google API key if using Gemini translation. If you have multiple keys, you can separate them with \",\" and each key will be used in turn.')
     parser.add_argument('--gpt_model',
                         type=str,
-                        default='gpt-4o-mini',
-                        help='OpenAI\'s GPT model name, gpt-4o / gpt-4o-mini')
+                        default='gpt-5-nano',
+                        help='OpenAI\'s GPT model name, gpt-5 / gpt-5-mini / gpt-5-nano')
     parser.add_argument('--gemini_model',
                         type=str,
-                        default='gemini-2.0-flash',
-                        help='Google\'s Gemini model name, gemini-1.5-flash / gemini-1.5-pro / gemini-2.0-flash')
+                        default='gemini-2.5-flash-lite',
+                        help='Google\'s Gemini model name, gemini-2.0-flash / gemini-2.5-flash / gemini-2.5-flash-lite')
     parser.add_argument('--translation_prompt',
                         type=str,
                         default=None,
-                        help='If set, will translate result text to target language via GPT / Gemini API. '
-                        'Example: \"Translate from Japanese to Chinese\"')
+                        help='If set, will translate result text to target language via GPT / Gemini API. Example: \"Translate from Japanese to Chinese\"')
     parser.add_argument('--gpt_translation_prompt',
                         type=str,
                         default=None,
@@ -300,9 +281,7 @@ def cli():
     parser.add_argument('--translation_history_size',
                         type=int,
                         default=0,
-                        help='The number of previous messages sent when calling the GPT / Gemini API. '
-                        'If the history size is 0, the translation will be run parallelly. '
-                        'If the history size > 0, the translation will be run serially.')
+                        help='The number of previous messages sent when calling the GPT / Gemini API. If the history size is 0, the translation will be run parallelly. If the history size > 0, the translation will be run serially.')
     parser.add_argument('--gpt_translation_history_size',
                         type=int,
                         default=None,
@@ -310,8 +289,7 @@ def cli():
     parser.add_argument('--translation_timeout',
                         type=int,
                         default=10,
-                        help='If the GPT / Gemini translation exceeds this number of seconds, '
-                        'the translation will be discarded.')
+                        help='If the GPT / Gemini translation exceeds this number of seconds, the translation will be discarded.')
     parser.add_argument('--gpt_translation_timeout',
                         type=int,
                         default=None,
@@ -321,9 +299,7 @@ def cli():
     parser.add_argument('--processing_proxy',
                         type=str,
                         default=None,
-                        help='Use the specified HTTP/HTTPS/SOCKS proxy for Whisper/GPT API '
-                        '(Gemini currently doesn\'t support specifying a proxy within the program), '
-                        'e.g. http://127.0.0.1:7890.')
+                        help='Use the specified HTTP/HTTPS/SOCKS proxy for Whisper/GPT API (Gemini currently doesn\'t support specifying a proxy within the program), e.g. http://127.0.0.1:7890.')
     parser.add_argument('--use_json_result',
                         action='store_true',
                         help='Using JSON result in LLM translation for some locally deployed models.')
@@ -337,8 +313,7 @@ def cli():
     parser.add_argument('--output_proxy',
                         type=str,
                         default=None,
-                        help='Use the specified HTTP/HTTPS/SOCKS proxy for Cqhttp/Discord/Telegram, '
-                        'e.g. http://127.0.0.1:7890.')
+                        help='Use the specified HTTP/HTTPS/SOCKS proxy for Cqhttp/Discord/Telegram, e.g. http://127.0.0.1:7890.')
     parser.add_argument('--output_file_path',
                         type=str,
                         default=None,
@@ -350,8 +325,7 @@ def cli():
     parser.add_argument('--cqhttp_token',
                         type=str,
                         default=None,
-                        help='Token of cqhttp, if it is not set on the server side, '
-                        'it does not need to fill in.')
+                        help='Token of cqhttp, if it is not set on the server side, it does not need to fill in.')
     parser.add_argument('--discord_webhook_url',
                         type=str,
                         default=None,
@@ -360,8 +334,7 @@ def cli():
     parser.add_argument('--telegram_chat_id',
                         type=int,
                         default=None,
-                        help='If set, will send the result text to this Telegram chat. '
-                        'Needs to be used with \"--telegram_token\".')
+                        help='If set, will send the result text to this Telegram chat. Needs to be used with \"--telegram_token\".')
 
     args = parser.parse_args().__dict__
     url = args.pop('URL')

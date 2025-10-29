@@ -2,7 +2,15 @@
 
 # stream-translator-gpt
 
-English | [简体中文](./README_CN.md)
+English | [中文](./README_CN.md)
+
+stream-translator-gpt is a command-line tool for real-time transcription and translation of live streams.
+
+Try it on Colab: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/stream_translator.ipynb)
+
+(Due to frequent scraping and theft of API keys, we are unable to provide a trial API key. You need to fill in your own API key.)
+
+## Pipeline
 
 ```mermaid
 flowchart LR
@@ -11,7 +19,7 @@ flowchart LR
         aa("`**FFmpeg**`")
         ab("`**Device audio**`")
         ac("`**yt-dlp**`")
-        ad("`**Local video file**`")
+        ad("`**Local media file**`")
         ae("`**Live streaming**`")
         ac --> aa
         ad --> aa
@@ -19,13 +27,14 @@ flowchart LR
     end
     subgraph gb["`**Audio Slicing**`"]
         direction LR
-        ba("`**VAD**`")
+        ba("`**Silero VAD**`")
     end
     subgraph gc["`**Transcription**`"]
         direction LR
         ca("`**Whisper**`")
         cb("`**Faster-Whisper**`")
-        cc("`**OpenAI Transcription API**`")
+        cc("`**Simul Streaming**`")
+        cd("`**OpenAI Transcription API**`")
     end
     subgraph gd["`**Translation**`"]
         direction LR
@@ -34,11 +43,11 @@ flowchart LR
     end
     subgraph ge["`**Output**`"]
         direction LR
-        ea("`**Print to stdout**`")
-        eb("`**Cqhttp**`")
+        ea("`**Print to terminal**`")
+        ee("`**Save to file**`")
         ec("`**Discord**`")
         ed("`**Telegram**`")
-        ee("`**Save to file**`")
+        eb("`**Cqhttp**`")
     end
     aa --> gb
     ab --> gb
@@ -47,22 +56,24 @@ flowchart LR
     gd ==> ge
 ```
 
-Command line utility to transcribe or translate audio from livestreams in real time. Uses [yt-dlp](https://github.com/yt-dlp/yt-dlp) to 
-get livestream URLs from various services and [Whisper](https://github.com/openai/whisper) / [Faster-Whisper](https://github.com/SYSTRAN/faster-whisper) for transcription.
+Uses [yt-dlp](https://github.com/yt-dlp/yt-dlp) to extract audio data from live streams.
 
-This fork optimized the audio slicing logic based on [VAD](https://github.com/snakers4/silero-vad), 
-introduced [GPT API](https://platform.openai.com/api-keys) / [Gemini API](https://aistudio.google.com/app/apikey) to support language translation beyond English, and supports input from the audio devices.
+Dynamic threshold audio slicing based on [Silero-VAD](https://github.com/snakers4/silero-vad).
 
-Try it on Colab: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/stream_translator.ipynb)
+Use [Whisper](https://github.com/openai/whisper) / [Faster-Whisper](https://github.com/SYSTRAN/faster-whisper) /  [Simul Streaming](https://github.com/ufal/SimulStreaming) locally or call [OpenAI Transcription API](https://platform.openai.com/docs/guides/speech-to-text) remotely for transcription.
+
+Use OpenAI's [GPT API](https://platform.openai.com/docs/overview) / Google's [Gemini API](https://ai.google.dev/gemini-api/docs) for translation.
+
+Finally, the results can be printed to the terminal, saved to a file, or sent to a group via social media bot.
 
 ## Prerequisites
 
 **Linux or Windows:**
 
 1. Python >= 3.8 (Recommend >= 3.10)
-2. [**Install CUDA on your system.**](https://developer.nvidia.com/cuda-downloads).
+2. [**Install CUDA on your system**](https://developer.nvidia.com/cuda-downloads).
 3. [**Install cuDNN to your CUDA dir**](https://developer.nvidia.com/cudnn-downloads) if you want to use **Faster-Whisper**.
-4. [**Install PyTorch (with CUDA) to your Python.**](https://pytorch.org/get-started/locally/)
+4. [**Install PyTorch (with CUDA) to your Python**](https://pytorch.org/get-started/locally/).
 5. [**Create a Google API key**](https://aistudio.google.com/app/apikey) if you want to use **Gemini API** for translation. (Free 15 requests / minute)
 6. [**Create a OpenAI API key**](https://platform.openai.com/api-keys) if you want to use **OpenAI Transcription API** for transcription or **GPT API** for translation.
 
@@ -92,6 +103,8 @@ python3 ./stream-translator-gpt/translator.py
 
 ## Usage
 
+The commands on Colab [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/stream_translator.ipynb) are the recommended usage, below are some other commonly used options.
+
 - Transcribe live streaming (default use **Whisper**):
 
     ```stream-translator-gpt {URL} --model large --language {input_language}```
@@ -99,6 +112,10 @@ python3 ./stream-translator-gpt/translator.py
 - Transcribe by **Faster Whisper**:
 
     ```stream-translator-gpt {URL} --model large --language {input_language} --use_faster_whisper```
+
+- Transcribe by **Simul Streaming**:
+
+    ```stream-translator-gpt {URL} --model large --language {input_language} --use_simul_streaming```
 
 - Transcribe by **OpenAI Transcription API**:
 
@@ -130,65 +147,73 @@ python3 ./stream-translator-gpt/translator.py
 
     If you want to use the audio output of another program as input, you need to [**enable stereo mix**](https://www.howtogeek.com/39532/how-to-enable-stereo-mix-in-windows-7-to-record-audio/).
 
-- Sending result to Cqhttp:
-
-    ```stream-translator-gpt {URL} --model large --language {input_language} --cqhttp_url {your_cqhttp_url} --cqhttp_token {your_cqhttp_token}```
-
 - Sending result to Discord:
 
     ```stream-translator-gpt {URL} --model large --language {input_language} --discord_webhook_url {your_discord_webhook_url}```
 
+- Sending result to Telegram:
+
+    ```stream-translator-gpt {URL} --model large --language {input_language} --telegram_token {your_telegram_token} --telegram_chat_id {your_telegram_chat_id}```
+
+- Sending result to Cqhttp:
+
+    ```stream-translator-gpt {URL} --model large --language {input_language} --cqhttp_url {your_cqhttp_url} --cqhttp_token {your_cqhttp_token}```
+
 - Saving result to a .srt subtitle file:
 
-    ```stream-translator-gpt {URL} --model large --language ja --translation_prompt "Translate from Japanese to Chinese" --google_api_key {your_google_key} --hide_transcribe_result --output_timestamps --output_file_path ./result.srt```
+    ```stream-translator-gpt {URL} --model large --language ja --translation_prompt "Translate from Japanese to Chinese" --google_api_key {your_google_key} --hide_transcribe_result --retry_if_translation_fails --output_timestamps --output_file_path ./result.srt```
 
 ## All options
 
-| Option                             | Default Value             | Description                                                                                                                                                                                              |
-| :--------------------------------- | :------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Input Options**                  |
-| `URL`                              |                           | The URL of the stream. If a local file path is filled in, it will be used as input. If fill in "device", the input will be obtained from your PC device.                                                 |
-| `--format`                         | ba/wa*                    | Stream format code, this parameter will be passed directly to yt-dlp. You can get the list of available format codes by `yt-dlp {url} -F`                                                                |
-| `--cookies`                        |                           | Used to open member-only stream, this parameter will be passed directly to yt-dlp.                                                                                                                       |
-| `--input_proxy`                    |                           | Use the specified HTTP/HTTPS/SOCKS proxy for yt-dlp, e.g. http://127.0.0.1:7890.                                                                                                                         |
-| `--device_index`                   |                           | The index of the device that needs to be recorded. If not set, the system default recording device will be used.                                                                                         |
-| `--list_devices`                   |                           | Print all audio devices info then exit.                                                                                                                                                                  |
-| `--device_recording_interval`      | 0.5                       | The shorter the recording interval, the lower the latency, but it will increase CPU usage. It is recommended to set it between 0.1 and 1.0.                                                              |
-| **Audio Slicing Options**          |
-| `--continuous_no_speech_threshold` | 0.5                       | Slice if there is no speech for a continuous period in second.                                                                                                                                           |
-| `--min_audio_length`               | 1.5                       | Minimum slice audio length in seconds.                                                                                                                                                                   |
-| `--max_audio_length`               | 15.0                      | Maximum slice audio length in seconds.                                                                                                                                                                   |
-| `--prefix_retention_length`        | 0.5                       | The length of the retention prefix audio during slicing.                                                                                                                                                 |
-| `--vad_threshold`                  | 0.25                      | The threshold of Voice activity detection. if the speech probability of a frame is higher than this value, then this frame is speech.                                                                    |
-| **Transcription Options**          |
-| `--model`                          | small                     | Select Whisper/Faster-Whisper model size. See [here](https://github.com/openai/whisper#available-models-and-languages) for available models.                                                             |
-| `--language`                       | auto                      | Language spoken in the stream. See [here](https://github.com/openai/whisper#available-models-and-languages) for available languages.                                                                     |
-| `--use_faster_whisper`             |                           | Set this flag to use Faster Whisper implementation instead of the original OpenAI implementation                                                                                                         |
-| `--use_openai_transcription_api`   |                           | Set this flag to use OpenAI transcription API instead of the original local Whipser.                                                                                                                     |
-| `--whisper_filters`                | emoji_filter              | Filters apply to whisper results, separated by ",". We provide emoji_filter and japanese_stream_filter.                                                                                                  |
-| **Translation Options**            |
-| `--openai_api_key`                 |                           | OpenAI API key if using GPT translation / Whisper API. If you have multiple keys, you can separate them with "," and each key will be used in turn.                                                      |
-| `--google_api_key`                 |                           | Google API key if using Gemini translation. If you have multiple keys, you can separate them with "," and each key will be used in turn.                                                                 |
-| `--gpt_model`                      | gpt-4o-mini               | OpenAI's GPT model name, gpt-4o / gpt-4o-mini                                                                                                                                                            |
-| `--gemini_model`                   | gemini-2.0-flash          | Google's Gemini model name, gemini-1.5-flash / gemini-1.5-pro /gemini-2.0-flash                                                                                                                          |
-| `--translation_prompt`             |                           | If set, will translate the result text to target language via GPT / Gemini API (According to which API key is filled in). Example: "Translate from Japanese to Chinese"                                  |
-| `--translation_history_size`       | 0                         | The number of previous messages sent when calling the GPT / Gemini API. If the history size is 0, the translation will be run parallelly. If the history size > 0, the translation will be run serially. |
-| `--translation_timeout`            | 10                        | If the GPT / Gemini translation exceeds this number of seconds, the translation will be discarded.                                                                                                       |
-| `--gpt_base_url`                   | https://api.openai.com/v1 | Customize the API endpoint of GPT.                                                                                                                                                                       |
-| `--gemini_base_url`                |                           | Customize the API endpoint of Gemini.                                                                                                                                                                    |
-| `--processing_proxy`               |                           | Use the specified HTTP/HTTPS/SOCKS proxy for Whisper/GPT API (Gemini currently doesn't support specifying a proxy within the program), e.g. http://127.0.0.1:7890.                                       |
-| `--use_json_result`                |                           | Using JSON result in LLM translation for some locally deployed models.                                                                                                                                   |
-| `--retry_if_translation_fails`     |                           | Retry when translation times out/fails. Used to generate subtitles offline.                                                                                                                              |
-| **Output Options**                 |
-| `--output_timestamps`              |                           | Output the timestamp of the text when outputting the text.                                                                                                                                               |
-| `--hide_transcribe_result`         |                           | Hide the result of Whisper transcribe.                                                                                                                                                                   |
-| `--output_proxy`                   |                           | Use the specified HTTP/HTTPS/SOCKS proxy for Cqhttp/Discord/Telegram, e.g. http://127.0.0.1:7890.                                                                                                        |
-| `--output_file_path`               |                           | If set, will save the result text to this path.                                                                                                                                                          |
-| `--cqhttp_url`                     |                           | If set, will send the result text to the cqhttp server.                                                                                                                                                  |
-| `--cqhttp_token`                   |                           | Token of cqhttp, if it is not set on the server side, it does not need to fill in.                                                                                                                       |
-| `--discord_webhook_url`            |                           | If set, will send the result text to the discord channel.                                                                                                                                                |
-| `--telegram_token`                 |                           | Token of Telegram bot.                                                                                                                                                                                   |
-| `--telegram_chat_id`               |                           | If set, will send the result text to this Telegram chat. Needs to be used with \"--telegram_token\".                                                                                                     |
+| Option                                  | Default Value             | Description                                                                                                                                                                                                        |
+| :-------------------------------------- | :------------------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Input Options**                       |
+| `URL`                                   |                           | The URL of the stream. If a local file path is filled in, it will be used as input. If fill in "device", the input will be obtained from your PC device.                                                           |
+| `--format`                              | ba/wa*                    | Stream format code, this parameter will be passed directly to yt-dlp. You can get the list of available format codes by `yt-dlp {url} -F`                                                                          |
+| `--cookies`                             |                           | Used to open member-only stream, this parameter will be passed directly to yt-dlp.                                                                                                                                 |
+| `--input_proxy`                         |                           | Use the specified HTTP/HTTPS/SOCKS proxy for yt-dlp, e.g. http://127.0.0.1:7890.                                                                                                                                   |
+| `--device_index`                        |                           | The index of the device that needs to be recorded. If not set, the system default recording device will be used.                                                                                                   |
+| `--list_devices`                        |                           | Print all audio devices info then exit.                                                                                                                                                                            |
+| `--device_recording_interval`           | 0.5                       | The shorter the recording interval, the lower the latency, but it will increase CPU usage. It is recommended to set it between 0.1 and 1.0.                                                                        |
+| **Audio Slicing Options**               |
+| `--min_audio_length`                    | 0.5                       | Minimum slice audio length in seconds.                                                                                                                                                                             |
+| `--max_audio_length`                    | 30.0                      | Maximum slice audio length in seconds.                                                                                                                                                                             |
+| `--target_audio_length`                 | 5.0                       | When dynamic no speech threshold is enabled (enabled by default), the program will slice the audio as close to this length as possible.                                                                            |
+| `--continuous_no_speech_threshold`      | 1.0                       | Slice if there is no speech during this number of seconds. If the dynamic no speech threshold is enabled (enabled by default), the actual threshold will be dynamically adjusted based on this value.              |
+| `--disable_dynamic_no_speech_threshold` |                           | Set this flag to disable dynamic no speech threshold.                                                                                                                                                              |
+| `--prefix_retention_length`             | 0.5                       | The length of the retention prefix audio during slicing.                                                                                                                                                           |
+| `--vad_threshold`                       | 0.35                      | Range 0~1. the higher this value, the stricter the speech judgment. If dynamic VAD threshold is enabled (enabled by default), this threshold will be adjusted dynamically based on the input speech's VAD results. |
+| `--disable_dynamic_vad_threshold`       |                           | Set this flag to disable dynamic VAD threshold.                                                                                                                                                                    |
+| **Transcription Options**               |
+| `--model`                               | small                     | Select Whisper/Faster-Whisper/Simul Streaming model size. See [here](https://github.com/openai/whisper#available-models-and-languages) for available models.                                                       |
+| `--language`                            | auto                      | Language spoken in the stream. See [here](https://github.com/openai/whisper#available-models-and-languages) for available languages.                                                                               |
+| `--use_faster_whisper`                  |                           | Set this flag to use Faster Whisper implementation instead of the original OpenAI implementation                                                                                                                   |
+| `--use_simul_streaming`                 |                           | Set this flag to use Simul Streaming implementation instead of the original OpenAI implementation                                                                                                                  |
+| `--use_openai_transcription_api`        |                           | Set this flag to use OpenAI transcription API instead of the original local Whipser.                                                                                                                               |
+| `--whisper_filters`                     | emoji_filter              | Filters apply to whisper results, separated by ",". We provide emoji_filter and japanese_stream_filter.                                                                                                            |
+| **Translation Options**                 |
+| `--openai_api_key`                      |                           | OpenAI API key if using GPT translation / Whisper API. If you have multiple keys, you can separate them with "," and each key will be used in turn.                                                                |
+| `--google_api_key`                      |                           | Google API key if using Gemini translation. If you have multiple keys, you can separate them with "," and each key will be used in turn.                                                                           |
+| `--gpt_model`                           | gpt-5-nano                | OpenAI's GPT model name, gpt-5 / gpt-5-mini / gpt-5-nano                                                                                                                                                           |
+| `--gemini_model`                        | gemini-2.5-flash-lite     | Google's Gemini model name, gemini-2.0-flash / gemini-2.5-flash / gemini-2.5-flash-lite                                                                                                                            |
+| `--translation_prompt`                  |                           | If set, will translate the result text to target language via GPT / Gemini API (According to which API key is filled in). Example: "Translate from Japanese to Chinese"                                            |
+| `--translation_history_size`            | 0                         | The number of previous messages sent when calling the GPT / Gemini API. If the history size is 0, the translation will be run parallelly. If the history size > 0, the translation will be run serially.           |
+| `--translation_timeout`                 | 10                        | If the GPT / Gemini translation exceeds this number of seconds, the translation will be discarded.                                                                                                                 |
+| `--gpt_base_url`                        | https://api.openai.com/v1 | Customize the API endpoint of GPT.                                                                                                                                                                                 |
+| `--gemini_base_url`                     |                           | Customize the API endpoint of Gemini.                                                                                                                                                                              |
+| `--processing_proxy`                    |                           | Use the specified HTTP/HTTPS/SOCKS proxy for Whisper/GPT API (Gemini currently doesn't support specifying a proxy within the program), e.g. http://127.0.0.1:7890.                                                 |
+| `--use_json_result`                     |                           | Using JSON result in LLM translation for some locally deployed models.                                                                                                                                             |
+| `--retry_if_translation_fails`          |                           | Retry when translation times out/fails. Used to generate subtitles offline.                                                                                                                                        |
+| **Output Options**                      |
+| `--output_timestamps`                   |                           | Output the timestamp of the text when outputting the text.                                                                                                                                                         |
+| `--hide_transcribe_result`              |                           | Hide the result of Whisper transcribe.                                                                                                                                                                             |
+| `--output_proxy`                        |                           | Use the specified HTTP/HTTPS/SOCKS proxy for Cqhttp/Discord/Telegram, e.g. http://127.0.0.1:7890.                                                                                                                  |
+| `--output_file_path`                    |                           | If set, will save the result text to this path.                                                                                                                                                                    |
+| `--cqhttp_url`                          |                           | If set, will send the result text to the cqhttp server.                                                                                                                                                            |
+| `--cqhttp_token`                        |                           | Token of cqhttp, if it is not set on the server side, it does not need to fill in.                                                                                                                                 |
+| `--discord_webhook_url`                 |                           | If set, will send the result text to the discord channel.                                                                                                                                                          |
+| `--telegram_token`                      |                           | Token of Telegram bot.                                                                                                                                                                                             |
+| `--telegram_chat_id`                    |                           | If set, will send the result text to this Telegram chat. Needs to be used with \"--telegram_token\".                                                                                                               |
 
 ## Contact me
 
