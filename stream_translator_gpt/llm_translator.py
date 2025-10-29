@@ -97,15 +97,19 @@ class LLMClint():
         messages.append({'role': 'user', 'content': user_content})
 
         try:
-            completion = client.chat.completions.create(
-                model=self.model,
-                temperature=0,
-                max_tokens=1000,
-                top_p=1,
-                frequency_penalty=1,
-                presence_penalty=1,
-                messages=messages,
-            )
+            if self.model.startswith('gpt-4') or self.model.startswith('gpt-3'):
+                completion = client.chat.completions.create(
+                    model=self.model,
+                    messages=messages,
+                    temperature=0,
+                    top_p=0.9,
+                    stop=['\n'],
+                )
+            else:
+                completion = client.chat.completions.create(
+                    model=self.model,
+                    messages=messages,
+                )
 
             translation_task.translation = completion.choices[0].message.content
             if self.use_json_result:
@@ -139,7 +143,7 @@ class LLMClint():
         messages = self._gpt_to_gemini(self.history_messages)
         user_content = f'{self.prompt}: \n{translation_task.transcript}'
         messages.append({'role': 'user', 'parts': [user_content]})
-        config = genai.types.GenerationConfig(candidate_count=1, temperature=0)
+        config = genai.types.GenerationConfig(candidate_count=1, temperature=0.0, top_p=0.9, stop_sequences=['\n'])
         safety_settings = {
             HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
             HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,

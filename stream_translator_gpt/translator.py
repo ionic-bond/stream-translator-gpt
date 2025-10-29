@@ -163,7 +163,6 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
             output_queue=getter_to_slicer_queue,
         )
 
-    print('Input terminated, waiting for all processing complete...')
     while (not getter_to_slicer_queue.empty() or not slicer_to_transcriber_queue.empty() or
            not transcriber_to_translator_queue.empty() or not translator_to_exporter_queue.empty()):
         time.sleep(5)
