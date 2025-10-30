@@ -189,14 +189,14 @@ Colab上的命令 [![Open In Colab](https://colab.research.google.com/assets/col
 | `--language`                            | auto                      | 直播流中的语言。可用语言请参见 [此处](https://github.com/openai/whisper#available-models-and-languages)。                                       |
 | `--use_faster_whisper`                  |                           | 设置此标志以使用 Faster Whisper 进行语音转文字，而不是原始的 OpenAI Whisper。                                                                   |
 | `--use_simul_streaming`                 |                           | 设置此标志以使用 Simul Streaming 进行语音转文字，而不是原始的 OpenAI Whisper。                                                                  |
-| `--use_openai_transcription_api`        | _                         | 设置此标志以使用 OpenAI transcription API，而不是原始的本地 Whisper。                                                                           |
+| `--use_openai_transcription_api`        |                           | 设置此标志以使用 OpenAI transcription API，而不是原始的本地 Whisper。                                                                           |
 | `--whisper_filters`                     | emoji_filter              | 应用于语音转文字结果的过滤器，用 "," 分隔。我们提供 emoji_filter 和 japanese_stream_filter。                                                    |
-| **翻译选项**                            |                           | _                                                                                                                                               |
+| **翻译选项**                            |                           |                                                                                                                                                 |
 | `--openai_api_key`                      |                           | 如果使用 GPT 翻译 / Whisper API，则需要 OpenAI API 密钥。如果您有多个密钥，可以用 "," 分隔，每个密钥将轮流使用。                                |
-| `--google_api_key`                      | _                         | 如果使用 Gemini 翻译，则需要 Google API 密钥。如果您有多个密钥，可以用 "," 分隔，每个密钥将轮流使用。                                           |
+| `--google_api_key`                      |                           | 如果使用 Gemini 翻译，则需要 Google API 密钥。如果您有多个密钥，可以用 "," 分隔，每个密钥将轮流使用。                                           |
 | `--gpt_model`                           | gpt-5-nano                | OpenAI 的 GPT 模型名称，gpt-5 / gpt-5-mini / gpt-5-nano                                                                                         |
 | `--gemini_model`                        | gemini-2.5-flash-lite     | Google 的 Gemini 模型名称，gemini-2.0-flash / gemini-2.5-flash / gemini-2.5-flash-lite                                                          |
-| `--translation_prompt`   _              |                           | 如果使用，将通过 GPT / Gemini API (根据填写的 API 密钥决定) 将结果文本翻译成目标语言。示例："Translate from Japanese to Chinese"                |
+| `--translation_prompt`                  |                           | 如果使用，将通过 GPT / Gemini API (根据填写的 API 密钥决定) 将结果文本翻译成目标语言。示例："Translate from Japanese to Chinese"                |
 | `--translation_history_size`            | 0                         | 调用 GPT / Gemini API 时发送的历史消息作为上下文的数量。如果历史大小为 0，翻译将并行运行。如果历史大小 > 0，翻译将串行运行。                    |
 | `--translation_timeout`                 | 10                        | 如果 GPT / Gemini 当一句话翻译超过此秒数，这句话将被放弃。                                                                                      |
 | `--gpt_base_url`                        | https://api.openai.com/v1 | 自定义 GPT 的 API 端点。                                                                                                                        |
@@ -206,12 +206,12 @@ Colab上的命令 [![Open In Colab](https://colab.research.google.com/assets/col
 | `--retry_if_translation_fails`          |                           | 当翻译超时/失败时重试。用于离线生成字幕。                                                                                                       |
 | **输出选项**                            |                           |                                                                                                                                                 |
 | `--output_timestamps`                   |                           | 输出文本时，同时输出文本的时间戳。                                                                                                              |
-| `--hide_transcribe_result`              |                           | 隐藏 Whisper 转录的结果。                       _                                                                                               |
+| `--hide_transcribe_result`              |                           | 隐藏 Whisper 转录的结果。                                                                                                                       |
 | `--output_proxy`                        |                           | 为 Cqhttp/Discord/Telegram 使用指定的 HTTP/HTTPS/SOCKS 代理，例如 http://127.0.0.1:7890。                                                       |
-| `--output_file_path`                    |                           | 如果使用，将把结果文本保存到此路径。                                                                                       F                    |
+| `--output_file_path`                    |                           | 如果使用，将把结果文本保存到此路径。                                                                                                            |
 | `--cqhttp_url`                          |                           | 如果使用，将把结果文本发送到 cqhttp 服务器。                                                                                                    |
 | `--cqhttp_token` code_snippet_pre       |                           | cqhttp 的 Token，如果服务器端未设置，则无需填写。                                                                                               |
-| `--discord_webhook_url`                 |                           | 如果使用，将把结果文本发送到 Discord 频道。                                                         content_copy                                |
+| `--discord_webhook_url`                 |                           | 如果使用，将把结果文本发送到 Discord 频道。                                                                                                     |
 | `--telegram_token`                      |                           | Telegram 机器人的 Token。                                                                                                                       |
 | `--telegram_chat_id`                    |                           | 如果使用，将把结果文本发送到此 Telegram 聊天。需要与 \"--telegram_token\" 配合使用。                                                            |
 
