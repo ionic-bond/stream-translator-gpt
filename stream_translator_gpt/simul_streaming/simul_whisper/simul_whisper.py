@@ -315,18 +315,19 @@ class PaddedAlignAttWhisper:
 
         if self.fw_encoder:
             from faster_whisper.audio import pad_or_trim as fw_pad_or_trim
-            audio_length_seconds = len(input_segments) / 16000   
-            content_mel_len = int(audio_length_seconds * 100)//2      
+            audio_length_seconds = len(input_segments) / 16000
+            content_mel_len = int(audio_length_seconds * 100) // 2
             mel_padded_2 = self.fw_feature_extractor(waveform=input_segments.numpy(), padding=N_SAMPLES)[None, :]
             mel = fw_pad_or_trim(mel_padded_2, N_FRAMES, axis=-1)
             encoder_feature_ctranslate = self.fw_encoder.encode(mel)
-            if self.device == 'cpu': #it seems that on gpu, passing StorageView to torch.as_tensor fails and wrapping in the array works
+            if self.device == 'cpu':  #it seems that on gpu, passing StorageView to torch.as_tensor fails and wrapping in the array works
                 encoder_feature_ctranslate = np.array(encoder_feature_ctranslate)
             model_dtype = next(self.model.parameters()).dtype
             try:
                 encoder_feature = torch.as_tensor(encoder_feature_ctranslate, device=self.device).to(model_dtype)
-            except TypeError: # Normally the cpu condition should prevent having exceptions, but just in case:
-                encoder_feature = torch.as_tensor(np.array(encoder_feature_ctranslate), device=self.device).to(model_dtype)
+            except TypeError:  # Normally the cpu condition should prevent having exceptions, but just in case:
+                encoder_feature = torch.as_tensor(np.array(encoder_feature_ctranslate),
+                                                  device=self.device).to(model_dtype)
         else:
             # mel + padding to 30s
             mel_padded = log_mel_spectrogram(input_segments,

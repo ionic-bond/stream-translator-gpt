@@ -111,13 +111,11 @@ def available_models() -> List[str]:
     return list(_MODELS.keys())
 
 
-def load_model(
-    name: str,
-    device: Optional[Union[str, torch.device]] = None,
-    download_root: str = None,
-    in_memory: bool = False,
-    decoder_only=False
-) -> Whisper:
+def load_model(name: str,
+               device: Optional[Union[str, torch.device]] = None,
+               download_root: str = None,
+               in_memory: bool = False,
+               decoder_only=False) -> Whisper:
     """
     Load a Whisper ASR model
 
@@ -161,10 +159,7 @@ def load_model(
     dims = ModelDimensions(**checkpoint["dims"])
     model = Whisper(dims, decoder_only=decoder_only)
     if decoder_only:
-        checkpoint["model_state_dict"] = {
-            k: v for k, v in checkpoint["model_state_dict"].items() 
-            if 'encoder' not in k
-        }
+        checkpoint["model_state_dict"] = {k: v for k, v in checkpoint["model_state_dict"].items() if 'encoder' not in k}
     model.load_state_dict(checkpoint["model_state_dict"])
 
     if alignment_heads is not None:

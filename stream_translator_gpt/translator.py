@@ -418,14 +418,10 @@ def cli():
         transcription_encoder_flag_num += 1
         transcription_decoder_flag_num += 1
     if transcription_encoder_flag_num > 1:
-        print(
-            f'{ERROR}Cannot use Faster Whisper, Whisper API or OpenAI Transcription API at the same time'
-        )
+        print(f'{ERROR}Cannot use Faster Whisper, Whisper API or OpenAI Transcription API at the same time')
         sys.exit(0)
     if transcription_decoder_flag_num > 1:
-        print(
-            f'{ERROR}Cannot use Simul Streaming, Whisper API or OpenAI Transcription API at the same time'
-        )
+        print(f'{ERROR}Cannot use Simul Streaming, Whisper API or OpenAI Transcription API at the same time')
         sys.exit(0)
 
     if (args['use_whisper_api'] or args['use_openai_transcription_api']) and not args['openai_api_key']:
