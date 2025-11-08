@@ -49,7 +49,7 @@ class OpenaiWhisper(AudioTranscriber):
     def __init__(self, model: str, language: str) -> None:
         import whisper
 
-        print(f'{INFO}Loading whisper model: {model}')
+        print(f'{INFO}Loading Whisper model: {model}')
         self.model = whisper.load_model(model)
         self.language = language
 
@@ -63,8 +63,8 @@ class FasterWhisper(AudioTranscriber):
     def __init__(self, model: str, language: str) -> None:
         from faster_whisper import WhisperModel
 
-        print(f'{INFO}Loading faster-whisper model: {model}')
-        self.model = WhisperModel(model)
+        print(f'{INFO}Loading Faster-Whisper model: {model}')
+        self.model = WhisperModel(model, device='auto', compute_type='auto')
         self.language = language
 
     def transcribe(self, audio: np.array, **transcribe_options) -> str:
@@ -77,8 +77,14 @@ class FasterWhisper(AudioTranscriber):
 
 class SimulStreaming(AudioTranscriber):
 
-    def __init__(self, model: str, language: str) -> None:
+    def __init__(self, model: str, language: str, use_faster_whisper: bool) -> None:
         from .simul_streaming.simulstreaming_whisper import SimulWhisperASR, SimulWhisperOnline
+
+        fw_encoder = None
+        if use_faster_whisper:
+            print(f'{INFO}Loading Faster-Whisper as encoder for SimulStreaming: {model}')
+            from faster_whisper import WhisperModel
+            fw_encoder = WhisperModel(model, device='auto', compute_type='auto')
 
         print(f'{INFO}Loading SimulStreaming model: {model}')
         simulstreaming_params = {
@@ -97,6 +103,7 @@ class SimulStreaming(AudioTranscriber):
             "static_init_prompt": None,
             "max_context_tokens": None,
             "logdir": None,
+            "fw_encoder": fw_encoder,
         }
         asr = SimulWhisperASR(**simulstreaming_params)
         self.asr_online = SimulWhisperOnline(asr)

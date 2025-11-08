@@ -33,13 +33,21 @@ import wave
 # - context
 class PaddedAlignAttWhisper:
 
-    def __init__(self, cfg: AlignAttConfig) -> None:
+    def __init__(self, cfg: AlignAttConfig, fw_encoder=None) -> None:
         self.logdir_i = 0
         self.log_segments = 0
         if cfg.logdir is not None and not os.path.exists(cfg.logdir):
             os.makedirs(cfg.logdir)
         model_name = cfg.model
-        self.model = load_model(name=model_name)
+        decoder_only = fw_encoder != None
+        self.model = load_model(name=model_name, decoder_only=decoder_only)
+
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+        self.fw_encoder = fw_encoder
+        if self.fw_encoder:
+            from faster_whisper.feature_extractor import FeatureExtractor
+            self.fw_feature_extractor = FeatureExtractor(feature_size=self.model.dims.n_mels)
 
         self.decode_options = DecodingOptions(language=cfg.language, without_timestamps=True, task=cfg.task)
         self.tokenizer_is_multilingual = not model_name.endswith(".en")
@@ -305,19 +313,34 @@ class PaddedAlignAttWhisper:
         else:
             input_segments = self.segments[0]
 
-        # mel + padding to 30s
-        mel_padded = log_mel_spectrogram(input_segments,
-                                         n_mels=self.model.dims.n_mels,
-                                         padding=N_SAMPLES,
-                                         device=self.model.device).unsqueeze(0)
-        # trim to 3000
-        mel = pad_or_trim(mel_padded, N_FRAMES)
+        if self.fw_encoder:
+            from faster_whisper.audio import pad_or_trim as fw_pad_or_trim
+            audio_length_seconds = len(input_segments) / 16000   
+            content_mel_len = int(audio_length_seconds * 100)//2      
+            mel_padded_2 = self.fw_feature_extractor(waveform=input_segments.numpy(), padding=N_SAMPLES)[None, :]
+            mel = fw_pad_or_trim(mel_padded_2, N_FRAMES, axis=-1)
+            encoder_feature_ctranslate = self.fw_encoder.encode(mel)
+            if self.device == 'cpu': #it seems that on gpu, passing StorageView to torch.as_tensor fails and wrapping in the array works
+                encoder_feature_ctranslate = np.array(encoder_feature_ctranslate)
+            model_dtype = next(self.model.parameters()).dtype
+            try:
+                encoder_feature = torch.as_tensor(encoder_feature_ctranslate, device=self.device).to(model_dtype)
+            except TypeError: # Normally the cpu condition should prevent having exceptions, but just in case:
+                encoder_feature = torch.as_tensor(np.array(encoder_feature_ctranslate), device=self.device).to(model_dtype)
+        else:
+            # mel + padding to 30s
+            mel_padded = log_mel_spectrogram(input_segments,
+                                             n_mels=self.model.dims.n_mels,
+                                             padding=N_SAMPLES,
+                                             device=self.device).unsqueeze(0)
+            # trim to 3000
+            mel = pad_or_trim(mel_padded, N_FRAMES)
 
-        # the len of actual audio
-        content_mel_len = int((mel_padded.shape[2] - mel.shape[2]) / 2)
+            # the len of actual audio
+            content_mel_len = int((mel_padded.shape[2] - mel.shape[2]) / 2)
 
-        # encode
-        encoder_feature = self.model.encoder(mel)
+            # encode
+            encoder_feature = self.model.encoder(mel)
 
         if self.cfg.language == "auto" and self.detected_language is None:
             language_tokens, language_probs = self.lang_id(encoder_feature)
@@ -335,7 +358,7 @@ class PaddedAlignAttWhisper:
 
         ####################### Decoding loop
 
-        sum_logprobs = torch.zeros(self.cfg.beam_size, device=mel.device)
+        sum_logprobs = torch.zeros(self.cfg.beam_size, device=self.device)
         completed = False
 
         attn_of_alignment_heads = None

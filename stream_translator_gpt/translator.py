@@ -79,18 +79,19 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
                 input_queue=transcriber_to_translator_queue,
                 output_queue=translator_to_exporter_queue,
             )
-    if use_faster_whisper:
-        start_daemon_thread(FasterWhisper.work,
+    if use_simul_streaming:
+        start_daemon_thread(SimulStreaming.work,
                             model=model,
                             language=language,
+                            use_faster_whisper=use_faster_whisper,
                             print_result=not hide_transcribe_result,
                             output_timestamps=output_timestamps,
                             input_queue=slicer_to_transcriber_queue,
                             output_queue=transcriber_to_translator_queue,
                             whisper_filters=whisper_filters,
                             **transcribe_options)
-    elif use_simul_streaming:
-        start_daemon_thread(SimulStreaming.work,
+    elif use_faster_whisper:
+        start_daemon_thread(FasterWhisper.work,
                             model=model,
                             language=language,
                             print_result=not hide_transcribe_result,
@@ -404,18 +405,26 @@ def cli():
             f'{WARNING}\"--use_whisper_api\" will soon be deprecated, please use \"--use_openai_transcription_api\" instead.'
         )
 
-    transcription_flag_num = 0
+    transcription_encoder_flag_num = 0
+    transcription_decoder_flag_num = 0
     if args['use_faster_whisper']:
-        transcription_flag_num += 1
-    if args['use_whisper_api']:
-        transcription_flag_num += 1
-    if args['use_openai_transcription_api']:
-        transcription_flag_num += 1
+        transcription_encoder_flag_num += 1
     if args['use_simul_streaming']:
-        transcription_flag_num += 1
-    if transcription_flag_num > 1:
+        transcription_decoder_flag_num += 1
+    if args['use_whisper_api']:
+        transcription_encoder_flag_num += 1
+        transcription_decoder_flag_num += 1
+    if args['use_openai_transcription_api']:
+        transcription_encoder_flag_num += 1
+        transcription_decoder_flag_num += 1
+    if transcription_encoder_flag_num > 1:
         print(
-            f'{ERROR}Cannot use Faster Whisper, Simul Streaming, Whisper API or OpenAI Transcription API at the same time'
+            f'{ERROR}Cannot use Faster Whisper, Whisper API or OpenAI Transcription API at the same time'
+        )
+        sys.exit(0)
+    if transcription_decoder_flag_num > 1:
+        print(
+            f'{ERROR}Cannot use Simul Streaming, Whisper API or OpenAI Transcription API at the same time'
         )
         sys.exit(0)
 

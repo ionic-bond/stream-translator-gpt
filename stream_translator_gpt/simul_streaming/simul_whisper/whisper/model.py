@@ -276,16 +276,17 @@ class TextDecoder(nn.Module):
 
 class Whisper(nn.Module):
 
-    def __init__(self, dims: ModelDimensions):
+    def __init__(self, dims: ModelDimensions, decoder_only: bool = False):
         super().__init__()
         self.dims = dims
-        self.encoder = AudioEncoder(
-            self.dims.n_mels,
-            self.dims.n_audio_ctx,
-            self.dims.n_audio_state,
-            self.dims.n_audio_head,
-            self.dims.n_audio_layer,
-        )
+        if not decoder_only:
+            self.encoder = AudioEncoder(
+                self.dims.n_mels,
+                self.dims.n_audio_ctx,
+                self.dims.n_audio_state,
+                self.dims.n_audio_head,
+                self.dims.n_audio_layer,
+            )
         self.decoder = TextDecoder(
             self.dims.n_vocab,
             self.dims.n_text_ctx,
