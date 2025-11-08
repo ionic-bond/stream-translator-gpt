@@ -115,30 +115,6 @@ class SimulStreaming(AudioTranscriber):
         return result.get('text', '')
 
 
-class RemoteOpenaiWhisper(AudioTranscriber):
-    # https://platform.openai.com/docs/api-reference/audio/createTranscription?lang=python
-
-    def __init__(self, language: str, proxy: str) -> None:
-        self.proxy = proxy
-        self.language = language
-
-    def transcribe(self, audio: np.array, **transcribe_options) -> str:
-        from openai import OpenAI, DefaultHttpxClient
-        try:
-            with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.wav') as temp_audio_file:
-                temp_file_path = temp_audio_file.name
-                write_audio(temp_audio_file, SAMPLE_RATE, audio)
-            with open(temp_file_path, 'rb') as audio_file:
-                ApiKeyPool.use_openai_api()
-                client = OpenAI(http_client=DefaultHttpxClient(proxy=self.proxy))
-                result = client.audio.transcriptions.create(model='whisper-1', file=audio_file,
-                                                            language=self.language).text
-            return result
-        finally:
-            if temp_file_path and os.path.exists(temp_file_path):
-                os.remove(temp_file_path)
-
-
 class RemoteOpenaiTranscriber(AudioTranscriber):
     # https://platform.openai.com/docs/api-reference/audio/createTranscription?lang=python
 
