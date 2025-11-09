@@ -109,13 +109,17 @@ The commands on Colab [![Open In Colab](https://colab.research.google.com/assets
 
     ```stream-translator-gpt {URL} --model large --language {input_language}```
 
-- Transcribe by **Faster Whisper**:
+- Transcribe by **Faster-Whisper**:
 
     ```stream-translator-gpt {URL} --model large --language {input_language} --use_faster_whisper```
 
-- Transcribe by **Simul Streaming**:
+- Transcribe by **SimulStreaming**:
 
     ```stream-translator-gpt {URL} --model large --language {input_language} --use_simul_streaming```
+
+- Transcribe by **SimulStreaming** with **Faster-Whisper** as the encoder:
+
+    ```stream-translator-gpt {URL} --model large --language {input_language} --use_simul_streaming --use_faster_whisper```
 
 - Transcribe by **OpenAI Transcription API**:
 
@@ -131,7 +135,7 @@ The commands on Colab [![Open In Colab](https://colab.research.google.com/assets
 
 - Using **OpenAI Transcription API** and **Gemini** at the same time:
 
-    ```stream-translator-gpt {URL} --model large --language ja --use_openai_transcription_api --openai_api_key {your_openai_key} --translation_prompt "Translate from Japanese to Chinese" --google_api_key {your_google_key}```
+    ```stream-translator-gpt {URL} --language ja --use_openai_transcription_api --openai_api_key {your_openai_key} --translation_prompt "Translate from Japanese to Chinese" --google_api_key {your_google_key}```
 
 - Local video/audio file as input:
 
@@ -187,8 +191,8 @@ The commands on Colab [![Open In Colab](https://colab.research.google.com/assets
 | **Transcription Options**               |
 | `--model`                               | small                     | Select Whisper/Faster-Whisper/Simul Streaming model size. See [here](https://github.com/openai/whisper#available-models-and-languages) for available models.                                                       |
 | `--language`                            | auto                      | Language spoken in the stream. See [here](https://github.com/openai/whisper#available-models-and-languages) for available languages.                                                                               |
-| `--use_faster_whisper`                  |                           | Set this flag to use Faster Whisper implementation instead of the original OpenAI implementation                                                                                                                   |
-| `--use_simul_streaming`                 |                           | Set this flag to use Simul Streaming implementation instead of the original OpenAI implementation                                                                                                                  |
+| `--use_faster_whisper`                  |                           | Set this flag to use Faster-Whisper instead of Whisper. If used with --use_simul_streaming, SimulStreaming with Faster-Whisper as the encoder will be used.                                                        |
+| `--use_simul_streaming`                 |                           | Set this flag to use SimulStreaming instead of Whisper. If used with --use_faster_whisper, SimulStreaming with Faster-Whisper as the encoder will be used.                                                         |
 | `--use_openai_transcription_api`        |                           | Set this flag to use OpenAI transcription API instead of the original local Whipser.                                                                                                                               |
 | `--whisper_filters`                     | emoji_filter              | Filters apply to whisper results, separated by ",". We provide emoji_filter and japanese_stream_filter.                                                                                                            |
 | **Translation Options**                 |

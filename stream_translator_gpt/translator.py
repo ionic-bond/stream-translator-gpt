@@ -257,11 +257,11 @@ def cli():
     parser.add_argument(
         '--use_faster_whisper',
         action='store_true',
-        help='Set this flag to use Faster Whisper implementation instead of the original OpenAI implementation.')
+        help='Set this flag to use Faster-Whisper instead of Whisper. If used with --use_simul_streaming, SimulStreaming with Faster-Whisper as the encoder will be used.')
     parser.add_argument(
         '--use_simul_streaming',
         action='store_true',
-        help='Set this flag to use Simul Streaming implementation instead of the original OpenAI implementation.')
+        help='Set this flag to use SimulStreaming instead of Whisper. If used with --use_faster_whisper, SimulStreaming with Faster-Whisper as the encoder will be used.')
     parser.add_argument('--use_openai_transcription_api',
                         action='store_true',
                         help='Set this flag to use OpenAI transcription API instead of the original local Whipser.')
