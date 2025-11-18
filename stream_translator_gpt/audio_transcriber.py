@@ -25,12 +25,14 @@ def _filter_text(text: str, transcription_filters: str):
 class AudioTranscriber(LoopWorkerBase):
 
     def __init__(self, transcription_filters: str, print_result: bool, output_timestamps: bool,
-                 disable_transcription_context: bool, transcription_initial_prompt: str):
+                 disable_transcription_context: bool, transcription_initial_prompt: str,
+                 whisper_task: str = 'transcribe'):
         self.transcription_filters = transcription_filters
         self.print_result = print_result
         self.output_timestamps = output_timestamps
         self.disable_transcription_context = disable_transcription_context
         self.transcription_initial_prompt = transcription_initial_prompt
+        self.whisper_task = whisper_task
 
         self.constant_prompt = re.sub(r',\s*', ', ',
                                       transcription_initial_prompt) if transcription_initial_prompt else ""
@@ -47,6 +49,7 @@ class AudioTranscriber(LoopWorkerBase):
         pass
 
     def loop(self, input_queue: queue.SimpleQueue[TranslationTask], output_queue: queue.SimpleQueue[TranslationTask]):
+        is_translation = self.whisper_task == 'translate'
         previous_text = ""
 
         while True:
@@ -84,16 +87,25 @@ class AudioTranscriber(LoopWorkerBase):
                     self.reset_context()
                     is_repetitive = True
 
-            task.transcript = _filter_text(text, self.transcription_filters).strip()
-            if not task.transcript:
+            result = _filter_text(text, self.transcription_filters).strip()
+            if not result:
                 continue
-            previous_text = "" if is_repetitive else task.transcript
-            if self.print_result:
+
+            # Store result in appropriate field based on task type
+            if is_translation:
+                task.translation = result
+            else:
+                task.transcript = result
+
+            previous_text = "" if is_repetitive else result
+
+            # Only print transcripts here; translations are printed by ResultExporter
+            if self.print_result and not is_translation:
                 if self.output_timestamps:
                     timestamp_text = f'{sec2str(task.time_range[0])} --> {sec2str(task.time_range[1])}'
-                    print(timestamp_text + ' ' + task.transcript)
+                    print(timestamp_text + ' ' + result)
                 else:
-                    print(task.transcript)
+                    print(result)
             output_queue.put(task)
 
 
@@ -111,6 +123,7 @@ class OpenaiWhisper(AudioTranscriber):
         result = self.model.transcribe(audio,
                                        without_timestamps=True,
                                        language=self.language,
+                                       task=self.whisper_task,
                                        initial_prompt=initial_prompt)
         text = result.get('text', '')
         tokens = []
@@ -142,7 +155,8 @@ class FasterWhisper(AudioTranscriber):
         self.language = language
 
     def transcribe(self, audio: np.array, initial_prompt: str = None) -> tuple[str, list | None]:
-        segments, info = self.model.transcribe(audio, language=self.language, initial_prompt=initial_prompt)
+        segments, info = self.model.transcribe(audio, language=self.language, task=self.whisper_task,
+                                               initial_prompt=initial_prompt)
         text = ''
         tokens = []
         for segment in segments:
@@ -174,7 +188,7 @@ class SimulStreaming(AudioTranscriber):
             "audio_max_len": 10.0,
             "audio_min_len": 0.0,
             "segment_length": 0.5,
-            "task": "transcribe",
+            "task": self.whisper_task,
             "beams": 1,
             "decoder_type": "greedy",
             "never_fire": False,
@@ -203,7 +217,8 @@ class RemoteOpenaiTranscriber(AudioTranscriber):
 
     def __init__(self, model: str, language: str, proxy: str, **kwargs) -> None:
         super().__init__(**kwargs)
-        print(f'{INFO}Using {model} API as transcription engine.')
+        task_name = 'translation' if self.whisper_task == 'translate' else 'transcription'
+        print(f'{INFO}Using {model} API as {task_name} engine.')
         self.model = model
         self.language = language
         self.proxy = proxy
@@ -218,15 +233,19 @@ class RemoteOpenaiTranscriber(AudioTranscriber):
         write_audio(audio_buffer, SAMPLE_RATE, audio)
         audio_buffer.seek(0)
 
-        call_args = {
-            'model': self.model,
-            'file': audio_buffer,
-            'language': self.language,
-        }
-        if initial_prompt:
-            call_args['prompt'] = initial_prompt
-
         api_key = ApiKeyPool.get_openai_api_key()
         client = OpenAI(api_key=api_key, http_client=httpx.Client(proxy=self.proxy, verify=False))
-        result = client.audio.transcriptions.create(**call_args).text
+
+        if self.whisper_task == 'translate':
+            # Use translations API for translation task
+            result = client.audio.translations.create(model=self.model, file=audio_buffer).text
+        else:
+            call_args = {
+                'model': self.model,
+                'file': audio_buffer,
+                'language': self.language,
+            }
+            if initial_prompt:
+                call_args['prompt'] = initial_prompt
+            result = client.audio.transcriptions.create(**call_args).text
         return result, None

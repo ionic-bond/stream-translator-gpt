@@ -94,7 +94,7 @@ class ResultExporter(LoopWorkerBase):
                     self.file_queue.put(None)
                 break
             timestamp_text = f'{sec2str(task.time_range[0])} --> {sec2str(task.time_range[1])}'
-            text_to_send = (task.transcript + '\n') if self.output_whisper_result else ''
+            text_to_send = (task.transcript + '\n') if self.output_whisper_result and task.transcript else ''
             if self.output_timestamps:
                 text_to_send = timestamp_text + '\n' + text_to_send
             if task.translation:
