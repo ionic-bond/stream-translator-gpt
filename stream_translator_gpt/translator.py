@@ -11,15 +11,15 @@ from .llm_translator import LLMClint, ParallelTranslator, SerialTranslator
 from .result_exporter import ResultExporter
 
 
-def main(url, format, cookies, input_proxy, device_index, device_recording_interval, min_audio_length, max_audio_length,
-         target_audio_length, continuous_no_speech_threshold, disable_dynamic_no_speech_threshold,
-         prefix_retention_length, vad_threshold, disable_dynamic_vad_threshold, model, language, use_faster_whisper,
-         use_simul_streaming, use_openai_transcription_api, openai_transcription_model, whisper_filters,
-         use_whisper_translation, openai_api_key, google_api_key, translation_prompt, translation_history_size,
-         gpt_model, gemini_model, translation_timeout, gpt_base_url, gemini_base_url, processing_proxy,
-         use_json_result, retry_if_translation_fails, output_timestamps, hide_transcribe_result, output_proxy,
-         output_file_path, cqhttp_url, cqhttp_token, discord_webhook_url, telegram_token, telegram_chat_id,
-         **transcribe_options):
+def main(url, format, cookies, cookies_from_browser, input_proxy, device_index, device_recording_interval,
+         min_audio_length, max_audio_length, target_audio_length, continuous_no_speech_threshold,
+         disable_dynamic_no_speech_threshold, prefix_retention_length, vad_threshold, disable_dynamic_vad_threshold,
+         model, language, use_faster_whisper, use_simul_streaming, use_openai_transcription_api,
+         openai_transcription_model, whisper_filters, use_whisper_translation, openai_api_key, google_api_key,
+         translation_prompt, translation_history_size, gpt_model, gemini_model, translation_timeout, gpt_base_url,
+         gemini_base_url, processing_proxy, use_json_result, retry_if_translation_fails, output_timestamps,
+         hide_transcribe_result, output_proxy, output_file_path, cqhttp_url, cqhttp_token, discord_webhook_url,
+         telegram_token, telegram_chat_id, **transcribe_options):
     ApiKeyPool.init(openai_api_key=openai_api_key,
                     gpt_base_url=gpt_base_url,
                     google_api_key=google_api_key,
@@ -154,6 +154,7 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
             url=url,
             format=format,
             cookies=cookies,
+            cookies_from_browser=cookies_from_browser,
             proxy=input_proxy,
             output_queue=getter_to_slicer_queue,
         )
@@ -188,6 +189,13 @@ def cli():
                         type=str,
                         default=None,
                         help='Used to open member-only stream, this parameter will be passed directly to yt-dlp.')
+    parser.add_argument(
+        '--cookies_from_browser',
+        type=str,
+        default=None,
+        help=
+        'Extract cookies from browser and pass to yt-dlp. Examples: chrome, firefox, edge, safari, opera, brave. Can also specify profile like "chrome:Profile 1".'
+    )
     parser.add_argument('--input_proxy',
                         type=str,
                         default=None,

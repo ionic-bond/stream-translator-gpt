@@ -23,10 +23,12 @@ def _transport(ytdlp_proc, ffmpeg_proc):
     ffmpeg_proc.kill()
 
 
-def _open_stream(url: str, format: str, cookies: str, proxy: str):
+def _open_stream(url: str, format: str, cookies: str, cookies_from_browser: str, proxy: str):
     cmd = ['yt-dlp', url, '-f', format, '-o', '-', '-q']
     if cookies:
         cmd.extend(['--cookies', cookies])
+    if cookies_from_browser:
+        cmd.extend(['--cookies-from-browser', cookies_from_browser])
     if proxy:
         cmd.extend(['--proxy', proxy])
     ytdlp_process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
@@ -48,11 +50,11 @@ def _open_stream(url: str, format: str, cookies: str, proxy: str):
 
 class StreamAudioGetter(LoopWorkerBase):
 
-    def __init__(self, url: str, format: str, cookies: str, proxy: str) -> None:
+    def __init__(self, url: str, format: str, cookies: str, cookies_from_browser: str, proxy: str) -> None:
         self._cleanup_ytdlp_cache()
 
         print(f'{INFO}Opening stream: {url}')
-        self.ffmpeg_process, self.ytdlp_process = _open_stream(url, format, cookies, proxy)
+        self.ffmpeg_process, self.ytdlp_process = _open_stream(url, format, cookies, cookies_from_browser, proxy)
         self.byte_size = round(SAMPLES_PER_FRAME * 4)  # Factor 4 comes from float32 (4 bytes per sample)
         signal.signal(signal.SIGINT, self._exit_handler)
 
