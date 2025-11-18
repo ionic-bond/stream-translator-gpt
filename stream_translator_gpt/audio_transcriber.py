@@ -27,48 +27,58 @@ class AudioTranscriber(LoopWorkerBase):
         pass
 
     def loop(self, input_queue: queue.SimpleQueue[TranslationTask], output_queue: queue.SimpleQueue[TranslationTask],
-             whisper_filters: str, print_result: bool, output_timestamps: bool, **transcribe_options):
+             whisper_filters: str, print_result: bool, output_timestamps: bool, whisper_task: str = 'transcribe',
+             **transcribe_options):
+        is_translation = whisper_task == 'translate'
         while True:
             task = input_queue.get()
-            task.transcript = _filter_text(self.transcribe(task.audio, **transcribe_options), whisper_filters).strip()
-            if not task.transcript:
+            result = _filter_text(self.transcribe(task.audio, **transcribe_options), whisper_filters).strip()
+            if not result:
                 if print_result:
                     print('skip...')
                 continue
+            # Store result in appropriate field based on task type
+            if is_translation:
+                task.translation = result
+            else:
+                task.transcript = result
             if print_result:
                 if output_timestamps:
                     timestamp_text = f'{sec2str(task.time_range[0])} --> {sec2str(task.time_range[1])}'
-                    print(timestamp_text + ' ' + task.transcript)
+                    print(timestamp_text + ' ' + result)
                 else:
-                    print(task.transcript)
+                    print(result)
             output_queue.put(task)
 
 
 class OpenaiWhisper(AudioTranscriber):
 
-    def __init__(self, model: str, language: str) -> None:
+    def __init__(self, model: str, language: str, whisper_task: str = 'transcribe') -> None:
         import whisper
 
         print(f'{INFO}Loading Whisper model: {model}')
         self.model = whisper.load_model(model)
         self.language = language
+        self.task = whisper_task
 
     def transcribe(self, audio: np.array, **transcribe_options) -> str:
-        result = self.model.transcribe(audio, without_timestamps=True, language=self.language, **transcribe_options)
+        result = self.model.transcribe(audio, without_timestamps=True, language=self.language, task=self.task,
+                                       **transcribe_options)
         return result.get('text')
 
 
 class FasterWhisper(AudioTranscriber):
 
-    def __init__(self, model: str, language: str) -> None:
+    def __init__(self, model: str, language: str, whisper_task: str = 'transcribe') -> None:
         from faster_whisper import WhisperModel
 
         print(f'{INFO}Loading Faster-Whisper model: {model}')
         self.model = WhisperModel(model, device='auto', compute_type='auto')
         self.language = language
+        self.task = whisper_task
 
     def transcribe(self, audio: np.array, **transcribe_options) -> str:
-        segments, info = self.model.transcribe(audio, language=self.language, **transcribe_options)
+        segments, info = self.model.transcribe(audio, language=self.language, task=self.task, **transcribe_options)
         transcript = ''
         for segment in segments:
             transcript += segment.text
@@ -77,7 +87,7 @@ class FasterWhisper(AudioTranscriber):
 
 class SimulStreaming(AudioTranscriber):
 
-    def __init__(self, model: str, language: str, use_faster_whisper: bool) -> None:
+    def __init__(self, model: str, language: str, use_faster_whisper: bool, whisper_task: str = 'transcribe') -> None:
         from .simul_streaming.simulstreaming_whisper import SimulWhisperASR, SimulWhisperOnline
 
         fw_encoder = None
@@ -95,7 +105,7 @@ class SimulStreaming(AudioTranscriber):
             "audio_max_len": 20.0,
             "audio_min_len": 0.0,
             "segment_length": 0.5,
-            "task": "transcribe",
+            "task": whisper_task,
             "beams": 1,
             "decoder_type": "greedy",
             "never_fire": False,
@@ -118,14 +128,17 @@ class SimulStreaming(AudioTranscriber):
 class RemoteOpenaiTranscriber(AudioTranscriber):
     # https://platform.openai.com/docs/api-reference/audio/createTranscription?lang=python
 
-    def __init__(self, model: str, language: str, proxy: str) -> None:
-        print(f'{INFO}Using {model} API as transcription engine.')
+    def __init__(self, model: str, language: str, proxy: str, whisper_task: str = 'transcribe') -> None:
+        task_name = 'translation' if whisper_task == 'translate' else 'transcription'
+        print(f'{INFO}Using {model} API as {task_name} engine.')
         self.model = model
         self.language = language
         self.proxy = proxy
+        self.task = whisper_task
 
     def transcribe(self, audio: np.array, **transcribe_options) -> str:
         from openai import OpenAI, DefaultHttpxClient
+        temp_file_path = None
         try:
             with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.wav') as temp_audio_file:
                 temp_file_path = temp_audio_file.name
@@ -133,8 +146,12 @@ class RemoteOpenaiTranscriber(AudioTranscriber):
             with open(temp_file_path, 'rb') as audio_file:
                 ApiKeyPool.use_openai_api()
                 client = OpenAI(http_client=DefaultHttpxClient(proxy=self.proxy))
-                result = client.audio.transcriptions.create(model=self.model, file=audio_file,
-                                                            language=self.language).text
+                if self.task == 'translate':
+                    # Use translations API for translation task
+                    result = client.audio.translations.create(model=self.model, file=audio_file).text
+                else:
+                    result = client.audio.transcriptions.create(model=self.model, file=audio_file,
+                                                                language=self.language).text
             return result
         finally:
             if temp_file_path and os.path.exists(temp_file_path):

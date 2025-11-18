@@ -14,19 +14,24 @@ from .result_exporter import ResultExporter
 def main(url, format, cookies, input_proxy, device_index, device_recording_interval, min_audio_length, max_audio_length,
          target_audio_length, continuous_no_speech_threshold, disable_dynamic_no_speech_threshold,
          prefix_retention_length, vad_threshold, disable_dynamic_vad_threshold, model, language, use_faster_whisper,
-         use_simul_streaming, use_openai_transcription_api, openai_transcription_model, whisper_filters, openai_api_key,
-         google_api_key, translation_prompt, translation_history_size, gpt_model, gemini_model, translation_timeout,
-         gpt_base_url, gemini_base_url, processing_proxy, use_json_result, retry_if_translation_fails,
-         output_timestamps, hide_transcribe_result, output_proxy, output_file_path, cqhttp_url, cqhttp_token,
-         discord_webhook_url, telegram_token, telegram_chat_id, **transcribe_options):
+         use_simul_streaming, use_openai_transcription_api, openai_transcription_model, whisper_filters,
+         use_whisper_translation, openai_api_key, google_api_key, translation_prompt, translation_history_size,
+         gpt_model, gemini_model, translation_timeout, gpt_base_url, gemini_base_url, processing_proxy,
+         use_json_result, retry_if_translation_fails, output_timestamps, hide_transcribe_result, output_proxy,
+         output_file_path, cqhttp_url, cqhttp_token, discord_webhook_url, telegram_token, telegram_chat_id,
+         **transcribe_options):
     ApiKeyPool.init(openai_api_key=openai_api_key,
                     gpt_base_url=gpt_base_url,
                     google_api_key=google_api_key,
                     gemini_base_url=gemini_base_url)
 
+    # Determine whisper task type
+    whisper_task = 'translate' if use_whisper_translation else 'transcribe'
+
     getter_to_slicer_queue = queue.SimpleQueue()
     slicer_to_transcriber_queue = queue.SimpleQueue()
     transcriber_to_translator_queue = queue.SimpleQueue()
+    # Use separate queue for exporter if using LLM translation; otherwise connect directly
     translator_to_exporter_queue = queue.SimpleQueue() if translation_prompt else transcriber_to_translator_queue
 
     start_daemon_thread(
@@ -84,6 +89,7 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
                             model=model,
                             language=language,
                             use_faster_whisper=use_faster_whisper,
+                            whisper_task=whisper_task,
                             print_result=not hide_transcribe_result,
                             output_timestamps=output_timestamps,
                             input_queue=slicer_to_transcriber_queue,
@@ -94,6 +100,7 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
         start_daemon_thread(FasterWhisper.work,
                             model=model,
                             language=language,
+                            whisper_task=whisper_task,
                             print_result=not hide_transcribe_result,
                             output_timestamps=output_timestamps,
                             input_queue=slicer_to_transcriber_queue,
@@ -105,6 +112,7 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
                             model=openai_transcription_model,
                             language=language,
                             proxy=processing_proxy,
+                            whisper_task=whisper_task,
                             print_result=not hide_transcribe_result,
                             output_timestamps=output_timestamps,
                             input_queue=slicer_to_transcriber_queue,
@@ -115,6 +123,7 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
         start_daemon_thread(OpenaiWhisper.work,
                             model=model,
                             language=language,
+                            whisper_task=whisper_task,
                             print_result=not hide_transcribe_result,
                             output_timestamps=output_timestamps,
                             input_queue=slicer_to_transcriber_queue,
@@ -280,6 +289,12 @@ def cli():
         default='emoji_filter',
         help='Filters apply to whisper results, separated by ",". We provide emoji_filter and japanese_stream_filter.')
     parser.add_argument(
+        '--use_whisper_translation',
+        action='store_true',
+        help=
+        'Set this flag to use Whisper\'s native translation to English instead of GPT/Gemini. This bypasses external translation services entirely.'
+    )
+    parser.add_argument(
         '--openai_api_key',
         type=str,
         default=None,
@@ -413,6 +428,13 @@ def cli():
     if args['translation_prompt'] and not (args['openai_api_key'] or args['google_api_key']):
         print(f'{ERROR}Please fill in the OpenAI / Google API key when enabling LLM translation')
         sys.exit(0)
+
+    if args['use_whisper_translation'] and args['translation_prompt']:
+        print(f'{ERROR}Cannot use both --use_whisper_translation and --translation_prompt. Choose one translation method.')
+        sys.exit(0)
+
+    if args['use_whisper_translation'] and args['language'] == 'auto':
+        print(f'{WARNING}Using Whisper translation with auto language detection. For better results, specify --language explicitly.')
 
     if args['language'] == 'auto':
         args['language'] = None

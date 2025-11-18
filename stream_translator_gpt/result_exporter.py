@@ -70,7 +70,7 @@ class ResultExporter(LoopWorkerBase):
         while True:
             task = input_queue.get()
             timestamp_text = f'{sec2str(task.time_range[0])} --> {sec2str(task.time_range[1])}'
-            text_to_send = (task.transcript + '\n') if output_whisper_result else ''
+            text_to_send = (task.transcript + '\n') if output_whisper_result and task.transcript else ''
             if output_timestamps:
                 text_to_send = timestamp_text + '\n' + text_to_send
             if task.translation:
