@@ -86,10 +86,11 @@ class LLMClint():
 
     def _translate_by_gpt(self, translation_task: TranslationTask):
         # https://platform.openai.com/docs/api-reference/chat/create?lang=python
-        from openai import OpenAI, DefaultHttpxClient
+        from openai import OpenAI
+        import httpx
 
         ApiKeyPool.use_openai_api()
-        client = OpenAI(http_client=DefaultHttpxClient(proxy=self.proxy))
+        client = OpenAI(http_client=httpx.Client(proxy=self.proxy))
         system_prompt = 'You are a translation engine.'
         if self.use_json_result:
             system_prompt += " Output the answer in json format, key is translation."

@@ -128,14 +128,15 @@ class RemoteOpenaiTranscriber(AudioTranscriber):
         self.proxy = proxy
 
     def transcribe(self, audio: np.array, **transcribe_options) -> str:
-        from openai import OpenAI, DefaultHttpxClient
+        from openai import OpenAI
+        import httpx
         try:
             with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.wav') as temp_audio_file:
                 temp_file_path = temp_audio_file.name
                 write_audio(temp_audio_file, SAMPLE_RATE, audio)
             with open(temp_file_path, 'rb') as audio_file:
                 ApiKeyPool.use_openai_api()
-                client = OpenAI(http_client=DefaultHttpxClient(proxy=self.proxy))
+                client = OpenAI(http_client=httpx.Client(proxy=self.proxy))
                 result = client.audio.transcriptions.create(model=self.model, file=audio_file,
                                                             language=self.language).text
             return result
