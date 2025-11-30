@@ -58,8 +58,14 @@ class LLMClint():
         GPT = 'GPT'
         GEMINI = 'Gemini'
 
-    def __init__(self, llm_type: str, model: str, prompt: str, history_size: int, proxy: str,
-                 use_json_result: bool, gemini_base_url: str = None) -> None:
+    def __init__(self,
+                 llm_type: str,
+                 model: str,
+                 prompt: str,
+                 history_size: int,
+                 proxy: str,
+                 use_json_result: bool,
+                 gemini_base_url: str = None) -> None:
         if llm_type not in (self.LLM_TYPE.GPT, self.LLM_TYPE.GEMINI):
             raise ValueError(f'Unknow LLM type: {llm_type}')
         print(f'{INFO}Using {model} API as translation engine.')

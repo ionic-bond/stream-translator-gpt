@@ -23,8 +23,7 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
     if gpt_base_url:
         os.environ['OPENAI_BASE_URL'] = gpt_base_url
 
-    ApiKeyPool.init(openai_api_key=openai_api_key,
-                    google_api_key=google_api_key)
+    ApiKeyPool.init(openai_api_key=openai_api_key, google_api_key=google_api_key)
 
     getter_to_slicer_queue = queue.SimpleQueue()
     slicer_to_transcriber_queue = queue.SimpleQueue()
