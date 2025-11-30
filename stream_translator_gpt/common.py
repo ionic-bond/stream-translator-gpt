@@ -88,15 +88,9 @@ class ApiKeyPool():
 
     @classmethod
     def use_google_api(cls):
-        import google.generativeai as genai
-        from google.api_core.client_options import ClientOptions
-
         if not cls.google_api_key_list:
             return
-        gemini_client_options = ClientOptions(api_endpoint=cls.gemini_base_url)
-        genai.configure(api_key=cls.google_api_key_list[cls.google_api_key_index],
-                        client_options=gemini_client_options,
-                        transport='rest')
+        os.environ['GOOGLE_API_KEY'] = cls.google_api_key_list[cls.google_api_key_index]
         cls.google_api_key_index = (cls.google_api_key_index + 1) % len(cls.google_api_key_list)
 
 

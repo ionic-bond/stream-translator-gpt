@@ -1,7 +1,9 @@
 import json
+import os
 import queue
 import threading
 import time
+
 import re
 from collections import deque
 from datetime import datetime, timedelta, timezone
@@ -129,30 +131,61 @@ class LLMClint():
             gemini_message['role'] = gpt_message['role']
             if gemini_message['role'] == 'assistant':
                 gemini_message['role'] = 'model'
-            gemini_message['parts'] = [gpt_message['content']]
+            gemini_message['parts'] = [{'text': gpt_message['content']}]
             gemini_messages.append(gemini_message)
         return gemini_messages
 
     def _translate_by_gemini(self, translation_task: TranslationTask):
         # https://ai.google.dev/tutorials/python_quickstart
-        import google.generativeai as genai
-        from google.generativeai.types import HarmCategory, HarmBlockThreshold
+        from google import genai
+        from google.genai import types
 
         ApiKeyPool.use_google_api()
-        client = genai.GenerativeModel(self.model)
+        
+        http_options = {}
+        if self.proxy:
+            http_options['client_args'] = {'proxy': self.proxy}
+        
+        if ApiKeyPool.gemini_base_url:
+             http_options['base_url'] = ApiKeyPool.gemini_base_url
+
+        client = genai.Client(api_key=os.environ.get("GOOGLE_API_KEY"), http_options=http_options)
+        
         messages = self._gpt_to_gemini(self.history_messages)
         user_content = f'{self.prompt}: \n{translation_task.transcript}'
-        messages.append({'role': 'user', 'parts': [user_content]})
-        config = genai.types.GenerationConfig(candidate_count=1, temperature=0.0, top_p=0.9, stop_sequences=['\n'])
-        safety_settings = {
-            HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-            HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-            HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-            HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-        }
+        messages.append({'role': 'user', 'parts': [{'text': user_content}]})
+        
+        config = types.GenerateContentConfig(
+            candidate_count=1, 
+            temperature=0.0, 
+            top_p=0.9, 
+            stop_sequences=['\n'],
+            safety_settings=[
+                types.SafetySetting(
+                    category='HARM_CATEGORY_HARASSMENT',
+                    threshold='BLOCK_NONE'
+                ),
+                types.SafetySetting(
+                    category='HARM_CATEGORY_HATE_SPEECH',
+                    threshold='BLOCK_NONE'
+                ),
+                types.SafetySetting(
+                    category='HARM_CATEGORY_SEXUALLY_EXPLICIT',
+                    threshold='BLOCK_NONE'
+                ),
+                types.SafetySetting(
+                    category='HARM_CATEGORY_DANGEROUS_CONTENT',
+                    threshold='BLOCK_NONE'
+                )
+            ]
+        )
 
         try:
-            response = client.generate_content(messages, generation_config=config, safety_settings=safety_settings)
+            response = client.models.generate_content(
+                model=self.model,
+                contents=messages,
+                config=config
+            )
             translation_task.translation = response.text
             if self.use_json_result:
                 translation_task.translation = _parse_json_completion(translation_task.translation)
