@@ -1,8 +1,10 @@
 import os
 import queue
+import shutil
 import signal
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 
@@ -23,13 +25,13 @@ def _transport(ytdlp_proc, ffmpeg_proc):
     ffmpeg_proc.kill()
 
 
-def _open_stream(url: str, format: str, cookies: str, proxy: str):
+def _open_stream(url: str, format: str, cookies: str, proxy: str, cwd: str):
     cmd = ['yt-dlp', url, '-f', format, '-o', '-', '-q']
     if cookies:
         cmd.extend(['--cookies', cookies])
     if proxy:
         cmd.extend(['--proxy', proxy])
-    ytdlp_process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    ytdlp_process = subprocess.Popen(cmd, stdout=subprocess.PIPE, cwd=cwd)
 
     try:
         ffmpeg_process = (ffmpeg.input('pipe:', loglevel='panic').output('pipe:',
@@ -49,26 +51,25 @@ def _open_stream(url: str, format: str, cookies: str, proxy: str):
 class StreamAudioGetter(LoopWorkerBase):
 
     def __init__(self, url: str, format: str, cookies: str, proxy: str) -> None:
-        self._cleanup_ytdlp_cache()
+        self.temp_dir = tempfile.mkdtemp()
+        print(self.temp_dir)
 
         print(f'{INFO}Opening stream: {url}')
-        self.ffmpeg_process, self.ytdlp_process = _open_stream(url, format, cookies, proxy)
+        self.ffmpeg_process, self.ytdlp_process = _open_stream(url, format, cookies, proxy, self.temp_dir)
         self.byte_size = round(SAMPLES_PER_FRAME * 4)  # Factor 4 comes from float32 (4 bytes per sample)
         signal.signal(signal.SIGINT, self._exit_handler)
 
     def __del__(self):
-        self._cleanup_ytdlp_cache()
+        if hasattr(self, 'temp_dir') and os.path.exists(self.temp_dir):
+            shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def _exit_handler(self, signum, frame):
         self.ffmpeg_process.kill()
         if self.ytdlp_process:
             self.ytdlp_process.kill()
+        if hasattr(self, 'temp_dir') and os.path.exists(self.temp_dir):
+            shutil.rmtree(self.temp_dir, ignore_errors=True)
         sys.exit(0)
-
-    def _cleanup_ytdlp_cache(self):
-        for file in os.listdir('./'):
-            if file.startswith('--Frag'):
-                os.remove(file)
 
     def loop(self, output_queue: queue.SimpleQueue[np.array]):
         while self.ffmpeg_process.poll() is None:
@@ -83,6 +84,8 @@ class StreamAudioGetter(LoopWorkerBase):
         self.ffmpeg_process.kill()
         if self.ytdlp_process:
             self.ytdlp_process.kill()
+        if hasattr(self, 'temp_dir') and os.path.exists(self.temp_dir):
+            shutil.rmtree(self.temp_dir, ignore_errors=True)
         output_queue.put(None)
 
 
