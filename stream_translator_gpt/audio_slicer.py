@@ -147,6 +147,9 @@ class AudioSlicer(LoopWorkerBase):
         vad_reset_interval = round(60 * 5 / FRAME_DURATION)  # 5 minutes
         while True:
             audio = input_queue.get()
+            if audio is None:
+                output_queue.put(None)
+                break
             self.put(audio)
             if self.should_slice():
                 sliced_audio, time_range = self.slice()

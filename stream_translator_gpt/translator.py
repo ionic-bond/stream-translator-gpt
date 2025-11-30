@@ -29,7 +29,7 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
     transcriber_to_translator_queue = queue.SimpleQueue()
     translator_to_exporter_queue = queue.SimpleQueue() if translation_prompt else transcriber_to_translator_queue
 
-    start_daemon_thread(
+    exporter_thread = start_daemon_thread(
         ResultExporter.work,
         output_whisper_result=not hide_transcribe_result,
         output_timestamps=output_timestamps,
@@ -154,9 +154,8 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
             output_queue=getter_to_slicer_queue,
         )
 
-    while (not getter_to_slicer_queue.empty() or not slicer_to_transcriber_queue.empty() or
-           not transcriber_to_translator_queue.empty() or not translator_to_exporter_queue.empty()):
-        time.sleep(5)
+    while exporter_thread.is_alive():
+        time.sleep(1)
     print('All processing completed, program exits.')
 
 

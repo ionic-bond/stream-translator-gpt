@@ -31,6 +31,8 @@ class ResultExporter(LoopWorkerBase):
         headers = {'Authorization': f'Bearer {token}'} if token else None
         while True:
             text = self.cqhttp_queue.get()
+            if text is None:
+                break
             data = {'message': text}
             try:
                 requests.post(url, headers=headers, data=data, timeout=10, proxies=self.proxies)
@@ -40,6 +42,8 @@ class ResultExporter(LoopWorkerBase):
     def _send_message_to_discord(self, webhook_url: str):
         while True:
             text = self.discord_queue.get()
+            if text is None:
+                break
             for sub_text in text.split('\n') + ['\u200b']:
                 data = {'content': sub_text}
                 try:
@@ -50,6 +54,8 @@ class ResultExporter(LoopWorkerBase):
     def _send_message_to_telegram(self, token: str, chat_id: int):
         while True:
             text = self.telegram_queue.get()
+            if text is None:
+                break
             url = f'https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={text}'
             try:
                 requests.post(url, timeout=10, proxies=self.proxies)
@@ -62,6 +68,8 @@ class ResultExporter(LoopWorkerBase):
                 os.remove(file_path)
         while True:
             text = self.file_queue.get()
+            if text is None:
+                break
             with open(file_path, 'a', encoding='utf-8') as f:
                 f.write(text + '\n\n')
 
@@ -69,6 +77,16 @@ class ResultExporter(LoopWorkerBase):
              output_timestamps: bool):
         while True:
             task = input_queue.get()
+            if task is None:
+                if self.cqhttp_queue:
+                    self.cqhttp_queue.put(None)
+                if self.discord_queue:
+                    self.discord_queue.put(None)
+                if self.telegram_queue:
+                    self.telegram_queue.put(None)
+                if self.file_queue:
+                    self.file_queue.put(None)
+                break
             timestamp_text = f'{sec2str(task.time_range[0])} --> {sec2str(task.time_range[1])}'
             text_to_send = (task.transcript + '\n') if output_whisper_result else ''
             if output_timestamps:

@@ -83,6 +83,7 @@ class StreamAudioGetter(LoopWorkerBase):
         self.ffmpeg_process.kill()
         if self.ytdlp_process:
             self.ytdlp_process.kill()
+        output_queue.put(None)
 
 
 class LocalFileAudioGetter(LoopWorkerBase):
@@ -117,6 +118,7 @@ class LocalFileAudioGetter(LoopWorkerBase):
             output_queue.put(audio)
 
         self.ffmpeg_process.kill()
+        output_queue.put(None)
 
 
 class DeviceAudioGetter(LoopWorkerBase):
@@ -162,3 +164,4 @@ class DeviceAudioGetter(LoopWorkerBase):
                             callback=audio_callback):
             while True:
                 time.sleep(5)
+        output_queue.put(None)

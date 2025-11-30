@@ -214,6 +214,14 @@ class ParallelTranslator(LoopWorkerBase):
         while True:
             if not input_queue.empty() and len(self.processing_queue) < self.PARALLEL_MAX_NUMBER:
                 task = input_queue.get()
+                if task is None:
+                    while len(self.processing_queue) > 0:
+                        finished_tasks = self._get_results()
+                        for task in finished_tasks:
+                            output_queue.put(task)
+                        time.sleep(0.1)
+                    output_queue.put(None)
+                    break
                 self.processing_queue.append(task)
                 self._trigger(task)
             finished_tasks = self._get_results()
@@ -259,5 +267,8 @@ class SerialTranslator(LoopWorkerBase):
 
             if current_task is None and not input_queue.empty():
                 current_task = input_queue.get()
+                if current_task is None:
+                    output_queue.put(None)
+                    break
                 self._trigger(current_task)
             time.sleep(0.1)

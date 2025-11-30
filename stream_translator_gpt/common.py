@@ -54,6 +54,7 @@ def start_daemon_thread(func, *args, **kwargs):
     thread = threading.Thread(target=func, args=args, kwargs=kwargs)
     thread.daemon = True
     thread.start()
+    return thread
 
 
 def sec2str(second: float):
