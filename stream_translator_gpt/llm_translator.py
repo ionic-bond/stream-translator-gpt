@@ -59,7 +59,7 @@ class LLMClint():
         GEMINI = 'Gemini'
 
     def __init__(self, llm_type: str, model: str, prompt: str, history_size: int, proxy: str,
-                 use_json_result: bool) -> None:
+                 use_json_result: bool, gemini_base_url: str = None) -> None:
         if llm_type not in (self.LLM_TYPE.GPT, self.LLM_TYPE.GEMINI):
             raise ValueError(f'Unknow LLM type: {llm_type}')
         print(f'{INFO}Using {model} API as translation engine.')
@@ -70,6 +70,7 @@ class LLMClint():
         self.history_messages = []
         self.proxy = proxy
         self.use_json_result = use_json_result
+        self.gemini_base_url = gemini_base_url
 
     def _append_history_message(self, user_content: str, assistant_content: str):
         if not user_content or not assistant_content:
@@ -147,8 +148,8 @@ class LLMClint():
         if self.proxy:
             http_options['client_args'] = {'proxy': self.proxy}
 
-        if ApiKeyPool.gemini_base_url:
-            http_options['base_url'] = ApiKeyPool.gemini_base_url
+        if self.gemini_base_url:
+            http_options['base_url'] = self.gemini_base_url
 
         client = genai.Client(api_key=os.environ.get("GOOGLE_API_KEY"), http_options=http_options)
 

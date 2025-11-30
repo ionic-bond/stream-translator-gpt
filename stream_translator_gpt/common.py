@@ -67,11 +67,7 @@ def sec2str(second: float):
 class ApiKeyPool():
 
     @classmethod
-    def init(cls, openai_api_key, gpt_base_url, google_api_key, gemini_base_url):
-        if gpt_base_url:
-            os.environ['OPENAI_BASE_URL'] = gpt_base_url
-        cls.gemini_base_url = gemini_base_url
-
+    def init(cls, openai_api_key, google_api_key):
         cls.openai_api_key_list = [key.strip() for key in openai_api_key.split(',')] if openai_api_key else None
         cls.openai_api_key_index = 0
         cls.use_openai_api()

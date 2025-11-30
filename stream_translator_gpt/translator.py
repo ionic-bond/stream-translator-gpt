@@ -1,4 +1,5 @@
 import argparse
+import os
 import queue
 import sys
 import time
@@ -19,10 +20,11 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
          gpt_base_url, gemini_base_url, processing_proxy, use_json_result, retry_if_translation_fails,
          output_timestamps, hide_transcribe_result, output_proxy, output_file_path, cqhttp_url, cqhttp_token,
          discord_webhook_url, telegram_token, telegram_chat_id, **transcribe_options):
+    if gpt_base_url:
+        os.environ['OPENAI_BASE_URL'] = gpt_base_url
+
     ApiKeyPool.init(openai_api_key=openai_api_key,
-                    gpt_base_url=gpt_base_url,
-                    google_api_key=google_api_key,
-                    gemini_base_url=gemini_base_url)
+                    google_api_key=google_api_key)
 
     getter_to_slicer_queue = queue.SimpleQueue()
     slicer_to_transcriber_queue = queue.SimpleQueue()
@@ -51,6 +53,7 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
                 history_size=translation_history_size,
                 proxy=processing_proxy,
                 use_json_result=use_json_result,
+                gemini_base_url=gemini_base_url,
             )
         else:
             llm_client = LLMClint(
