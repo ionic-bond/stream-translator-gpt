@@ -3,6 +3,7 @@ import os
 import queue
 import sys
 import time
+import subprocess
 
 from .common import ApiKeyPool, start_daemon_thread, is_url, WARNING, ERROR
 from .audio_getter import StreamAudioGetter, LocalFileAudioGetter, DeviceAudioGetter
@@ -176,6 +177,7 @@ def cli():
         help=
         'Stream format code, this parameter will be passed directly to yt-dlp. You can get the list of available format codes by \"yt-dlp \{url\} -F\"'
     )
+    parser.add_argument('--list_format', action='store_true', help='Print all available formats then exit.')
     parser.add_argument('--cookies',
                         type=str,
                         default=None,
@@ -374,6 +376,15 @@ def cli():
     if args['list_devices']:
         import sounddevice as sd
         print(sd.query_devices())
+        exit(0)
+
+    if args['list_format']:
+        cmd = ['yt-dlp', url, '-F']
+        if args['cookies']:
+            cmd.extend(['--cookies', args['cookies']])
+        if args['input_proxy']:
+            cmd.extend(['--proxy', args['input_proxy']])
+        subprocess.run(cmd)
         exit(0)
 
     if args['model'].endswith('.en'):
