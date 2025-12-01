@@ -52,7 +52,7 @@ def _is_task_timeout(task: TranslationTask, timeout: float) -> bool:
     return datetime.now(timezone.utc) - task.start_time > timedelta(seconds=timeout)
 
 
-class LLMClint():
+class LLMClient():
 
     class LLM_TYPE:
         GPT = 'GPT'
@@ -202,7 +202,7 @@ class LLMClint():
 class ParallelTranslator(LoopWorkerBase):
     PARALLEL_MAX_NUMBER = 10
 
-    def __init__(self, llm_client: LLMClint, timeout: int, retry_if_translation_fails: bool):
+    def __init__(self, llm_client: LLMClient, timeout: int, retry_if_translation_fails: bool):
         self.llm_client = llm_client
         self.timeout = timeout
         self.retry_if_translation_fails = retry_if_translation_fails
@@ -261,7 +261,7 @@ class ParallelTranslator(LoopWorkerBase):
 
 class SerialTranslator(LoopWorkerBase):
 
-    def __init__(self, llm_client: LLMClint, timeout: int, retry_if_translation_fails: bool):
+    def __init__(self, llm_client: LLMClient, timeout: int, retry_if_translation_fails: bool):
         self.llm_client = llm_client
         self.timeout = timeout
         self.retry_if_translation_fails = retry_if_translation_fails

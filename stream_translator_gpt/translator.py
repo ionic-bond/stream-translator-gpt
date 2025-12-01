@@ -9,7 +9,7 @@ from .common import ApiKeyPool, start_daemon_thread, is_url, WARNING, ERROR
 from .audio_getter import StreamAudioGetter, LocalFileAudioGetter, DeviceAudioGetter
 from .audio_slicer import AudioSlicer
 from .audio_transcriber import OpenaiWhisper, FasterWhisper, SimulStreaming, RemoteOpenaiTranscriber
-from .llm_translator import LLMClint, ParallelTranslator, SerialTranslator
+from .llm_translator import LLMClient, ParallelTranslator, SerialTranslator
 from .result_exporter import ResultExporter
 
 
@@ -46,8 +46,8 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
     )
     if translation_prompt:
         if google_api_key:
-            llm_client = LLMClint(
-                llm_type=LLMClint.LLM_TYPE.GEMINI,
+            llm_client = LLMClient(
+                llm_type=LLMClient.LLM_TYPE.GEMINI,
                 model=gemini_model,
                 prompt=translation_prompt,
                 history_size=translation_history_size,
@@ -56,8 +56,8 @@ def main(url, format, cookies, input_proxy, device_index, device_recording_inter
                 gemini_base_url=gemini_base_url,
             )
         else:
-            llm_client = LLMClint(
-                llm_type=LLMClint.LLM_TYPE.GPT,
+            llm_client = LLMClient(
+                llm_type=LLMClient.LLM_TYPE.GPT,
                 model=gpt_model,
                 prompt=translation_prompt,
                 history_size=translation_history_size,
