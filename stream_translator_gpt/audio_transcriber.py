@@ -139,6 +139,5 @@ class RemoteOpenaiTranscriber(AudioTranscriber):
 
         ApiKeyPool.use_openai_api()
         client = OpenAI(http_client=httpx.Client(proxy=self.proxy))
-        result = client.audio.transcriptions.create(model=self.model, file=audio_buffer,
-                                                    language=self.language).text
+        result = client.audio.transcriptions.create(model=self.model, file=audio_buffer, language=self.language).text
         return result
