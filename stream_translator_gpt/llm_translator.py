@@ -98,7 +98,7 @@ class LLMClient():
 
         ApiKeyPool.use_openai_api()
         client = OpenAI(http_client=httpx.Client(proxy=self.proxy))
-        system_prompt = 'You are a translation engine.'
+        system_prompt = 'You are a professional translator. Translate the text accurately and concisely. Do not output any explanation or extra text.'
         if self.use_json_result:
             system_prompt += " Output the answer in json format, key is translation."
         messages = [{'role': 'system', 'content': system_prompt}]
@@ -119,6 +119,7 @@ class LLMClient():
                 completion = client.chat.completions.create(
                     model=self.model,
                     messages=messages,
+                    reasoning_effort='minimal',
                 )
 
             translation_task.translation = completion.choices[0].message.content
@@ -159,6 +160,10 @@ class LLMClient():
 
         client = genai.Client(api_key=os.environ.get("GOOGLE_API_KEY"), http_options=http_options)
 
+        system_prompt = 'You are a professional translator. Translate the text accurately and concisely. Do not output any explanation or extra text.'
+        if self.use_json_result:
+            system_prompt += " Output the answer in json format, key is translation."
+
         messages = self._gpt_to_gemini(self.history_messages)
         user_content = f'{self.prompt}: \n{translation_task.transcript}'
         messages.append({'role': 'user', 'parts': [{'text': user_content}]})
@@ -167,6 +172,8 @@ class LLMClient():
                                              temperature=0.0,
                                              top_p=0.9,
                                              stop_sequences=['\n'],
+                                             system_instruction=system_prompt,
+                                             thinking_config=types.ThinkingConfig(include_thoughts=False),
                                              safety_settings=[
                                                  types.SafetySetting(category='HARM_CATEGORY_HARASSMENT',
                                                                      threshold='BLOCK_NONE'),

@@ -52,7 +52,6 @@ class StreamAudioGetter(LoopWorkerBase):
 
     def __init__(self, url: str, format: str, cookies: str, proxy: str) -> None:
         self.temp_dir = tempfile.mkdtemp()
-        print(self.temp_dir)
 
         print(f'{INFO}Opening stream: {url}')
         self.ffmpeg_process, self.ytdlp_process = _open_stream(url, format, cookies, proxy, self.temp_dir)
