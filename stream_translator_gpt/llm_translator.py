@@ -111,14 +111,16 @@ class LLMClient():
                 completion = client.chat.completions.create(
                     model=self.model,
                     messages=messages,
+                    response_format={"type": "json_object"} if self.use_json_result else None,
                     temperature=0,
                     top_p=0.9,
-                    stop=['\n'],
+                    stop=None if self.use_json_result else ['\n'],
                 )
             else:
                 completion = client.chat.completions.create(
                     model=self.model,
                     messages=messages,
+                    response_format={"type": "json_object"} if self.use_json_result else None,
                     reasoning_effort='minimal',
                 )
 
@@ -171,9 +173,10 @@ class LLMClient():
         config = types.GenerateContentConfig(candidate_count=1,
                                              temperature=0.0,
                                              top_p=0.9,
-                                             stop_sequences=['\n'],
+                                             stop_sequences=None if self.use_json_result else ['\n'],
                                              system_instruction=system_prompt,
                                              thinking_config=types.ThinkingConfig(include_thoughts=False),
+                                             response_mime_type='application/json' if self.use_json_result else 'text/plain',
                                              safety_settings=[
                                                  types.SafetySetting(category='HARM_CATEGORY_HARASSMENT',
                                                                      threshold='BLOCK_NONE'),
