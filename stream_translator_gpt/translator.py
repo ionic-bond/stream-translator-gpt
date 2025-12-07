@@ -303,7 +303,6 @@ def cli():
         default='emoji_filter',
         help='Filters apply to whisper results, separated by ",". We provide emoji_filter and japanese_stream_filter.')
 
-
     parser.add_argument('--gpt_model',
                         type=str,
                         default='gpt-5-nano',
@@ -381,7 +380,7 @@ def cli():
     args = parser.parse_args().__dict__
 
     url = args.pop('URL')
-    
+
     if args['proxy']:
         os.environ['http_proxy'] = args['proxy']
         os.environ['https_proxy'] = args['proxy']
