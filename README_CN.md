@@ -171,6 +171,10 @@ Colab上的命令 [![Open In Colab](https://colab.research.google.com/assets/col
 
 | 选项                                    | 默认值                    | 描述                                                                                                                                                                      |
 | :-------------------------------------- | :------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **通用选项**                            |
+| `--proxy`                               |                           | 用于设置所有未特别指定的 --*_proxy 的值。也会设置 http_proxy 等环境变量。                                                                                               |
+| `--openai_api_key`                      |                           | 如果使用 GPT 翻译 / Whisper API，则需要 OpenAI API 密钥。如果您有多个密钥，可以用 "," 分隔，每个密钥将轮流使用。                                                          |
+| `--google_api_key`                      |                           | 如果使用 Gemini 翻译，则需要 Google API 密钥。如果您有多个密钥，可以用 "," 分隔，每个密钥将轮流使用。                                                                     |
 | **输入选项**                            |                           |                                                                                                                                                                           |
 | `URL`                                   |                           | 直播流的 URL。如果填入本地文件路径，则会将其用作输入。如果填入 "device"，将从您的 PC 设备获取输入。                                                                       |
 | `--format`                              | ba/wa*                    | 码流格式代码，此参数将直接传递给 yt-dlp。您可以通过 `yt-dlp {url} -F` 获取可用格式代码的列表。                                                                            |
@@ -197,8 +201,6 @@ Colab上的命令 [![Open In Colab](https://colab.research.google.com/assets/col
 | `--use_openai_transcription_api`        |                           | 设置此标志以使用 OpenAI transcription API，而不是原始的本地 Whisper。                                                                                                     |
 | `--whisper_filters`                     | emoji_filter              | 应用于语音转文字结果的过滤器，用 "," 分隔。我们提供 emoji_filter 和 japanese_stream_filter。                                                                              |
 | **翻译选项**                            |                           |                                                                                                                                                                           |
-| `--openai_api_key`                      |                           | 如果使用 GPT 翻译 / Whisper API，则需要 OpenAI API 密钥。如果您有多个密钥，可以用 "," 分隔，每个密钥将轮流使用。                                                          |
-| `--google_api_key`                      |                           | 如果使用 Gemini 翻译，则需要 Google API 密钥。如果您有多个密钥，可以用 "," 分隔，每个密钥将轮流使用。                                                                     |
 | `--gpt_model`                           | gpt-5-nano                | OpenAI 的 GPT 模型名称，gpt-5 / gpt-5-mini / gpt-5-nano                                                                                                                   |
 | `--gemini_model`                        | gemini-2.5-flash-lite     | Google 的 Gemini 模型名称，gemini-2.0-flash / gemini-2.5-flash / gemini-2.5-flash-lite                                                                                    |
 | `--translation_prompt`                  |                           | 如果使用，将通过 GPT / Gemini API (根据填写的 API 密钥决定) 将结果文本翻译成目标语言。示例："Translate from Japanese to Chinese"                                          |
