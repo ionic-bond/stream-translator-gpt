@@ -170,23 +170,20 @@ class LLMClient():
         user_content = f'{self.prompt}: \n{translation_task.transcript}'
         messages.append({'role': 'user', 'parts': [{'text': user_content}]})
 
-        config = types.GenerateContentConfig(candidate_count=1,
-                                             temperature=0.0,
-                                             top_p=0.9,
-                                             stop_sequences=None if self.use_json_result else ['\n'],
-                                             system_instruction=system_prompt,
-                                             thinking_config=types.ThinkingConfig(include_thoughts=False),
-                                             response_mime_type='application/json' if self.use_json_result else 'text/plain',
-                                             safety_settings=[
-                                                 types.SafetySetting(category='HARM_CATEGORY_HARASSMENT',
-                                                                     threshold='BLOCK_NONE'),
-                                                 types.SafetySetting(category='HARM_CATEGORY_HATE_SPEECH',
-                                                                     threshold='BLOCK_NONE'),
-                                                 types.SafetySetting(category='HARM_CATEGORY_SEXUALLY_EXPLICIT',
-                                                                     threshold='BLOCK_NONE'),
-                                                 types.SafetySetting(category='HARM_CATEGORY_DANGEROUS_CONTENT',
-                                                                     threshold='BLOCK_NONE')
-                                             ])
+        config = types.GenerateContentConfig(
+            candidate_count=1,
+            temperature=0.0,
+            top_p=0.9,
+            stop_sequences=None if self.use_json_result else ['\n'],
+            system_instruction=system_prompt,
+            thinking_config=types.ThinkingConfig(include_thoughts=False),
+            response_mime_type='application/json' if self.use_json_result else 'text/plain',
+            safety_settings=[
+                types.SafetySetting(category='HARM_CATEGORY_HARASSMENT', threshold='BLOCK_NONE'),
+                types.SafetySetting(category='HARM_CATEGORY_HATE_SPEECH', threshold='BLOCK_NONE'),
+                types.SafetySetting(category='HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold='BLOCK_NONE'),
+                types.SafetySetting(category='HARM_CATEGORY_DANGEROUS_CONTENT', threshold='BLOCK_NONE')
+            ])
 
         try:
             response = client.models.generate_content(model=self.model, contents=messages, config=config)
