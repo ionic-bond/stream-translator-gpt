@@ -130,3 +130,6 @@ dmypy.json
 
 --Frag*
 *.wav
+
+# IDE specific files
+.cursorrules

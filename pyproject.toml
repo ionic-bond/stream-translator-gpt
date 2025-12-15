@@ -51,8 +51,14 @@ dependencies = [
   "httpx>=0.26.0,<1.0"
 ]
 
+[project.optional-dependencies]
+webui = ["gradio>=5.0,<6.0", "platformdirs>=4.0"]
+
 [project.scripts]
 stream-translator-gpt = "stream_translator_gpt.translator:cli"
+
+[project.gui-scripts]
+stream-translator-gpt-webui = "webui.webui:main"
 
 [project.urls]
 Homepage = "https://github.com/ionic-bond/stream-translator-gpt"

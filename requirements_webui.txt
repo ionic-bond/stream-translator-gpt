@@ -1,0 +1,3 @@
+-r requirements.txt
+gradio>=5.0,<6.0
+platformdirs>=4.0

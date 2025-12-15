@@ -1,0 +1,886 @@
+# This file is written by Gemini
+import argparse
+import re
+import atexit
+import json
+import os
+import signal
+import subprocess
+import sys
+
+
+import gradio as gr
+import platformdirs
+
+# Global state for process management
+process = None
+is_running = False
+
+# Bundled default.json location (read-only, shipped with package)
+BUNDLED_DIR = os.path.dirname(os.path.abspath(__file__))
+BUNDLED_DEFAULT_PATH = os.path.join(BUNDLED_DIR, "default.json")
+
+
+# User presets directory (writable, per-user)
+USER_PRESETS_DIR = os.path.join(platformdirs.user_config_dir("stream-translator-gpt", appauthor=False), "presets")
+os.makedirs(USER_PRESETS_DIR, exist_ok=True)
+
+
+INPUT_KEYS = [
+    "input_type", "input_url", "device_index", "device_rec_interval", "input_file",
+    "input_format", "input_cookies", "input_proxy",
+    "openai_key", "google_key", "overall_proxy",
+    "model_size", "language", "whisper_backend", "openai_transcription_model",
+    "vad_threshold", "min_audio_len", "max_audio_len", "target_audio_len",
+    "silence_threshold", "disable_dynamic_vad", "disable_dynamic_silence",
+    "prefix_retention_len", "whisper_filters",
+    "translation_prompt", "translation_provider",
+    "gpt_model", "gemini_model", "history_size", "translation_timeout",
+    "gpt_base_url", "gemini_base_url", "processing_proxy", "use_json_result",
+    "retry_if_translation_fails",
+    "show_timestamps", "hide_transcription", "output_file", "output_proxy",
+    "cqhttp_url", "cqhttp_token", "discord_hook", "telegram_token", "telegram_chat_id",
+    "processing_proxy_trans"
+]
+
+
+def get_preset_list():
+    """Get list of all presets: bundled 'default' + user presets."""
+    presets = ["default"]  # Always include bundled default
+    if os.path.exists(USER_PRESETS_DIR):
+        user_presets = [os.path.splitext(f)[0] for f in os.listdir(USER_PRESETS_DIR) if f.endswith(".json")]
+        presets.extend(sorted(user_presets))
+    return presets
+
+
+def load_preset_data(preset_name):
+    """Load preset data. 'default' loads from bundled file, others from user directory."""
+    if not preset_name:
+        return None
+    try:
+        if preset_name == "default":
+            print(f"Loading bundled preset from: {BUNDLED_DEFAULT_PATH}")
+            with open(BUNDLED_DEFAULT_PATH, "r", encoding="utf-8") as f:
+                return json.load(f)
+        else:
+            filename = preset_name if preset_name.endswith(".json") else preset_name + ".json"
+            path = os.path.join(USER_PRESETS_DIR, filename)
+            print(f"Loading user preset from: {path}")
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception as e:
+        print(f"Error loading preset: {e}")
+        return None
+
+# Load default values from bundled default.json
+DEFAULT_VALUES = load_preset_data("default") or {}
+
+
+def get_default(key, fallback=None):
+    return DEFAULT_VALUES.get(key, fallback)
+
+
+def save_preset_data(preset_name, data):
+    """Save preset to user presets directory. Cannot overwrite bundled 'default'."""
+    if not preset_name:
+        return False
+    if preset_name == "default" or preset_name == "default.json":
+        return False  # Cannot overwrite bundled default
+    filename = preset_name if preset_name.endswith(".json") else preset_name + ".json"
+    path = os.path.join(USER_PRESETS_DIR, filename)
+    try:
+        print(f"Saving preset to: {path}")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
+        return True
+    except Exception:
+        return False
+
+
+def delete_preset_data(preset_name):
+    """Delete a user preset file. Returns True if successful, False otherwise."""
+    if not preset_name:
+        return False
+    if preset_name == "default" or preset_name == "default.json":
+        return False  # Cannot delete bundled default
+    filename = preset_name if preset_name.endswith(".json") else preset_name + ".json"
+    try:
+        path = os.path.join(USER_PRESETS_DIR, filename)
+        if os.path.exists(path):
+            print(f"Deleting preset: {path}")
+            os.remove(path)
+            return True
+        return False
+    except Exception:
+        return False
+
+
+def cleanup():
+    global process, is_running
+    if process and process.poll() is None:
+        print("Terminating subprocess...")
+        process.terminate()
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+    is_running = False
+
+atexit.register(cleanup)
+
+
+def signal_handler(sig, frame):
+    cleanup()
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
+
+
+def build_translator_command(
+    *, # Enforce keyword-only arguments
+    input_type, url, device_index, device_rec_interval, file_path,
+    input_format, input_cookies, input_proxy,
+    openai_key, google_key, overall_proxy,
+    model_size, language, whisper_backend, openai_transcription_model,
+    vad_threshold, min_audio_len, max_audio_len, target_audio_len,
+    silence_threshold, disable_dynamic_vad, disable_dynamic_silence, 
+    prefix_retention_len, whisper_filters,
+    translation_prompt, translation_provider,  
+    gpt_model, gemini_model, history_size, translation_timeout,
+    gpt_base_url, gemini_base_url, processing_proxy, use_json_result,
+    retry_if_translation_fails,
+    show_timestamps, hide_transcription, output_file, output_proxy,
+    cqhttp_url, cqhttp_token, discord_hook, telegram_token, telegram_chat_id
+):
+    cmd = [sys.executable, "-u", "-m", "stream_translator_gpt"]
+
+    def add_arg(flag, value, default_key=None):
+        """Helper to append arg if value differs from default (loaded from default.json)."""
+        if value is None:
+            return
+            
+        str_val = str(value)
+        if default_key:
+             default_val = get_default(default_key)
+             # Handle special case for language 'auto' which CLI treats same as omitted
+             if default_key == "language" and str_val == "auto":
+                 return
+             
+             # Handle list to string conversion for defaults (e.g. whisper_filters)
+             if isinstance(default_val, list):
+                 default_str = ",".join(default_val)
+                 if str_val == default_str:
+                     return
+
+             if str(default_val) == str_val:
+                 return
+            
+             # Handle numeric mismatch (e.g. "30" vs "30.0")
+             try:
+                 if float(str(default_val)) == float(str_val):
+                     return
+             except (ValueError, TypeError):
+                 pass
+        
+        cmd.extend([flag, str_val])
+
+    # --- Input Args ---
+    target_url = ""
+    if input_type == "URL":
+        if not url:
+            return None, "Error: URL is required.\n"
+        target_url = url
+    elif input_type == "Device":
+        target_url = "device"
+        if device_index is not None:
+             cmd.extend(["--device_index", str(int(device_index))])
+        add_arg("--device_recording_interval", device_rec_interval, "device_rec_interval")
+    elif input_type == "File":
+        if not file_path:
+            return None, "Error: File path is required.\n"
+        target_url = file_path
+    
+    cmd.append(target_url)
+
+    if input_type == "URL":
+        if input_format:
+            add_arg("--format", input_format, "input_format")
+        if input_cookies:
+            cmd.extend(["--cookies", input_cookies])
+        if input_proxy:
+            cmd.extend(["--input_proxy", input_proxy])
+
+    # --- Keys & Overall ---
+    if openai_key:
+        cmd.extend(["--openai_api_key", openai_key])
+    if google_key:
+        cmd.extend(["--google_api_key", google_key])
+    if overall_proxy:
+        cmd.extend(["--proxy", overall_proxy])
+    
+    # --- Transcription ---
+    add_arg("--model", model_size, "model_size")
+    if language:
+        add_arg("--language", language, "language")
+    
+    if whisper_backend == "Faster-Whisper":
+        cmd.append("--use_faster_whisper")
+    elif whisper_backend == "Simul-Streaming":
+        cmd.append("--use_simul_streaming")
+    elif whisper_backend == "Faster-Whisper & Simul-Streaming":
+        cmd.append("--use_faster_whisper")
+        cmd.append("--use_simul_streaming")
+    elif whisper_backend == "OpenAI Transcription API":
+        cmd.append("--use_openai_transcription_api")
+        if openai_transcription_model:
+            # We don't strictly check default here as it depends on the flag being active, 
+            # but usually okay to just pass if user selected it.
+            # CLI default is gpt-4o-mini-transcribe, let's optimize it too.
+            if openai_transcription_model != "gpt-4o-mini-transcribe":
+                 cmd.extend(["--openai_transcription_model", openai_transcription_model])
+    
+    if whisper_filters:
+        # Join list of filters into a comma-separated string
+        filter_str = ",".join(whisper_filters)
+        if filter_str:
+            add_arg("--whisper_filters", filter_str, "whisper_filters")
+
+    add_arg("--vad_threshold", vad_threshold, "vad_threshold")
+    add_arg("--min_audio_length", min_audio_len, "min_audio_len")
+    add_arg("--max_audio_length", max_audio_len, "max_audio_len")
+    add_arg("--target_audio_length", target_audio_len, "target_audio_len")
+    add_arg("--continuous_no_speech_threshold", silence_threshold, "silence_threshold")
+    add_arg("--prefix_retention_length", prefix_retention_len, "prefix_retention_len")
+
+    
+    if disable_dynamic_vad:
+        cmd.append("--disable_dynamic_vad_threshold")
+    if disable_dynamic_silence:
+        cmd.append("--disable_dynamic_no_speech_threshold")
+
+    # --- Translation ---
+    if translation_provider != "None":
+        # Always pass translation prompt if provider is active? 
+        # CLI default is None, so we MUST pass it if used.
+        cmd.extend(["--translation_prompt", translation_prompt])
+        
+        add_arg("--translation_history_size", int(history_size), "history_size")
+        add_arg("--translation_timeout", int(translation_timeout), "translation_timeout")
+        
+        # We pass both models, the script logic decides based on key/usage, 
+        # but here we can't easily filter unless we strictly check keys.
+        # Just passing the selected values is safer.
+        add_arg("--gpt_model", gpt_model, "gpt_model")
+        add_arg("--gemini_model", gemini_model, "gemini_model")
+        
+        if gpt_base_url:
+            cmd.extend(["--gpt_base_url", gpt_base_url])
+        if gemini_base_url:
+            cmd.extend(["--gemini_base_url", gemini_base_url])
+        if processing_proxy:
+            cmd.extend(["--processing_proxy", processing_proxy])
+        if use_json_result:
+            cmd.append("--use_json_result")
+        if retry_if_translation_fails:
+            cmd.append("--retry_if_translation_fails")
+
+    # --- Output ---
+    if show_timestamps:
+        cmd.append("--output_timestamps")
+    if hide_transcription:
+        cmd.append("--hide_transcribe_result")
+    if output_file:
+        cmd.extend(["--output_file_path", output_file])
+    
+    if output_proxy:
+        cmd.extend(["--output_proxy", output_proxy])
+    if cqhttp_url:
+        cmd.extend(["--cqhttp_url", cqhttp_url])
+        if cqhttp_token:
+            cmd.extend(["--cqhttp_token", cqhttp_token])
+    if discord_hook:
+        cmd.extend(["--discord_webhook_url", discord_hook])
+    if telegram_token and telegram_chat_id:
+        cmd.extend(["--telegram_token", telegram_token])
+        cmd.extend(["--telegram_chat_id", str(telegram_chat_id)])
+        
+    return cmd, None
+
+
+def get_subprocess_env():
+    """
+    Prepare environment with project root in PYTHONPATH to ensure the child process
+    can attempt to find the 'stream_translator_gpt' package even if not installed.
+    """
+    env = os.environ.copy()
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(current_dir)
+    
+    # Check if we are likely in the source tree (parent has the package)
+    if os.path.isdir(os.path.join(project_root, "stream_translator_gpt")):
+         # Append project_root to PYTHONPATH
+         env["PYTHONPATH"] = project_root + os.pathsep + env.get("PYTHONPATH", "")
+    return env
+
+
+def run_translator(
+    # Input
+    input_type, url, device_index, device_rec_interval, file_path,
+    input_format, input_cookies, input_proxy,
+    # Keys & Overall
+    openai_key, google_key, overall_proxy,
+    # Transcription
+    model_size, language, whisper_backend, openai_transcription_model,
+    vad_threshold, min_audio_len, max_audio_len, target_audio_len,
+    silence_threshold, disable_dynamic_vad, disable_dynamic_silence, 
+    prefix_retention_len, whisper_filters,
+    # Translation
+    translation_prompt, translation_provider,  
+    gpt_model, gemini_model, history_size, translation_timeout,
+    gpt_base_url, gemini_base_url, processing_proxy, use_json_result,
+    retry_if_translation_fails,
+    # Output
+    show_timestamps, hide_transcription, output_file, output_proxy,
+    cqhttp_url, cqhttp_token, discord_hook, telegram_token, telegram_chat_id
+):
+    global process, is_running
+    
+    if is_running:
+        yield "Process is already running. Please stop it first.\n"
+        return
+
+    # --- Validation ---
+    if translation_provider == "GPT" and not openai_key:
+        yield "Error: OpenAI API Key is required for GPT Translation.\nPlease enter your key in the 'Overall' tab.\n"
+        return
+    if translation_provider == "Gemini" and not google_key:
+        yield "Error: Google API Key is required for Gemini Translation.\nPlease enter your key in the 'Overall' tab.\n"
+        return
+    if whisper_backend == "OpenAI Transcription API" and not openai_key:
+        yield "Error: OpenAI API Key is required for OpenAI Transcription.\nPlease enter your key in the 'Overall' tab.\n"
+        return
+
+    # --- Logic Enforcements ---
+    # CLI prioritizes Gemini if google_key is present. If user explicitly selected GPT,
+    # we must ensure google_key is NOT passed to avoid accidental switch.
+    if translation_provider == "GPT":
+        google_key = None
+
+    # Construct command
+    cmd, error = build_translator_command(
+        input_type=input_type, url=url, device_index=device_index, device_rec_interval=device_rec_interval, file_path=file_path,
+        input_format=input_format, input_cookies=input_cookies, input_proxy=input_proxy,
+        openai_key=openai_key, google_key=google_key, overall_proxy=overall_proxy,
+        model_size=model_size, language=language, whisper_backend=whisper_backend, openai_transcription_model=openai_transcription_model,
+        vad_threshold=vad_threshold, min_audio_len=min_audio_len, max_audio_len=max_audio_len, target_audio_len=target_audio_len,
+        silence_threshold=silence_threshold, disable_dynamic_vad=disable_dynamic_vad, disable_dynamic_silence=disable_dynamic_silence, 
+        prefix_retention_len=prefix_retention_len, whisper_filters=whisper_filters,
+        translation_prompt=translation_prompt, translation_provider=translation_provider,  
+        gpt_model=gpt_model, gemini_model=gemini_model, history_size=history_size, translation_timeout=translation_timeout,
+        gpt_base_url=gpt_base_url, gemini_base_url=gemini_base_url, processing_proxy=processing_proxy, use_json_result=use_json_result,
+        retry_if_translation_fails=retry_if_translation_fails,
+        show_timestamps=show_timestamps, hide_transcription=hide_transcription, output_file=output_file, output_proxy=output_proxy,
+        cqhttp_url=cqhttp_url, cqhttp_token=cqhttp_token, discord_hook=discord_hook, telegram_token=telegram_token, telegram_chat_id=telegram_chat_id
+    )
+
+    if error:
+        yield error
+        return
+    # Start Process
+    is_running = True
+    start_msg = f"Running command: {' '.join(cmd)}\n\n"
+    log_history = [start_msg]
+    yield start_msg
+    
+    try:
+        process = subprocess.Popen(
+            cmd, 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            env=get_subprocess_env(),
+            creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == 'win32' else 0
+        )
+        
+        # Read output in a non-blocking way for the generator
+        while True:
+            line = process.stdout.readline()
+            if not line and process.poll() is not None:
+                break
+            if line:
+                # Strip ANSI escape codes
+                line = re.sub(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])', '', line)
+                log_history.append(line)
+                yield "".join(log_history)
+                
+        rc = process.poll()
+        log_history.append(f"\nProcess exited with return code {rc}\n")
+        yield "".join(log_history)
+
+    except Exception as e:
+        yield f"\nException occurred: {str(e)}\n"
+    finally:
+        is_running = False
+        process = None
+
+
+def stop_translator():
+    global process, is_running
+    if process and is_running:
+        process.terminate()
+        # On Windows terminate might not look nice for console apps, but this is a python script
+        return "Sending termination signal..."
+    return "No running process to stop."
+
+
+def run_list_devices():
+    cmd = [sys.executable, "-m", "stream_translator_gpt", "device", "--list_devices"]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True, env=get_subprocess_env())
+        return result.stdout
+    except subprocess.CalledProcessError as e:
+        return f"Error listing devices:\n{e.stderr}"
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
+def run_list_formats(url, cookies, input_proxy):
+    if not url:
+        return "Error: URL is required to list formats."
+    
+    cmd = [sys.executable, "-m", "stream_translator_gpt", url, "--list_format"]
+    if cookies:
+        cmd.extend(["--cookies", cookies])
+    if input_proxy:
+        cmd.extend(["--input_proxy", input_proxy])
+        
+    try:
+        # This might take a while, so UI might freeze slightly, but it's okay for a button click
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True, env=get_subprocess_env())
+        return result.stdout
+    except subprocess.CalledProcessError as e:
+        return f"Error listing formats:\n{e.stderr}"
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+# --- UI Setup ---
+
+with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
+    with gr.Row():
+        gr.Markdown("# Stream Translator GPT WebUI")
+        with gr.Column(scale=2): # Increase scale to give more room if needed, or keep 1 depending on Title width
+            with gr.Row():
+                preset_select = gr.Dropdown(choices=get_preset_list(), label="Preset", scale=2, min_width=80, show_label=False, container=False)
+                load_preset_btn = gr.Button("Load", scale=1, min_width=40)
+                delete_preset_btn = gr.Button("Delete", scale=1, variant="stop", min_width=40)
+                preset_name_input = gr.Textbox(placeholder="Name", scale=2, min_width=80, show_label=False, container=False)
+                save_preset_btn = gr.Button("Save", scale=1, min_width=40)
+
+    
+    with gr.Tabs():
+        with gr.Tab("Overall"):
+            with gr.Group():
+                with gr.Row():
+                    openai_key = gr.Textbox(label="OpenAI API Key", type="text", placeholder="OpenAI API key if using GPT translation / Whisper API. If you have multiple keys, you can separate them with \",\" and each key will be used in turn.")
+                    google_key = gr.Textbox(label="Google API Key", type="text", placeholder="Google API key if using Gemini translation. If you have multiple keys, you can separate them with \",\" and each key will be used in turn.")
+                
+                show_api_keys = gr.Checkbox(label="Show API Keys", value=True)
+            
+            with gr.Group():
+                overall_proxy = gr.Textbox(label="Overall Proxy", placeholder="http://127.0.0.1:7890")
+
+        with gr.Tab("Input"):
+            input_type = gr.Radio(
+                ["URL", "Device", "File"], 
+                label="Input Source", 
+                value=get_default("input_type")
+            )
+            
+            with gr.Group(visible=True) as url_group:
+                input_url = gr.Textbox(label="Stream URL", placeholder="https://www.youtube.com/watch?v=...")
+                with gr.Row():
+                    input_format = gr.Textbox(label="Stream Format (yt-dlp ID)", value=get_default("input_format"), placeholder="ba/wa*", scale=3)
+                    list_format_btn = gr.Button("List Available Formats", scale=1)
+                input_cookies = gr.File(label="Cookies File (Optional)", type="filepath", file_count="single")
+                input_proxy = gr.Textbox(label="Input Proxy", placeholder="http://127.0.0.1:7890")
+
+            with gr.Group(visible=False) as device_group:
+                with gr.Row():
+                    device_index = gr.Number(label="Device Index", precision=0, scale=3)
+                    list_devices_btn = gr.Button("List Available Devices", scale=1)
+                device_rec_interval = gr.Slider(0.1, 5.0, value=get_default("device_rec_interval"), label="Recording Interval (s)")
+            
+            with gr.Group(visible=False) as file_group:
+                input_file = gr.File(label="Local File Path", type="filepath", file_count="single")
+
+        with gr.Tab("Audio Slicing"):
+            with gr.Group():
+                vad_threshold = gr.Slider(0.0, 1.0, value=get_default("vad_threshold"), label="VAD Threshold")
+                disable_dynamic_vad = gr.Checkbox(label="Disable Dynamic VAD Threshold", value=get_default("disable_dynamic_vad"))
+            
+            with gr.Group():
+                with gr.Row():
+                     min_audio_len = gr.Slider(0.1, 10.0, value=get_default("min_audio_len"), label="Min Audio Length (s)")
+                     max_audio_len = gr.Slider(5.0, 60.0, value=get_default("max_audio_len"), label="Max Audio Length (s)")
+                target_audio_len = gr.Slider(1.0, 30.0, value=get_default("target_audio_len"), label="Target Audio Length (s)")
+                
+                with gr.Row():
+                    silence_threshold = gr.Slider(0.0, 3.0, value=get_default("silence_threshold"), label="Continuous Silence Threshold (s)")
+                    prefix_retention_len = gr.Slider(0.0, 3.0, value=get_default("prefix_retention_len"), label="Prefix Retention Length (s)")
+                disable_dynamic_silence = gr.Checkbox(label="Disable Dynamic Silence Threshold", value=get_default("disable_dynamic_silence"))
+
+        with gr.Tab("Transcription"):
+            whisper_backend = gr.Radio(
+                ["Whisper", "Faster-Whisper", "Simul-Streaming", "Faster-Whisper & Simul-Streaming", "OpenAI Transcription API"],
+                label="Transcription Type",
+                value=get_default("whisper_backend")
+            )
+
+            with gr.Row():
+                model_size = gr.Dropdown(
+                    ["tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large", "large-v1", "large-v2", "large-v3", "large-v3-turbo", "custom"], 
+                    label="Model Size", 
+                    value=get_default("model_size"),
+                    allow_custom_value=True
+                )
+                openai_transcription_model = gr.Dropdown(
+                    ["gpt-4o-mini-transcribe", "gpt-4o-transcribe", "whisper-1"],
+                    label="OpenAI Transcription Model", 
+                    value=get_default("openai_transcription_model"),
+                    visible=False,
+                    allow_custom_value=True
+                )
+                language = gr.Dropdown(
+                    ["auto", "af", "am", "ar", "as", "az", "ba", "be", "bg", "bn", "bo", "br", "bs", "ca", "cs", "cy", "da", "de", "el", "en", "es", "et", "eu", "fa", "fi", "fo", "fr", "gl", "gu", "ha", "haw", "he", "hi", "hr", "ht", "hu", "hy", "id", "is", "it", "ja", "jw", "ka", "kk", "km", "kn", "ko", "la", "lb", "ln", "lo", "lt", "lv", "mg", "mi", "mk", "ml", "mn", "mr", "ms", "mt", "my", "ne", "nl", "nn", "no", "oc", "pa", "pl", "ps", "pt", "ro", "ru", "sa", "sd", "si", "sk", "sl", "sn", "so", "sq", "sr", "su", "sv", "sw", "ta", "te", "tg", "th", "tk", "tl", "tr", "tt", "uk", "ur", "uz", "vi", "yi", "yo", "zh"],
+                    label="Language", 
+                    value=get_default("language"), 
+                    allow_custom_value=True,
+                    info="[Available Languages](https://github.com/openai/whisper#available-models-and-languages)"
+                )
+            
+
+
+            
+            with gr.Accordion("Filters", open=False):
+                whisper_filters = gr.CheckboxGroup(
+                    ["emoji_filter", "japanese_stream_filter"],
+                    show_label=False,
+                    value=get_default("whisper_filters")
+                )
+            
+            processing_proxy_trans = gr.Textbox(label="Processing Proxy", placeholder="http://127.0.0.1:7890")
+
+        with gr.Tab("Translation"):
+            translation_provider = gr.Radio(["None", "GPT", "Gemini"], label="LLM Provider", value=get_default("translation_provider"))
+            
+            with gr.Group(visible=False) as common_translation_group:
+                translation_prompt = gr.Textbox(label="Translation Prompt", value=get_default("translation_prompt"), lines=2, placeholder="Translate from {source language} to {target language}")
+                
+                with gr.Group(visible=False) as gpt_group:
+                    gpt_model = gr.Dropdown(
+                        ["gpt-4o", "gpt-4o-mini", "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-5", "gpt-5-mini", "gpt-5-nano"],
+                        label="GPT Model", 
+                        value=get_default("gpt_model"), 
+                        allow_custom_value=True
+                    )
+                    gpt_base_url = gr.Textbox(label="GPT Base URL", placeholder="https://api.openai.com/v1")
+
+                with gr.Group(visible=False) as gemini_group:
+                    gemini_model = gr.Dropdown(
+                        ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-flash-preview-09-2025", "gemini-2.5-flash-lite-preview-09-2025"],
+                        label="Gemini Model", 
+                        value=get_default("gemini_model"), 
+                        allow_custom_value=True
+                    )
+                    gemini_base_url = gr.Textbox(label="Gemini Base URL", placeholder="https://generativelanguage.googleapis.com")
+
+                with gr.Row():
+                    history_size = gr.Slider(0, 10, value=get_default("history_size"), step=1, label="History Size (0 for parallel)")
+                    translation_timeout = gr.Number(value=get_default("translation_timeout"), label="Timeout (s)")
+                
+                use_json_result = gr.Checkbox(label="Use JSON Result", value=get_default("use_json_result"))
+                retry_if_translation_fails = gr.Checkbox(label="Retry on Failure", value=get_default("retry_if_translation_fails"))
+                
+                with gr.Group():
+                    processing_proxy = gr.Textbox(label="Processing Proxy", placeholder="http://127.0.0.1:7890")
+
+        with gr.Tab("Output"):
+            with gr.Row():
+                show_timestamps = gr.Checkbox(label="Output Timestamps", value=get_default("show_timestamps"))
+                hide_transcription = gr.Checkbox(label="Hide Transcription Result", value=get_default("hide_transcription"))
+            
+            with gr.Group():
+                output_file = gr.Textbox(label="Save to File Path", placeholder="If set, will save the result text to this path.")
+            
+            with gr.Group():
+                discord_hook = gr.Textbox(label="Discord Webhook URL", placeholder="If set, will send the result text to this Discord channel.")
+            
+            with gr.Group():
+                telegram_token = gr.Textbox(label="Telegram Token", placeholder="Token of Telegram bot.")
+                telegram_chat_id = gr.Textbox(label="Telegram Chat ID", placeholder="If set, will send the result text to this Telegram chat. Needs to be used with Telegram Token.")
+
+            with gr.Group():
+                cqhttp_url = gr.Textbox(label="Cqhttp URL", placeholder="If set, will send the result text to this Cqhttp server.")
+                cqhttp_token = gr.Textbox(label="Cqhttp Token", placeholder="Token of cqhttp, if it is not set on the server side, it does not need to fill in.")
+
+            with gr.Group():
+                output_proxy = gr.Textbox(label="Output Proxy", placeholder="http://127.0.0.1:7890")
+
+    with gr.Row():
+        with gr.Column(scale=1):
+            start_btn = gr.Button("Run", variant="primary")
+            stop_btn = gr.Button("Stop", variant="stop")
+            
+        with gr.Column(scale=4):
+            output_box = gr.Textbox(
+                label="Output Log", 
+                lines=30, 
+                autoscroll=False,
+                interactive=False,
+                elem_id="output_log"
+            )
+
+    # --- Logic connection ---
+    
+    # Input Type Visibility
+    def update_input_visibility(choice):
+        return {
+            url_group: gr.update(visible=(choice == "URL")),
+            device_group: gr.update(visible=(choice == "Device")),
+            file_group: gr.update(visible=(choice == "File")),
+        }
+
+    input_type.change(
+        update_input_visibility,
+        input_type,
+        [url_group, device_group, file_group]
+    )
+
+    # Whisper Backend Visibility
+    def update_backend_visibility(choice):
+        openai_visible = (choice == "OpenAI Transcription API")
+        return {
+            openai_transcription_model: gr.update(visible=openai_visible),
+            model_size: gr.update(visible=not openai_visible)
+        }
+
+    whisper_backend.change(
+        update_backend_visibility,
+        whisper_backend,
+        [openai_transcription_model, model_size]
+    )
+
+    # Translation Visibility
+    # Translation Visibility
+    def update_translation_visibility(choice):
+        return {
+            common_translation_group: gr.update(visible=(choice != "None")),
+            gpt_group: gr.update(visible=(choice == "GPT")),
+            gemini_group: gr.update(visible=(choice == "Gemini"))
+        }
+
+    translation_provider.change(
+        update_translation_visibility,
+        translation_provider,
+        [common_translation_group, gpt_group, gemini_group]
+    )
+
+    # Start Action
+    start_btn.click(
+        run_translator,
+        inputs=[
+            input_type, input_url, device_index, device_rec_interval, input_file,
+            input_format, input_cookies, input_proxy,
+            openai_key, google_key, overall_proxy,
+            model_size, language, whisper_backend, openai_transcription_model,
+            vad_threshold, min_audio_len, max_audio_len, target_audio_len,
+            silence_threshold, disable_dynamic_vad, disable_dynamic_silence,
+            prefix_retention_len, whisper_filters,
+            translation_prompt, translation_provider,
+            gpt_model, gemini_model, history_size, translation_timeout,
+            gpt_base_url, gemini_base_url, processing_proxy, use_json_result,
+            retry_if_translation_fails,
+            show_timestamps, hide_transcription, output_file, output_proxy,
+            cqhttp_url, cqhttp_token, discord_hook, telegram_token, telegram_chat_id
+        ],
+        outputs=output_box,
+        concurrency_limit=1,
+        scroll_to_output=False
+    )
+
+    # Stop Action
+    stop_btn.click(
+        stop_translator,
+        outputs=output_box,
+        scroll_to_output=False
+    )
+    
+    # List Actions
+    list_devices_btn.click(
+        run_list_devices,
+        outputs=output_box,
+        scroll_to_output=False
+    )
+    
+    list_format_btn.click(
+        run_list_formats,
+        inputs=[input_url, input_cookies, input_proxy],
+        outputs=output_box,
+        scroll_to_output=False
+    )
+
+    
+    # Preset Logic
+    all_inputs = [
+        input_type, input_url, device_index, device_rec_interval, input_file,
+        input_format, input_cookies, input_proxy,
+        openai_key, google_key, overall_proxy,
+        model_size, language, whisper_backend, openai_transcription_model,
+        vad_threshold, min_audio_len, max_audio_len, target_audio_len,
+        silence_threshold, disable_dynamic_vad, disable_dynamic_silence,
+        prefix_retention_len, whisper_filters,
+        translation_prompt, translation_provider,
+        gpt_model, gemini_model, history_size, translation_timeout,
+        gpt_base_url, gemini_base_url, processing_proxy, use_json_result,
+        retry_if_translation_fails,
+        show_timestamps, hide_transcription, output_file, output_proxy,
+        cqhttp_url, cqhttp_token, discord_hook, telegram_token, telegram_chat_id,
+        processing_proxy_trans
+    ]
+
+    def on_save_preset(name, *args):
+        if not name:
+             return gr.update()
+        
+        data = {}
+        for i, key in enumerate(INPUT_KEYS):
+            data[key] = args[i]
+            
+        save_preset_data(name, data)
+        return gr.update(choices=get_preset_list())
+
+    save_preset_btn.click(
+        on_save_preset,
+        inputs=[preset_name_input] + all_inputs,
+        outputs=[preset_select]
+    )
+
+    def on_load_preset(name):
+        data = load_preset_data(name)
+        if not data:
+            return [gr.update()] * len(all_inputs)
+        
+        updates = []
+        for key in INPUT_KEYS:
+             updates.append(data.get(key, None))
+        
+        return updates
+
+    load_preset_btn.click(
+        on_load_preset,
+        inputs=[preset_select],
+        outputs=all_inputs
+    )
+    
+    
+    def on_delete_preset(name):
+        success = delete_preset_data(name)
+        if not success:
+             return gr.update(choices=get_preset_list()), gr.update(value=name)
+        return gr.update(choices=get_preset_list()), gr.update(value=None)
+
+    delete_preset_btn.click(
+        on_delete_preset,
+        inputs=[preset_select],
+        outputs=[preset_select, preset_select]
+    )
+    
+    # --- Smart Scroll Logic ---
+    # Fixes issue where page scrolls to top on output, and implements "sticky scroll" behavior
+    # (only auto-scroll if user is already at the bottom).
+    js_smart_scroll = """
+    function() {
+        const el = document.getElementById("output_log").querySelector("textarea");
+        if (!el) return;
+        
+        // Use a smaller threshold (100px approx 4-5 lines)
+        const threshold = 100;
+        const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+        
+        // console.log("Scroll check:", {scrollHeight: el.scrollHeight, scrollTop: el.scrollTop, clientHeight: el.clientHeight, distance: distanceToBottom});
+
+        if (distanceToBottom < threshold) {
+            // console.log("Auto-scrolling to bottom");
+            setTimeout(() => {
+                el.scrollTop = el.scrollHeight;
+            }, 50);
+        }
+    }
+    """
+    
+    output_box.change(None, None, None, js=js_smart_scroll, scroll_to_output=False)
+
+    # API Key Visibility Toggle
+    def toggle_keys(show):
+        new_type = "text" if show else "password"
+        return gr.update(type=new_type), gr.update(type=new_type)
+
+    show_api_keys.change(
+        toggle_keys,
+        inputs=show_api_keys,
+        outputs=[openai_key, google_key]
+    )
+    
+    # Sync Processing Proxy
+    processing_proxy_trans.change(fn=None, inputs=processing_proxy_trans, outputs=processing_proxy, js="(x) => x")
+    processing_proxy.change(fn=None, inputs=processing_proxy, outputs=processing_proxy_trans, js="(x) => x")
+
+    # LocalStorage Persistence
+    # 1. Save on Change
+    for i, component in enumerate(all_inputs):
+        key = INPUT_KEYS[i]
+
+        # Use a closure for JS to embed the key
+        js_save = f"(x) => {{ localStorage.setItem('{key}', JSON.stringify(x)); return x; }}"
+        component.change(fn=None, inputs=[component], outputs=[], js=js_save)
+        
+    # 2. Load on Startup
+    js_load = f"""
+    (...args) => {{
+        const keys = {json.dumps(INPUT_KEYS)};
+        
+        return args.map((defaultVal, index) => {{
+            const key = keys[index];
+
+            const stored = localStorage.getItem(key);
+            if (stored === null) return defaultVal;
+            try {{
+                const val = JSON.parse(stored);
+                if (val === null) return defaultVal;
+                return val;
+            }} catch (e) {{
+                return defaultVal;
+            }}
+        }});
+    }}
+    """
+    
+    demo.load(
+        fn=None,
+        inputs=all_inputs, # Pass default values as inputs
+        outputs=all_inputs,
+        js=js_load
+    )
+
+def main():
+    parser = argparse.ArgumentParser(description="Stream Translator GPT WebUI")
+    parser.add_argument("--share", action="store_true", help="Create a public link to your interface (for Colab etc.)")
+    args = parser.parse_args()
+    
+    demo.queue().launch(inbrowser=True, share=args.share)
+
+
+if __name__ == "__main__":
+    main()
