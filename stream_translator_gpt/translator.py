@@ -5,6 +5,10 @@ import sys
 import time
 import subprocess
 
+if __name__ == '__main__':
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    __package__ = "stream_translator_gpt"
+
 from .common import ApiKeyPool, start_daemon_thread, is_url, WARNING, ERROR
 from .audio_getter import StreamAudioGetter, LocalFileAudioGetter, DeviceAudioGetter
 from .audio_slicer import AudioSlicer
@@ -453,3 +457,7 @@ def cli():
         args['beam_size'] = None
 
     main(url, **args)
+
+
+if __name__ == '__main__':
+    cli()
