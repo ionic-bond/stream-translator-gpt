@@ -1,8 +1,12 @@
 # stream-translator-gpt
 
-stream-translator-gpt is a command-line tool for real-time transcription and translation of live streams.
+stream-translator-gpt is a command-line tool for real-time transcription and translation of live streams. We have now added an easier-to-use WebUI entry point.
 
-Try it on Colab: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/stream_translator.ipynb)
+Try it on Colab: 
+
+|                                                                                     WebUI                                                                                     |                                                                                       Command Line                                                                                        |
+| :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/webui.ipynb) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/stream_translator.ipynb) |
 
 (Due to frequent scraping and theft of API keys, we are unable to provide a trial API key. You need to fill in your own API key.)
 
@@ -14,7 +18,7 @@ Try it on Colab: [![Open In Colab](https://colab.research.google.com/assets/cola
 2. [**Install CUDA on your system**](https://developer.nvidia.com/cuda-downloads).
 3. [**Install cuDNN to your CUDA dir**](https://developer.nvidia.com/cudnn-downloads) if you want to use **Faster-Whisper**.
 4. [**Install PyTorch (with CUDA) to your Python**](https://pytorch.org/get-started/locally/).
-5. [**Create a Google API key**](https://aistudio.google.com/app/apikey) if you want to use **Gemini API** for translation. (Free 15 requests / minute)
+5. [**Create a Google API key**](https://aistudio.google.com/app/apikey) if you want to use **Gemini API** for translation.
 6. [**Create a OpenAI API key**](https://platform.openai.com/api-keys) if you want to use **OpenAI Transcription API** for transcription or **GPT API** for translation.
 
 **If you are in Windows, you also need to:**
@@ -22,9 +26,19 @@ Try it on Colab: [![Open In Colab](https://colab.research.google.com/assets/cola
 1. [**Install and add ffmpeg to your PATH.**](https://www.thewindowsclub.com/how-to-install-ffmpeg-on-windows-10#:~:text=Click%20New%20and%20type%20the,Click%20OK%20to%20apply%20changes.)
 2. Install [**yt-dlp**](https://github.com/yt-dlp/yt-dlp) and add it to your PATH.
 
-## Installation
 
-**Install release version from PyPI (Recommend):**
+## WebUI
+
+```
+pip install stream-translator-gpt[webui] -U
+stream-translator-gpt-webui
+```
+
+## Command Line
+
+### Installation
+
+**Install release version from PyPI:**
 
 ```
 pip install stream-translator-gpt -U
@@ -38,10 +52,10 @@ or
 ```
 git clone https://github.com/ionic-bond/stream-translator-gpt.git
 pip install -r ./stream-translator-gpt/requirements.txt -U
-python3 ./stream-translator-gpt/translator.py
+python3 ./stream-translator-gpt/stream_translator_gpt/translator.py
 ```
 
-## Usage
+### Usage
 
 The commands on Colab [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/stream_translator.ipynb) are the recommended usage, below are some other commonly used options.
 

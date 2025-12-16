@@ -1,12 +1,16 @@
-[![PyPI version](https://badge.fury.io/py/stream-translator-gpt.svg)](https://badge.fury.io/py/stream-translator-gpt)
-
 # stream-translator-gpt
+
+[![PyPI version](https://badge.fury.io/py/stream-translator-gpt.svg)](https://badge.fury.io/py/stream-translator-gpt) [![Python Versions](https://img.shields.io/pypi/pyversions/stream-translator-gpt.svg)](https://pypi.org/project/stream-translator-gpt/) [![Downloads](https://static.pepy.tech/badge/stream-translator-gpt)](https://pepy.tech/project/stream-translator-gpt) [![License](https://img.shields.io/github/license/ionic-bond/stream-translator-gpt.svg)](https://github.com/ionic-bond/stream-translator-gpt/blob/main/LICENSE) [![Gradio](https://img.shields.io/badge/WebUI-Gradio-orange)](https://gradio.app)
 
 [English](./README.md) | 中文
 
-stream-translator-gpt 是一个用于实时转录和翻译直播流的命令行工具。
+stream-translator-gpt 是一个用于实时转录和翻译直播流的命令行工具。我们新增了更易于使用的 WebUI 入口。
 
-在 Colab 上尝试： [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/stream_translator.ipynb)
+在 Colab 上尝试：
+
+|                                                                                     WebUI                                                                                     |                                                                                          命令行                                                                                           |
+| :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/webui.ipynb) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/stream_translator.ipynb) |
 
 （由于 API key 被频繁爬取和盗用，我们无法提供用于试用的 API key。您需要填写自己的 API key。）
 
@@ -74,17 +78,27 @@ flowchart LR
 2. [**在您的系统上安装 CUDA**](https://developer.nvidia.com/cuda-downloads)。
 3. 如果您想使用 **Faster-Whisper**，[**请将 cuDNN 安装到您的 CUDA 目录**](https://developer.nvidia.com/cudnn-downloads)。
 4. [**为您的 Python 安装 PyTorch (CUDA 版本)**](https://pytorch.org/get-started/locally/)。
-5. 如果您想使用 **Gemini API** 进行翻译，[**请创建一个 Google API 密钥**](https://aistudio.google.com/app/apikey)。 (每分钟 15 次免费请求)
-6. 如果您想使用 **OpenAI Transcription API** 进行语音转文字或使用 **GPT API** 进行翻译，[**请创建一个 OpenAI API 密钥**](https://platform.openai.com/api-keys)。
+81. 如果您想使用 **Gemini API** 进行翻译，[**请创建一个 Google API 密钥**](https://aistudio.google.com/app/apikey)。
+82. 如果您想使用 **OpenAI Transcription API** 进行语音转文字或使用 **GPT API** 进行翻译，[**请创建一个 OpenAI API 密钥**](https://platform.openai.com/api-keys)。
 
 **如果您在 Windows 上，您还需要：**
 
 1. [**安装 ffmpeg 并将其添加到您的环境变量。**](https://www.thewindowsclub.com/how-to-install-ffmpeg-on-windows-10#:~:text=Click%20New%20and%20type%20the,Click%20OK%20to%20apply%20changes.)
 2. 安装 [**yt-dlp**](https://github.com/yt-dlp/yt-dlp) 并将其添加到您的环境变量。
 
-## 安装
 
-**从 PyPI 安装稳定版本 (推荐):**
+## WebUI
+
+```
+pip install stream-translator-gpt[webui] -U
+stream-translator-gpt-webui
+```
+
+## 命令行
+
+### 安装
+
+**从 PyPI 安装稳定版本:**
 
 ```
 pip install stream-translator-gpt -U
@@ -96,83 +110,83 @@ stream-translator-gpt
 **从 Github 下载开发版本代码:**
 
 ```
-git clone [https://github.com/ionic-bond/stream-translator-gpt.git](https://github.com/ionic-bond/stream-translator-gpt.git)
+git clone https://github.com/ionic-bond/stream-translator-gpt.git
 pip install -r ./stream-translator-gpt/requirements.txt -U
-python3 ./stream-translator-gpt/translator.py
+python3 ./stream-translator-gpt/stream_translator_gpt/translator.py
 ```
 
-## 使用方法
+### 使用方法
 
 Colab上的命令 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/stream_translator.ipynb) 即为推荐的使用方式，以下是一些其他常用选项。
 
 - 转录直播流 (默认使用 **Whisper**):
 
-    ```stream-translator-gpt {网址} --model large --language {输入语言}```
+    ```stream-translator-gpt {网址} --model large --language {输入语言}```
 
 - 使用 **Faster-Whisper** 进行转录:
 
-    ```stream-translator-gpt {网址} --model large --language {输入语言} --use_faster_whisper```
+    ```stream-translator-gpt {网址} --model large --language {输入语言} --use_faster_whisper```
 
 - 使用 **SimulStreaming** 进行转录:
 
-    ```stream-translator-gpt {网址} --model large --language {输入语言} --use_simul_streaming```
+    ```stream-translator-gpt {网址} --model large --language {输入语言} --use_simul_streaming```
 
 - 使用以 **Faster-Whisper** 作为编码器的 **SimulStreaming** 进行转录:
 
-    ```stream-translator-gpt {URL} --model large --language {input_language} --use_simul_streaming --use_faster_whisper```
+    ```stream-translator-gpt {网址} --model large --language {输入语言} --use_simul_streaming --use_faster_whisper```
 
 - 使用 **OpenAI Transcription API** 进行转录:
 
-    ```stream-translator-gpt {网址} --language {输入语言} --use_openai_transcription_api --openai_api_key {你的 OpenAI 密钥}```
+    ```stream-translator-gpt {网址} --language {输入语言} --use_openai_transcription_api --openai_api_key {您的 OpenAI 密钥}```
 
 - 使用 **Gemini** 翻译成其他语言:
 
-    ```stream-translator-gpt {网址} --model large --language ja --translation_prompt "翻译以下日语为中文，只输出译文，不要输出原文，在一行内输出" --google_api_key {你的 Google 密钥}```
+    ```stream-translator-gpt {网址} --model large --language ja --translation_prompt "翻译以下日语为中文，只输出译文，不要输出原文，在一行内输出" --google_api_key {您的 Google 密钥}```
 
 - 使用 **GPT** 翻译成其他语言:
 
-    ```stream-translator-gpt {网址} --model large --language ja --translation_prompt "翻译以下日语为中文，只输出译文，不要输出原文，在一行内输出" --openai_api_key {你的 OpenAI 密钥}```
+    ```stream-translator-gpt {网址} --model large --language ja --translation_prompt "翻译以下日语为中文，只输出译文，不要输出原文，在一行内输出" --openai_api_key {您的 OpenAI 密钥}```
 
 - 同时使用 **OpenAI Transcription API** 和 **Gemini**:
 
-    ```stream-translator-gpt {网址} --language ja --use_openai_transcription_api --openai_api_key {你的 OpenAI 密钥} --translation_prompt "翻译以下日语为中文，只输出译文，不要输出原文，在一行内输出" --google_api_key {你的 Google 密钥}```
+    ```stream-translator-gpt {网址} --language ja --use_openai_transcription_api --openai_api_key {您的 OpenAI 密钥} --translation_prompt "翻译以下日语为中文，只输出译文，不要输出原文，在一行内输出" --google_api_key {您的 Google 密钥}```
 
 - 使用本地视频/音频文件作为输入:
 
-    ```stream-translator-gpt {文件路径} --model large --language {输入语言}```
+    ```stream-translator-gpt {文件路径} --model large --language {输入语言}```
 
 - 使用电脑麦克风作为输入:
 
-    ```stream-translator-gpt device --model large --language {输入语言}```
+    ```stream-translator-gpt device --model large --language {输入语言}```
 
-    将使用系统的默认音频设备作为输入。
+  将使用系统的默认音频设备作为输入。
 
-    如果你想使用其他音频输入设备, 运行 `stream-translator-gpt device --list_devices` 获取设备索引，然后使用 `--device_index {索引}` 运行 CLI。
+  如果您想使用其他音频输入设备，运行 `stream-translator-gpt device --list_devices` 获取设备索引，然后使用 `--device_index {索引}` 运行 CLI。
 
-    如果你想使用其他程序的音频输出作为输入，你需要 [**启用立体声混音**](https://www.howtogeek.com/39532/how-to-enable-stereo-mix-in-windows-7-to-record-audio/)。
+  如果您想使用其他程序的音频输出作为输入，您需要 [**启用立体声混音**](https://www.howtogeek.com/39532/how-to-enable-stereo-mix-in-windows-7-to-record-audio/)。
 
 - 发送结果到 Discord:
 
-    ```stream-translator-gpt {网址} --model large --language {输入语言} --discord_webhook_url {你的_discord_webhook_网址}```
+    ```stream-translator-gpt {网址} --model large --language {输入语言} --discord_webhook_url {您的_discord_webhook_网址}```
 
 - 发送结果到 Telegram:
 
-    ```stream-translator-gpt {网址} --model large --language {输入语言} --telegram_token {你的 Telegram 令牌} --telegram_chat_id {你的 Telegram 聊天 id}```
+    ```stream-translator-gpt {网址} --model large --language {输入语言} --telegram_token {您的 Telegram 令牌} --telegram_chat_id {您的 Telegram 聊天 id}```
 
 - 发送结果到 Cqhttp:
 
-    ```stream-translator-gpt {网址} --model large --language {输入语言} --cqhttp_url {你的 cqhttp 地址} --cqhttp_token {你的 cqhttp 令牌}```
+    ```stream-translator-gpt {网址} --model large --language {输入语言} --cqhttp_url {您的 cqhttp 地址} --cqhttp_token {您的 cqhttp 令牌}```
 
 - 保存结果到 .srt 字幕文件:
 
-    ```stream-translator-gpt {网址} --model large --language ja --translation_prompt "翻译以下日语为中文，只输出译文，不要输出原文，在一行内输出" --google_api_key {你的 Google 密钥} --hide_transcribe_result --retry_if_translation_fails --output_timestamps --output_file_path ./result.srt```
+    ```stream-translator-gpt {网址} --model large --language ja --translation_prompt "翻译以下日语为中文，只输出译文，不要输出原文，在一行内输出" --google_api_key {您的 Google 密钥} --hide_transcribe_result --retry_if_translation_fails --output_timestamps --output_file_path ./result.srt```
 
-## 所有选项
+### 所有选项
 
 | 选项                                    | 默认值                    | 描述                                                                                                                                                                      |
 | :-------------------------------------- | :------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **通用选项**                            |
-| `--proxy`                               |                           | 用于设置所有未特别指定的 --*_proxy 的值。也会设置 http_proxy 等环境变量。                                                                                               |
+| `--proxy`                               |                           | 用于设置所有未特别指定的 --*_proxy 的值。也会设置 http_proxy 等环境变量。                                                                                                 |
 | `--openai_api_key`                      |                           | 如果使用 GPT 翻译 / Whisper API，则需要 OpenAI API 密钥。如果您有多个密钥，可以用 "," 分隔，每个密钥将轮流使用。                                                          |
 | `--google_api_key`                      |                           | 如果使用 Gemini 翻译，则需要 Google API 密钥。如果您有多个密钥，可以用 "," 分隔，每个密钥将轮流使用。                                                                     |
 | **输入选项**                            |                           |                                                                                                                                                                           |

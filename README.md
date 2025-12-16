@@ -1,12 +1,16 @@
-[![PyPI version](https://badge.fury.io/py/stream-translator-gpt.svg)](https://badge.fury.io/py/stream-translator-gpt)
-
 # stream-translator-gpt
+
+[![PyPI version](https://badge.fury.io/py/stream-translator-gpt.svg)](https://badge.fury.io/py/stream-translator-gpt) [![Python Versions](https://img.shields.io/pypi/pyversions/stream-translator-gpt.svg)](https://pypi.org/project/stream-translator-gpt/) [![Downloads](https://static.pepy.tech/badge/stream-translator-gpt)](https://pepy.tech/project/stream-translator-gpt) [![License](https://img.shields.io/github/license/ionic-bond/stream-translator-gpt.svg)](https://github.com/ionic-bond/stream-translator-gpt/blob/main/LICENSE) [![Gradio](https://img.shields.io/badge/WebUI-Gradio-orange)](https://gradio.app)
 
 English | [中文](./README_CN.md)
 
-stream-translator-gpt is a command-line tool for real-time transcription and translation of live streams.
+stream-translator-gpt is a command-line tool for real-time transcription and translation of live streams. We have now added an easier-to-use WebUI entry point.
 
-Try it on Colab: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/stream_translator.ipynb)
+Try it on Colab: 
+
+|                                                                                     WebUI                                                                                     |                                                                                       Command Line                                                                                        |
+| :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/webui.ipynb) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/stream_translator.ipynb) |
 
 (Due to frequent scraping and theft of API keys, we are unable to provide a trial API key. You need to fill in your own API key.)
 
@@ -74,7 +78,7 @@ Finally, the results can be printed to the terminal, saved to a file, or sent to
 2. [**Install CUDA on your system**](https://developer.nvidia.com/cuda-downloads).
 3. [**Install cuDNN to your CUDA dir**](https://developer.nvidia.com/cudnn-downloads) if you want to use **Faster-Whisper**.
 4. [**Install PyTorch (with CUDA) to your Python**](https://pytorch.org/get-started/locally/).
-5. [**Create a Google API key**](https://aistudio.google.com/app/apikey) if you want to use **Gemini API** for translation. (Free 15 requests / minute)
+5. [**Create a Google API key**](https://aistudio.google.com/app/apikey) if you want to use **Gemini API** for translation.
 6. [**Create a OpenAI API key**](https://platform.openai.com/api-keys) if you want to use **OpenAI Transcription API** for transcription or **GPT API** for translation.
 
 **If you are in Windows, you also need to:**
@@ -82,9 +86,19 @@ Finally, the results can be printed to the terminal, saved to a file, or sent to
 1. [**Install and add ffmpeg to your PATH.**](https://www.thewindowsclub.com/how-to-install-ffmpeg-on-windows-10#:~:text=Click%20New%20and%20type%20the,Click%20OK%20to%20apply%20changes.)
 2. Install [**yt-dlp**](https://github.com/yt-dlp/yt-dlp) and add it to your PATH.
 
-## Installation
 
-**Install release version from PyPI (Recommend):**
+## WebUI
+
+```
+pip install stream-translator-gpt[webui] -U
+stream-translator-gpt-webui
+```
+
+## Command Line
+
+### Installation
+
+**Install release version from PyPI:**
 
 ```
 pip install stream-translator-gpt -U
@@ -98,10 +112,10 @@ or
 ```
 git clone https://github.com/ionic-bond/stream-translator-gpt.git
 pip install -r ./stream-translator-gpt/requirements.txt -U
-python3 ./stream-translator-gpt/translator.py
+python3 ./stream-translator-gpt/stream_translator_gpt/translator.py
 ```
 
-## Usage
+### Usage
 
 The commands on Colab [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/stream_translator.ipynb) are the recommended usage, below are some other commonly used options.
 
@@ -167,12 +181,12 @@ The commands on Colab [![Open In Colab](https://colab.research.google.com/assets
 
     ```stream-translator-gpt {URL} --model large --language ja --translation_prompt "Translate from Japanese to Chinese" --google_api_key {your_google_key} --hide_transcribe_result --retry_if_translation_fails --output_timestamps --output_file_path ./result.srt```
 
-## All options
+### All options
 
 | Option                                  | Default Value             | Description                                                                                                                                                                                                        |
 | :-------------------------------------- | :------------------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Overall Options**                     |
-| `--proxy`                               |                           | Used to set the proxy for all --*_proxy flags if they are not specifically set. Also sets http_proxy environment variables.                                                                                      |
+| `--proxy`                               |                           | Used to set the proxy for all --*_proxy flags if they are not specifically set. Also sets http_proxy environment variables.                                                                                        |
 | `--openai_api_key`                      |                           | OpenAI API key if using GPT translation / Whisper API. If you have multiple keys, you can separate them with "," and each key will be used in turn.                                                                |
 | `--google_api_key`                      |                           | Google API key if using Gemini translation. If you have multiple keys, you can separate them with "," and each key will be used in turn.                                                                           |
 | **Input Options**                       |
