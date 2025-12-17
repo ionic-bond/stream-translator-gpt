@@ -52,7 +52,7 @@ or
 ```
 git clone https://github.com/ionic-bond/stream-translator-gpt.git
 pip install -r ./stream-translator-gpt/requirements.txt -U
-python3 ./stream-translator-gpt/stream_translator_gpt/translator.py
+python3 ./stream-translator-gpt/stream_translator_gpt/main.py
 ```
 
 ### Usage

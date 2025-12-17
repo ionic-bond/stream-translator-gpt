@@ -55,7 +55,7 @@ dependencies = [
 webui = ["gradio>=5.0,<6.0", "platformdirs>=4.0"]
 
 [project.scripts]
-stream-translator-gpt = "stream_translator_gpt.translator:cli"
+stream-translator-gpt = "stream_translator_gpt.main:cli"
 stream-translator-gpt-webui = "webui.webui:main"
 
 [project.urls]
