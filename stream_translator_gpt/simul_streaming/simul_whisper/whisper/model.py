@@ -11,7 +11,6 @@ from torch import Tensor, nn
 
 from .decoding import decode as decode_function
 from .decoding import detect_language as detect_language_function
-from .transcribe import transcribe as transcribe_function
 
 try:
     from torch.nn.functional import scaled_dot_product_attention
@@ -364,5 +363,5 @@ class Whisper(nn.Module):
         return cache, hooks
 
     detect_language = detect_language_function
-    transcribe = transcribe_function
+    # transcribe = transcribe_function
     decode = decode_function
