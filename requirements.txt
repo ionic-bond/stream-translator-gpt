@@ -1,6 +1,6 @@
 numpy
 scipy
-yt-dlp>=2025.6.30
+yt-dlp>=2025.11.12
 ffmpeg-python>=0.2.0,<0.3
 sounddevice<1.0
 openai-whisper==20250625
