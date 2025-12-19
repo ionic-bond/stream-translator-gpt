@@ -10,6 +10,28 @@ import sys
 
 import gradio as gr
 import platformdirs
+import time
+import threading
+
+class I18n:
+    def __init__(self, lang_code):
+        self.lang_code = lang_code
+        self.locale_data = {}
+        self.load_locale()
+
+    def load_locale(self):
+        locale_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "locales", f"{self.lang_code}.json")
+        if os.path.exists(locale_path):
+            try:
+                with open(locale_path, "r", encoding="utf-8") as f:
+                    self.locale_data = json.load(f)
+            except Exception as e:
+                print(f"Error loading locale {self.lang_code}: {e}")
+        else:
+            print(f"Locale file not found: {locale_path}")
+
+    def get(self, key, default=None):
+        return self.locale_data.get(key, default or key)
 
 # Global state for process management
 process = None
@@ -19,8 +41,10 @@ is_running = False
 BUNDLED_DIR = os.path.dirname(os.path.abspath(__file__))
 BUNDLED_DEFAULT_PATH = os.path.join(BUNDLED_DIR, "default.json")
 
-# User presets directory (writable, per-user)
-USER_PRESETS_DIR = os.path.join(platformdirs.user_config_dir("stream-translator-gpt", appauthor=False), "presets")
+# User configuration directory
+USER_CONFIG_DIR = platformdirs.user_config_dir("stream-translator-gpt", appauthor=False)
+USER_PRESETS_DIR = os.path.join(USER_CONFIG_DIR, "presets")
+SETTINGS_FILE = os.path.join(USER_CONFIG_DIR, "settings.json")
 os.makedirs(USER_PRESETS_DIR, exist_ok=True)
 
 INPUT_KEYS = [
@@ -68,8 +92,38 @@ def load_preset_data(preset_name):
 DEFAULT_VALUES = load_preset_data("default") or {}
 
 
+def load_settings():
+    """Load global settings from settings.json."""
+    if os.path.exists(SETTINGS_FILE):
+        try:
+            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error loading settings: {e}")
+    return {}
+
+
+def save_settings(data):
+    """Save global settings to settings.json."""
+    try:
+        with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        print(f"Error saving settings: {e}")
+
+
+SYSTEM_SETTINGS = load_settings()
+
+
 def get_default(key, fallback=None):
-    return DEFAULT_VALUES.get(key, fallback)
+    val = DEFAULT_VALUES.get(key, fallback)
+    # Override with system setting for global keys
+    if key == "ui_language" and "ui_language" in SYSTEM_SETTINGS:
+        val = SYSTEM_SETTINGS["ui_language"]
+    return val
+
+
+i18n = I18n(get_default("ui_language", "en"))
 
 
 def save_preset_data(preset_name, data):
@@ -549,77 +603,64 @@ def run_list_formats(url, cookies, input_proxy):
 # --- UI Setup ---
 
 with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
-    with gr.Row():
-        gr.Markdown("# Stream Translator GPT WebUI")
-        with gr.Column(scale=2):  # Increase scale to give more room if needed, or keep 1 depending on Title width
-            with gr.Row():
-                preset_select = gr.Dropdown(choices=get_preset_list(),
-                                            label="Preset",
-                                            scale=2,
-                                            min_width=80,
-                                            show_label=False,
-                                            container=False)
-                load_preset_btn = gr.Button("Load", scale=1, min_width=40)
-                delete_preset_btn = gr.Button("Delete", scale=1, variant="stop", min_width=40)
-                preset_name_input = gr.Textbox(placeholder="Name",
-                                               scale=2,
-                                               min_width=80,
-                                               show_label=False,
-                                               container=False)
-                save_preset_btn = gr.Button("Save", scale=1, min_width=40)
+    gr.Markdown("# Stream Translator GPT WebUI")
 
     with gr.Tabs():
-        with gr.Tab("Overall"):
+        with gr.Tab(i18n.get("overall")):
             with gr.Group():
                 with gr.Row():
                     openai_key = gr.Textbox(
-                        label="OpenAI API Key",
+                        label=i18n.get("openai_api_key"),
                         type="text",
-                        placeholder=
-                        "OpenAI API key if using GPT translation / Whisper API. If you have multiple keys, you can separate them with \",\" and each key will be used in turn."
+                        placeholder=i18n.get("openai_api_key_ph")
                     )
                     google_key = gr.Textbox(
-                        label="Google API Key",
+                        label=i18n.get("google_api_key"),
                         type="text",
-                        placeholder=
-                        "Google API key if using Gemini translation. If you have multiple keys, you can separate them with \",\" and each key will be used in turn."
+                        placeholder=i18n.get("google_api_key_ph")
                     )
 
-                show_api_keys = gr.Checkbox(label="Show API Keys", value=True)
+                show_api_keys = gr.Checkbox(label=i18n.get("show_api_keys"), value=True)
 
             with gr.Group():
-                overall_proxy = gr.Textbox(label="Overall Proxy", placeholder="http://127.0.0.1:7890")
+                overall_proxy = gr.Textbox(label=i18n.get("overall_proxy"), placeholder=i18n.get("overall_proxy_ph"))
 
-        with gr.Tab("Input"):
-            input_type = gr.Radio(["URL", "Device", "File"], label="Input Source", value=get_default("input_type"))
+        with gr.Tab(i18n.get("input")):
+            input_type = gr.Radio(choices=[
+                (i18n.get("url_option", "URL"), "URL"),
+                (i18n.get("device_option", "Device"), "Device"),
+                (i18n.get("file_option", "File"), "File")
+            ],
+                                  label=i18n.get("input_source"),
+                                  value=get_default("input_type"))
 
             with gr.Group(visible=True) as url_group:
-                input_url = gr.Textbox(label="Stream URL", placeholder="https://www.youtube.com/watch?v=...")
+                input_url = gr.Textbox(label=i18n.get("stream_url"), placeholder=i18n.get("stream_url_ph"))
                 with gr.Row():
-                    input_format = gr.Textbox(label="Stream Format (yt-dlp ID)",
+                    input_format = gr.Textbox(label=i18n.get("stream_format"),
                                               value=get_default("input_format"),
-                                              placeholder="ba/wa*",
+                                              placeholder=i18n.get("stream_format_ph"),
                                               scale=3)
-                    list_format_btn = gr.Button("List Available Formats", scale=1)
-                input_cookies = gr.File(label="Cookies File (Optional)", type="filepath", file_count="single")
-                input_proxy = gr.Textbox(label="Input Proxy", placeholder="http://127.0.0.1:7890")
+                    list_format_btn = gr.Button(i18n.get("list_available_formats"), scale=1)
+                input_cookies = gr.File(label=i18n.get("cookies_file"), type="filepath", file_count="single")
+                input_proxy = gr.Textbox(label=i18n.get("input_proxy"), placeholder=i18n.get("input_proxy_ph"))
 
             with gr.Group(visible=False) as device_group:
                 with gr.Row():
-                    device_index = gr.Number(label="Device Index", precision=0, scale=3)
-                    list_devices_btn = gr.Button("List Available Devices", scale=1)
+                    device_index = gr.Number(label=i18n.get("device_index"), precision=0, scale=3)
+                    list_devices_btn = gr.Button(i18n.get("list_available_devices"), scale=1)
                 device_rec_interval = gr.Slider(0.1,
                                                 5.0,
                                                 value=get_default("device_rec_interval"),
-                                                label="Recording Interval (s)")
+                                                label=i18n.get("recording_interval"))
 
             with gr.Group(visible=False) as file_group:
-                input_file = gr.File(label="Local File Path", type="filepath", file_count="single")
+                input_file = gr.File(label=i18n.get("local_file_path"), type="filepath", file_count="single")
 
-        with gr.Tab("Audio Slicing"):
+        with gr.Tab(i18n.get("audio_slicing")):
             with gr.Group():
-                vad_threshold = gr.Slider(0.0, 1.0, value=get_default("vad_threshold"), label="VAD Threshold")
-                disable_dynamic_vad = gr.Checkbox(label="Disable Dynamic VAD Threshold",
+                vad_threshold = gr.Slider(0.0, 1.0, value=get_default("vad_threshold"), label=i18n.get("vad_threshold"))
+                disable_dynamic_vad = gr.Checkbox(label=i18n.get("disable_dynamic_vad"),
                                                   value=get_default("disable_dynamic_vad"))
 
             with gr.Group():
@@ -627,34 +668,37 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                     min_audio_len = gr.Slider(0.1,
                                               10.0,
                                               value=get_default("min_audio_len"),
-                                              label="Min Audio Length (s)")
+                                              label=i18n.get("min_audio_length"))
                     max_audio_len = gr.Slider(5.0,
                                               60.0,
                                               value=get_default("max_audio_len"),
-                                              label="Max Audio Length (s)")
+                                              label=i18n.get("max_audio_length"))
                 target_audio_len = gr.Slider(1.0,
                                              30.0,
                                              value=get_default("target_audio_len"),
-                                             label="Target Audio Length (s)")
+                                             label=i18n.get("target_audio_length"))
 
                 with gr.Row():
                     silence_threshold = gr.Slider(0.0,
                                                   3.0,
                                                   value=get_default("silence_threshold"),
-                                                  label="Continuous Silence Threshold (s)")
+                                                  label=i18n.get("continuous_silence_threshold"))
                     prefix_retention_len = gr.Slider(0.0,
                                                      3.0,
                                                      value=get_default("prefix_retention_len"),
-                                                     label="Prefix Retention Length (s)")
-                disable_dynamic_silence = gr.Checkbox(label="Disable Dynamic Silence Threshold",
+                                                     label=i18n.get("prefix_retention_length"))
+                disable_dynamic_silence = gr.Checkbox(label=i18n.get("disable_dynamic_silence"),
                                                       value=get_default("disable_dynamic_silence"))
 
-        with gr.Tab("Transcription"):
-            whisper_backend = gr.Radio([
-                "Whisper", "Faster-Whisper", "Simul-Streaming", "Faster-Whisper & Simul-Streaming",
-                "OpenAI Transcription API"
+        with gr.Tab(i18n.get("transcription")):
+            whisper_backend = gr.Radio(choices=[
+                ("Whisper", "Whisper"),
+                ("Faster-Whisper", "Faster-Whisper"),
+                ("Simul-Streaming", "Simul-Streaming"),
+                ("Faster-Whisper & Simul-Streaming", "Faster-Whisper & Simul-Streaming"),
+                (i18n.get("openai_transcription_api_option", "OpenAI Transcription API"), "OpenAI Transcription API")
             ],
-                                       label="Transcription Type",
+                                       label=i18n.get("transcription_type"),
                                        value=get_default("whisper_backend"))
 
             with gr.Row():
@@ -662,11 +706,11 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                     "tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large",
                     "large-v1", "large-v2", "large-v3", "large-v3-turbo", "custom"
                 ],
-                                         label="Model Size",
+                                         label=i18n.get("model_size"),
                                          value=get_default("model_size"),
                                          allow_custom_value=True)
                 openai_transcription_model = gr.Dropdown(["gpt-4o-mini-transcribe", "gpt-4o-transcribe", "whisper-1"],
-                                                         label="OpenAI Transcription Model",
+                                                         label=i18n.get("openai_transcription_model"),
                                                          value=get_default("openai_transcription_model"),
                                                          visible=False,
                                                          allow_custom_value=True)
@@ -680,104 +724,166 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                         "so", "sq", "sr", "su", "sv", "sw", "ta", "te", "tg", "th", "tk", "tl", "tr", "tt", "uk", "ur",
                         "uz", "vi", "yi", "yo", "zh"
                     ],
-                    label="Language",
+                    label=i18n.get("language"),
                     value=get_default("language"),
                     allow_custom_value=True,
                     info="[Available Languages](https://github.com/openai/whisper#available-models-and-languages)")
 
-            with gr.Accordion("Filters", open=False):
+            with gr.Accordion(i18n.get("filters"), open=False):
                 whisper_filters = gr.CheckboxGroup(["emoji_filter", "japanese_stream_filter"],
                                                    show_label=False,
                                                    value=get_default("whisper_filters"))
 
-            processing_proxy_trans = gr.Textbox(label="Processing Proxy", placeholder="http://127.0.0.1:7890")
+            processing_proxy_trans = gr.Textbox(label=i18n.get("processing_proxy"), placeholder=i18n.get("processing_proxy_ph"))
 
-        with gr.Tab("Translation"):
-            translation_provider = gr.Radio(["None", "GPT", "Gemini"],
-                                            label="LLM Provider",
+        with gr.Tab(i18n.get("translation")):
+            translation_provider = gr.Radio(choices=[
+                (i18n.get("none_option", "None"), "None"),
+                ("GPT", "GPT"),
+                ("Gemini", "Gemini")
+            ],
+                                            label=i18n.get("llm_provider"),
                                             value=get_default("translation_provider"))
 
             with gr.Group(visible=False) as common_translation_group:
-                translation_prompt = gr.Textbox(label="Translation Prompt",
+                translation_prompt = gr.Textbox(label=i18n.get("translation_prompt"),
                                                 value=get_default("translation_prompt"),
                                                 lines=2,
-                                                placeholder="Translate from {source language} to {target language}")
+                                                placeholder=i18n.get("translation_prompt_ph"))
 
                 with gr.Group(visible=False) as gpt_group:
                     gpt_model = gr.Dropdown([
                         "gpt-4o", "gpt-4o-mini", "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-5", "gpt-5-mini",
                         "gpt-5-nano"
                     ],
-                                            label="GPT Model",
+                                            label=i18n.get("gpt_model"),
                                             value=get_default("gpt_model"),
                                             allow_custom_value=True)
-                    gpt_base_url = gr.Textbox(label="GPT Base URL", placeholder="https://api.openai.com/v1")
+                    gpt_base_url = gr.Textbox(label=i18n.get("gpt_base_url"), placeholder=i18n.get("gpt_base_url_ph"))
 
                 with gr.Group(visible=False) as gemini_group:
                     gemini_model = gr.Dropdown([
                         "gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite",
                         "gemini-2.5-flash-preview-09-2025", "gemini-2.5-flash-lite-preview-09-2025"
                     ],
-                                               label="Gemini Model",
+                                               label=i18n.get("gemini_model"),
                                                value=get_default("gemini_model"),
                                                allow_custom_value=True)
-                    gemini_base_url = gr.Textbox(label="Gemini Base URL",
-                                                 placeholder="https://generativelanguage.googleapis.com")
+                    gemini_base_url = gr.Textbox(label=i18n.get("gemini_base_url"),
+                                                 placeholder=i18n.get("gemini_base_url_ph"))
 
                 with gr.Row():
                     history_size = gr.Slider(0,
                                              10,
                                              value=get_default("history_size"),
                                              step=1,
-                                             label="History Size (0 for parallel)")
-                    translation_timeout = gr.Number(value=get_default("translation_timeout"), label="Timeout (s)")
+                                             label=i18n.get("history_size"))
+                    translation_timeout = gr.Number(value=get_default("translation_timeout"), label=i18n.get("timeout"))
 
-                use_json_result = gr.Checkbox(label="Use JSON Result", value=get_default("use_json_result"))
-                retry_if_translation_fails = gr.Checkbox(label="Retry on Failure",
+                use_json_result = gr.Checkbox(label=i18n.get("use_json_result"), value=get_default("use_json_result"))
+                retry_if_translation_fails = gr.Checkbox(label=i18n.get("retry_on_failure"),
                                                          value=get_default("retry_if_translation_fails"))
 
                 with gr.Group():
-                    processing_proxy = gr.Textbox(label="Processing Proxy", placeholder="http://127.0.0.1:7890")
+                    processing_proxy = gr.Textbox(label=i18n.get("processing_proxy"), placeholder=i18n.get("processing_proxy_ph"))
 
-        with gr.Tab("Output"):
+        with gr.Tab(i18n.get("output")):
             with gr.Row():
-                show_timestamps = gr.Checkbox(label="Output Timestamps", value=get_default("show_timestamps"))
-                hide_transcription = gr.Checkbox(label="Hide Transcription Result",
+                show_timestamps = gr.Checkbox(label=i18n.get("output_timestamps"), value=get_default("show_timestamps"))
+                hide_transcription = gr.Checkbox(label=i18n.get("hide_transcription_result"),
                                                  value=get_default("hide_transcription"))
 
             with gr.Group():
-                output_file = gr.Textbox(label="Save to File Path",
-                                         placeholder="If set, will save the result text to this path.")
+                output_file = gr.Textbox(label=i18n.get("save_to_file_path"),
+                                         placeholder=i18n.get("save_to_file_path_ph"))
 
             with gr.Group():
-                discord_hook = gr.Textbox(label="Discord Webhook URL",
-                                          placeholder="If set, will send the result text to this Discord channel.")
+                discord_hook = gr.Textbox(label=i18n.get("discord_webhook_url"),
+                                          placeholder=i18n.get("discord_webhook_url_ph"))
 
             with gr.Group():
-                telegram_token = gr.Textbox(label="Telegram Token", placeholder="Token of Telegram bot.")
+                telegram_token = gr.Textbox(label=i18n.get("telegram_token"), placeholder=i18n.get("telegram_token_ph"))
                 telegram_chat_id = gr.Textbox(
-                    label="Telegram Chat ID",
-                    placeholder=
-                    "If set, will send the result text to this Telegram chat. Needs to be used with Telegram Token.")
+                    label=i18n.get("telegram_chat_id"),
+                    placeholder=i18n.get("telegram_chat_id_ph"))
 
             with gr.Group():
-                cqhttp_url = gr.Textbox(label="Cqhttp URL",
-                                        placeholder="If set, will send the result text to this Cqhttp server.")
+                cqhttp_url = gr.Textbox(label=i18n.get("cqhttp_url"),
+                                        placeholder=i18n.get("cqhttp_url_ph"))
                 cqhttp_token = gr.Textbox(
-                    label="Cqhttp Token",
-                    placeholder="Token of cqhttp, if it is not set on the server side, it does not need to fill in.")
+                    label=i18n.get("cqhttp_token"),
+                    placeholder=i18n.get("cqhttp_token_ph"))
 
             with gr.Group():
-                output_proxy = gr.Textbox(label="Output Proxy", placeholder="http://127.0.0.1:7890")
+                output_proxy = gr.Textbox(label=i18n.get("output_proxy"), placeholder=i18n.get("output_proxy_ph"))
 
     with gr.Row():
         with gr.Column(scale=1):
-            start_btn = gr.Button("Run", variant="primary")
-            stop_btn = gr.Button("Stop", variant="stop")
+            gr.Markdown("<br>")
+
+            start_btn = gr.Button(i18n.get("run"), variant="primary")
+            stop_btn = gr.Button(i18n.get("stop"), variant="stop")
+
+            gr.Markdown("<br>")
+            gr.Markdown("<br>")
+
+            with gr.Group():
+                preset_select = gr.Dropdown(choices=get_preset_list(), label=i18n.get("preset"))
+                with gr.Row():
+                    load_preset_btn = gr.Button(i18n.get("load"))
+                    delete_preset_btn = gr.Button(i18n.get("delete"), variant="stop")
+                
+                preset_name_input = gr.Textbox(placeholder=i18n.get("name"), show_label=False)
+                save_preset_btn = gr.Button(i18n.get("save"))
+
+            gr.Markdown("<br>")
+            gr.Markdown("<br>")
+
+            ui_language = gr.Dropdown(choices=["en", "zh", "ja"],
+                                      label=i18n.get("ui_language"),
+                                      value=get_default("ui_language", "en"),
+                                      info=i18n.get("restart_hint"),
+                                      interactive=True)
+            
+            current_ui_lang = get_default("ui_language", "en")
+            confirm_msg = i18n.get("restart_confirmation", "Changing language requires a restart. Do you want to close the program now?")
+            exit_msg = i18n.get("program_exited", "Program exited. You can close this tab now.")
+            
+            js_lang_change = f"""
+            (new_val) => {{
+                const current = "{current_ui_lang}";
+                if (new_val === current) return new_val;
+                
+                let ok = confirm("{confirm_msg}");
+                if (ok) {{
+                    setTimeout(() => {{
+                        window.close();
+                        document.body.innerHTML = "<div style='color:white; background:black; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; font-family:sans-serif;'><h1>" + "{exit_msg}" + "</h1></div>";
+                    }}, 200);
+                    return new_val;
+                }} else {{
+                    return current;
+                }}
+            }}
+            """
+
+            def on_language_change(lang):
+                if lang == current_ui_lang:
+                    return gr.update(value=current_ui_lang)
+                SYSTEM_SETTINGS["ui_language"] = lang
+                save_settings(SYSTEM_SETTINGS)
+                print(f"Language changed to {lang}. Exiting...")
+                def kill():
+                    time.sleep(0.5)
+                    os._exit(0)
+                threading.Thread(target=kill).start()
+                return gr.update(value=lang)
+            
+            ui_language.change(on_language_change, inputs=[ui_language], outputs=[ui_language], js=js_lang_change)
 
         with gr.Column(scale=4):
-            output_box = gr.Textbox(label="Output Log",
-                                    lines=30,
+            output_box = gr.Textbox(label=i18n.get("output_log"),
+                                    lines=40,
                                     autoscroll=False,
                                     interactive=False,
                                     elem_id="output_log")
@@ -845,15 +951,9 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                           scroll_to_output=False)
 
     # Preset Logic
-    all_inputs = [
-        input_type, input_url, device_index, device_rec_interval, input_file, input_format, input_cookies, input_proxy,
-        openai_key, google_key, overall_proxy, model_size, language, whisper_backend, openai_transcription_model,
-        vad_threshold, min_audio_len, max_audio_len, target_audio_len, silence_threshold, disable_dynamic_vad,
-        disable_dynamic_silence, prefix_retention_len, whisper_filters, translation_prompt, translation_provider,
-        gpt_model, gemini_model, history_size, translation_timeout, gpt_base_url, gemini_base_url, processing_proxy,
-        use_json_result, retry_if_translation_fails, show_timestamps, hide_transcription, output_file, output_proxy,
-        cqhttp_url, cqhttp_token, discord_hook, telegram_token, telegram_chat_id, processing_proxy_trans
-    ]
+    # Automatically define all_inputs based on INPUT_KEYS to ensure synchronization
+    # and avoiding manual list maintenance.
+    all_inputs = [globals()[key] for key in INPUT_KEYS]
 
     def on_save_preset(name, *args):
         if not name:
