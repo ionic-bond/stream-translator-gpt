@@ -13,7 +13,9 @@ import platformdirs
 import time
 import threading
 
+
 class I18n:
+
     def __init__(self, lang_code):
         self.lang_code = lang_code
         self.locale_data = {}
@@ -32,6 +34,7 @@ class I18n:
 
     def get(self, key, default=None):
         return self.locale_data.get(key, default or key)
+
 
 # Global state for process management
 process = None
@@ -609,16 +612,12 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
         with gr.Tab(i18n.get("overall")):
             with gr.Group():
                 with gr.Row():
-                    openai_key = gr.Textbox(
-                        label=i18n.get("openai_api_key"),
-                        type="text",
-                        placeholder=i18n.get("openai_api_key_ph")
-                    )
-                    google_key = gr.Textbox(
-                        label=i18n.get("google_api_key"),
-                        type="text",
-                        placeholder=i18n.get("google_api_key_ph")
-                    )
+                    openai_key = gr.Textbox(label=i18n.get("openai_api_key"),
+                                            type="text",
+                                            placeholder=i18n.get("openai_api_key_ph"))
+                    google_key = gr.Textbox(label=i18n.get("google_api_key"),
+                                            type="text",
+                                            placeholder=i18n.get("google_api_key_ph"))
 
                 show_api_keys = gr.Checkbox(label=i18n.get("show_api_keys"), value=True)
 
@@ -626,11 +625,9 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                 overall_proxy = gr.Textbox(label=i18n.get("overall_proxy"), placeholder=i18n.get("overall_proxy_ph"))
 
         with gr.Tab(i18n.get("input")):
-            input_type = gr.Radio(choices=[
-                (i18n.get("url_option", "URL"), "URL"),
-                (i18n.get("device_option", "Device"), "Device"),
-                (i18n.get("file_option", "File"), "File")
-            ],
+            input_type = gr.Radio(choices=[(i18n.get("url_option", "URL"), "URL"),
+                                           (i18n.get("device_option", "Device"), "Device"),
+                                           (i18n.get("file_option", "File"), "File")],
                                   label=i18n.get("input_source"),
                                   value=get_default("input_type"))
 
@@ -692,9 +689,7 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
 
         with gr.Tab(i18n.get("transcription")):
             whisper_backend = gr.Radio(choices=[
-                ("Whisper", "Whisper"),
-                ("Faster-Whisper", "Faster-Whisper"),
-                ("Simul-Streaming", "Simul-Streaming"),
+                ("Whisper", "Whisper"), ("Faster-Whisper", "Faster-Whisper"), ("Simul-Streaming", "Simul-Streaming"),
                 ("Faster-Whisper & Simul-Streaming", "Faster-Whisper & Simul-Streaming"),
                 (i18n.get("openai_transcription_api_option", "OpenAI Transcription API"), "OpenAI Transcription API")
             ],
@@ -734,14 +729,12 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                                                    show_label=False,
                                                    value=get_default("whisper_filters"))
 
-            processing_proxy_trans = gr.Textbox(label=i18n.get("processing_proxy"), placeholder=i18n.get("processing_proxy_ph"))
+            processing_proxy_trans = gr.Textbox(label=i18n.get("processing_proxy"),
+                                                placeholder=i18n.get("processing_proxy_ph"))
 
         with gr.Tab(i18n.get("translation")):
-            translation_provider = gr.Radio(choices=[
-                (i18n.get("none_option", "None"), "None"),
-                ("GPT", "GPT"),
-                ("Gemini", "Gemini")
-            ],
+            translation_provider = gr.Radio(choices=[(i18n.get("none_option", "None"), "None"), ("GPT", "GPT"),
+                                                     ("Gemini", "Gemini")],
                                             label=i18n.get("llm_provider"),
                                             value=get_default("translation_provider"))
 
@@ -785,7 +778,8 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                                                          value=get_default("retry_if_translation_fails"))
 
                 with gr.Group():
-                    processing_proxy = gr.Textbox(label=i18n.get("processing_proxy"), placeholder=i18n.get("processing_proxy_ph"))
+                    processing_proxy = gr.Textbox(label=i18n.get("processing_proxy"),
+                                                  placeholder=i18n.get("processing_proxy_ph"))
 
         with gr.Tab(i18n.get("output")):
             with gr.Row():
@@ -803,16 +797,12 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
 
             with gr.Group():
                 telegram_token = gr.Textbox(label=i18n.get("telegram_token"), placeholder=i18n.get("telegram_token_ph"))
-                telegram_chat_id = gr.Textbox(
-                    label=i18n.get("telegram_chat_id"),
-                    placeholder=i18n.get("telegram_chat_id_ph"))
+                telegram_chat_id = gr.Textbox(label=i18n.get("telegram_chat_id"),
+                                              placeholder=i18n.get("telegram_chat_id_ph"))
 
             with gr.Group():
-                cqhttp_url = gr.Textbox(label=i18n.get("cqhttp_url"),
-                                        placeholder=i18n.get("cqhttp_url_ph"))
-                cqhttp_token = gr.Textbox(
-                    label=i18n.get("cqhttp_token"),
-                    placeholder=i18n.get("cqhttp_token_ph"))
+                cqhttp_url = gr.Textbox(label=i18n.get("cqhttp_url"), placeholder=i18n.get("cqhttp_url_ph"))
+                cqhttp_token = gr.Textbox(label=i18n.get("cqhttp_token"), placeholder=i18n.get("cqhttp_token_ph"))
 
             with gr.Group():
                 output_proxy = gr.Textbox(label=i18n.get("output_proxy"), placeholder=i18n.get("output_proxy_ph"))
@@ -832,7 +822,7 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                 with gr.Row():
                     load_preset_btn = gr.Button(i18n.get("load"))
                     delete_preset_btn = gr.Button(i18n.get("delete"), variant="stop")
-                
+
                 preset_name_input = gr.Textbox(placeholder=i18n.get("name"), show_label=False)
                 save_preset_btn = gr.Button(i18n.get("save"))
 
@@ -844,11 +834,12 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                                       value=get_default("ui_language", "en"),
                                       info=i18n.get("restart_hint"),
                                       interactive=True)
-            
+
             current_ui_lang = get_default("ui_language", "en")
-            confirm_msg = i18n.get("restart_confirmation", "Changing language requires a restart. Do you want to close the program now?")
+            confirm_msg = i18n.get("restart_confirmation",
+                                   "Changing language requires a restart. Do you want to close the program now?")
             exit_msg = i18n.get("program_exited", "Program exited. You can close this tab now.")
-            
+
             js_lang_change = f"""
             (new_val) => {{
                 const current = "{current_ui_lang}";
@@ -873,12 +864,14 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                 SYSTEM_SETTINGS["ui_language"] = lang
                 save_settings(SYSTEM_SETTINGS)
                 print(f"Language changed to {lang}. Exiting...")
+
                 def kill():
                     time.sleep(0.5)
                     os._exit(0)
+
                 threading.Thread(target=kill).start()
                 return gr.update(value=lang)
-            
+
             ui_language.change(on_language_change, inputs=[ui_language], outputs=[ui_language], js=js_lang_change)
 
         with gr.Column(scale=4):
