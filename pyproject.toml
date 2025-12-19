@@ -67,4 +67,4 @@ where = ["."]
 
 [tool.setuptools.package-data]
 stream_translator_gpt = ["*.jit", "**/*.tiktoken", "**/*.npz"]
-webui = ["*.json"]
+webui = ["*.json", "locales/*.json"]
