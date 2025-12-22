@@ -390,7 +390,6 @@ class PaddedAlignAttWhisper:
         while not completed and current_tokens.shape[1] < self.max_text_len:  # bos is 3 tokens
             generation_progress_loop = []
 
-
             if new_segment:
                 tokens_for_logits = current_tokens
             else:
@@ -451,7 +450,7 @@ class PaddedAlignAttWhisper:
 
             # for each beam, the most attended frame is:
             most_attended_frames = torch.argmax(attn_of_alignment_heads[:, -1, :], dim=-1)
-            
+
             # [FIX] Clean up decoder attentions to prevent memory leak
             self.dec_attns = []
 
@@ -506,7 +505,6 @@ class PaddedAlignAttWhisper:
 
         self.logdir_save(input_segments, new_hypothesis, generation)
         return new_hypothesis, generation
-
 
     def logdir_save(self, input_segments, new_hypothesis, generation):
         """The audio and result from each iteration is saved to the logdir for debugging purposes"""
