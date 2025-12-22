@@ -298,6 +298,7 @@ class PaddedAlignAttWhisper:
 
     @torch.no_grad()
     def infer(self, is_last=False):
+
         new_segment = True
         if len(self.segments) == 0:
             self.logdir_save([], [], {})
@@ -328,6 +329,7 @@ class PaddedAlignAttWhisper:
             except TypeError:  # Normally the cpu condition should prevent having exceptions, but just in case:
                 encoder_feature = torch.as_tensor(np.array(encoder_feature_ctranslate),
                                                   device=self.device).to(model_dtype)
+
         else:
             # mel + padding to 30s
             mel_padded = log_mel_spectrogram(input_segments,
@@ -387,6 +389,7 @@ class PaddedAlignAttWhisper:
         }
         while not completed and current_tokens.shape[1] < self.max_text_len:  # bos is 3 tokens
             generation_progress_loop = []
+
 
             if new_segment:
                 tokens_for_logits = current_tokens
@@ -448,6 +451,10 @@ class PaddedAlignAttWhisper:
 
             # for each beam, the most attended frame is:
             most_attended_frames = torch.argmax(attn_of_alignment_heads[:, -1, :], dim=-1)
+            
+            # [FIX] Clean up decoder attentions to prevent memory leak
+            self.dec_attns = []
+
             generation_progress_loop.append(("most_attended_frames", most_attended_frames.clone().tolist()))
 
             most_attended_frame = most_attended_frames[0].item()
@@ -499,6 +506,7 @@ class PaddedAlignAttWhisper:
 
         self.logdir_save(input_segments, new_hypothesis, generation)
         return new_hypothesis, generation
+
 
     def logdir_save(self, input_segments, new_hypothesis, generation):
         """The audio and result from each iteration is saved to the logdir for debugging purposes"""
