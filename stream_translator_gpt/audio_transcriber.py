@@ -23,11 +23,11 @@ def _filter_text(text: str, whisper_filters: str):
 class AudioTranscriber(LoopWorkerBase):
 
     @abstractmethod
-    def transcribe(self, audio: np.array, **transcribe_options) -> str:
+    def transcribe(self, audio: np.array, initial_prompt: str = None) -> str:
         pass
 
     def loop(self, input_queue: queue.SimpleQueue[TranslationTask], output_queue: queue.SimpleQueue[TranslationTask],
-             whisper_filters: str, print_result: bool, output_timestamps: bool, disable_transcription_context: bool = False, **transcribe_options):
+             whisper_filters: str, print_result: bool, output_timestamps: bool, disable_transcription_context: bool = False):
         previous_text = ""
         while True:
             task = input_queue.get()
@@ -36,7 +36,7 @@ class AudioTranscriber(LoopWorkerBase):
                 break
             
             prompt = previous_text if not disable_transcription_context else None
-            task.transcript = _filter_text(self.transcribe(task.audio, initial_prompt=prompt, **transcribe_options), whisper_filters).strip()
+            task.transcript = _filter_text(self.transcribe(task.audio, initial_prompt=prompt), whisper_filters).strip()
             if not task.transcript:
                 if print_result:
                     print('skip...')
@@ -60,8 +60,8 @@ class OpenaiWhisper(AudioTranscriber):
         self.model = whisper.load_model(model)
         self.language = language
 
-    def transcribe(self, audio: np.array, **transcribe_options) -> str:
-        result = self.model.transcribe(audio, without_timestamps=True, language=self.language, **transcribe_options)
+    def transcribe(self, audio: np.array, initial_prompt: str = None) -> str:
+        result = self.model.transcribe(audio, without_timestamps=True, language=self.language, initial_prompt=initial_prompt)
         return result.get('text')
 
 
@@ -74,8 +74,8 @@ class FasterWhisper(AudioTranscriber):
         self.model = WhisperModel(model, device='auto', compute_type='auto')
         self.language = language
 
-    def transcribe(self, audio: np.array, **transcribe_options) -> str:
-        segments, info = self.model.transcribe(audio, language=self.language, **transcribe_options)
+    def transcribe(self, audio: np.array, initial_prompt: str = None) -> str:
+        segments, info = self.model.transcribe(audio, language=self.language, initial_prompt=initial_prompt)
         transcript = ''
         for segment in segments:
             transcript += segment.text
@@ -115,10 +115,9 @@ class SimulStreaming(AudioTranscriber):
         asr = SimulWhisperASR(**simulstreaming_params)
         self.asr_online = SimulWhisperOnline(asr)
 
-    def transcribe(self, audio: np.array, **transcribe_options) -> str:
-        init_prompt = transcribe_options.get('initial_prompt')
-        if init_prompt:
-            self.asr_online.model.cfg.init_prompt = init_prompt
+    def transcribe(self, audio: np.array, initial_prompt: str = None) -> str:
+        if initial_prompt:
+            self.asr_online.model.cfg.init_prompt = initial_prompt
         self.asr_online.init()
         self.asr_online.insert_audio_chunk(audio)
         result = self.asr_online.finish()
@@ -134,7 +133,7 @@ class RemoteOpenaiTranscriber(AudioTranscriber):
         self.language = language
         self.proxy = proxy
 
-    def transcribe(self, audio: np.array, **transcribe_options) -> str:
+    def transcribe(self, audio: np.array, initial_prompt: str = None) -> str:
         from openai import OpenAI
         import httpx
 
@@ -149,9 +148,8 @@ class RemoteOpenaiTranscriber(AudioTranscriber):
             'file': audio_buffer,
             'language': self.language,
         }
-        prompt = transcribe_options.get('initial_prompt')
-        if prompt:
-            call_args['prompt'] = prompt
+        if initial_prompt:
+            call_args['prompt'] = initial_prompt
             
         ApiKeyPool.use_openai_api()
         client = OpenAI(http_client=httpx.Client(proxy=self.proxy))

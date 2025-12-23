@@ -25,7 +25,7 @@ def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_prox
          translation_history_size, gpt_model, gemini_model, translation_timeout, gpt_base_url, gemini_base_url,
          processing_proxy, use_json_result, retry_if_translation_fails, output_timestamps, hide_transcribe_result,
          output_proxy, output_file_path, cqhttp_url, cqhttp_token, discord_webhook_url, telegram_token,
-         telegram_chat_id, **transcribe_options):
+         telegram_chat_id):
     if gpt_base_url:
         os.environ['OPENAI_BASE_URL'] = gpt_base_url
 
@@ -97,8 +97,7 @@ def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_prox
                             input_queue=slicer_to_transcriber_queue,
                             output_queue=transcriber_to_translator_queue,
                             whisper_filters=whisper_filters,
-                            disable_transcription_context=disable_transcription_context,
-                            **transcribe_options)
+                            disable_transcription_context=disable_transcription_context)
     elif use_faster_whisper:
         start_daemon_thread(FasterWhisper.work,
                             model=model,
@@ -108,8 +107,7 @@ def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_prox
                             input_queue=slicer_to_transcriber_queue,
                             output_queue=transcriber_to_translator_queue,
                             whisper_filters=whisper_filters,
-                            disable_transcription_context=disable_transcription_context,
-                            **transcribe_options)
+                            disable_transcription_context=disable_transcription_context)
     elif use_openai_transcription_api:
         start_daemon_thread(RemoteOpenaiTranscriber.work,
                             model=openai_transcription_model,
@@ -120,8 +118,7 @@ def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_prox
                             input_queue=slicer_to_transcriber_queue,
                             output_queue=transcriber_to_translator_queue,
                             whisper_filters=whisper_filters,
-                            disable_transcription_context=disable_transcription_context,
-                            **transcribe_options)
+                            disable_transcription_context=disable_transcription_context)
     else:
         start_daemon_thread(OpenaiWhisper.work,
                             model=model,
@@ -131,8 +128,7 @@ def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_prox
                             input_queue=slicer_to_transcriber_queue,
                             output_queue=transcriber_to_translator_queue,
                             whisper_filters=whisper_filters,
-                            disable_transcription_context=disable_transcription_context,
-                            **transcribe_options)
+                            disable_transcription_context=disable_transcription_context)
     start_daemon_thread(
         AudioSlicer.work,
         min_audio_length=min_audio_length,
@@ -277,14 +273,7 @@ def cli():
         help=
         'Language spoken in the stream. Default option is to auto detect the spoken language. See https://github.com/openai/whisper#available-models-and-languages for available languages.'
     )
-    parser.add_argument('--beam_size',
-                        type=int,
-                        default=5,
-                        help='Number of beams in beam search. Set to 0 to use greedy algorithm instead.')
-    parser.add_argument('--best_of',
-                        type=int,
-                        default=5,
-                        help='Number of candidates when sampling with non-zero temperature.')
+
     parser.add_argument(
         '--use_faster_whisper',
         action='store_true',
@@ -459,9 +448,10 @@ def cli():
     if args['language'] == 'auto':
         args['language'] = None
 
-    if args['beam_size'] == 0:
-        args['beam_size'] = None
 
+
+    args.pop('list_format', None)
+    args.pop('list_devices', None)
     main(url, **args)
 
 
