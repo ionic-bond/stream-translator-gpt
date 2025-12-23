@@ -58,7 +58,7 @@ INPUT_KEYS = [
     "disable_transcription_context", "translation_prompt", "translation_provider", "gpt_model", "gemini_model", "history_size", "translation_timeout",
     "gpt_base_url", "gemini_base_url", "processing_proxy", "use_json_result", "retry_if_translation_fails",
     "show_timestamps", "hide_transcription", "output_file", "output_proxy", "cqhttp_url", "cqhttp_token",
-    "discord_hook", "telegram_token", "telegram_chat_id", "processing_proxy_trans"
+    "discord_hook", "telegram_token", "telegram_chat_id", "processing_proxy_trans", "gpt_base_url_trans"
 ]
 
 
@@ -703,18 +703,22 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                                        value=get_default("whisper_backend"))
 
             with gr.Row():
-                model_size = gr.Dropdown([
-                    "tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large",
-                    "large-v1", "large-v2", "large-v3", "large-v3-turbo", "custom"
-                ],
-                                         label=i18n.get("model_size"),
-                                         value=get_default("model_size"),
+                with gr.Column():
+                    model_size = gr.Dropdown([
+                        "tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large",
+                        "large-v1", "large-v2", "large-v3", "large-v3-turbo", "custom"
+                    ],
+                                             label=i18n.get("model_size"),
+                                             value=get_default("model_size"),
                                          allow_custom_value=True)
-                openai_transcription_model = gr.Dropdown(["gpt-4o-mini-transcribe", "gpt-4o-transcribe", "whisper-1"],
-                                                         label=i18n.get("openai_transcription_model"),
-                                                         value=get_default("openai_transcription_model"),
-                                                         visible=False,
-                                                         allow_custom_value=True)
+                    openai_transcription_model = gr.Dropdown(["gpt-4o-mini-transcribe", "gpt-4o-transcribe", "whisper-1"],
+                                                             label=i18n.get("openai_transcription_model"),
+                                                             value=get_default("openai_transcription_model"),
+                                                             visible=False,
+                                                             allow_custom_value=True)
+                    gpt_base_url_trans = gr.Textbox(label=i18n.get("gpt_base_url"),
+                                                placeholder=i18n.get("gpt_base_url_ph"),
+                                                visible=False)
                 language = gr.Dropdown(
                     [
                         "auto", "af", "am", "ar", "as", "az", "ba", "be", "bg", "bn", "bo", "br", "bs", "ca", "cs",
@@ -905,10 +909,11 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
         openai_visible = (choice == "OpenAI Transcription API")
         return {
             openai_transcription_model: gr.update(visible=openai_visible),
+            gpt_base_url_trans: gr.update(visible=openai_visible),
             model_size: gr.update(visible=not openai_visible)
         }
 
-    whisper_backend.change(update_backend_visibility, whisper_backend, [openai_transcription_model, model_size])
+    whisper_backend.change(update_backend_visibility, whisper_backend, [openai_transcription_model, gpt_base_url_trans, model_size])
 
     # Translation Visibility
     # Translation Visibility
@@ -1024,6 +1029,10 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
     # Sync Processing Proxy
     processing_proxy_trans.change(fn=None, inputs=processing_proxy_trans, outputs=processing_proxy, js="(x) => x")
     processing_proxy.change(fn=None, inputs=processing_proxy, outputs=processing_proxy_trans, js="(x) => x")
+
+    # Sync OpenAI Base URL
+    gpt_base_url_trans.change(fn=None, inputs=gpt_base_url_trans, outputs=gpt_base_url, js="(x) => x")
+    gpt_base_url.change(fn=None, inputs=gpt_base_url, outputs=gpt_base_url_trans, js="(x) => x")
 
     # LocalStorage Persistence
     # 1. Save on Change
