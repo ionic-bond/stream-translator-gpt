@@ -52,13 +52,13 @@ os.makedirs(USER_PRESETS_DIR, exist_ok=True)
 
 INPUT_KEYS = [
     "input_type", "input_url", "device_index", "device_rec_interval", "input_file", "input_format", "input_cookies",
-    "input_proxy", "openai_key", "google_key", "overall_proxy", "model_size", "language", "whisper_backend",
-    "openai_transcription_model", "vad_threshold", "min_audio_len", "max_audio_len", "target_audio_len",
-    "silence_threshold", "disable_dynamic_vad", "disable_dynamic_silence", "prefix_retention_len", "whisper_filters",
-    "disable_transcription_context", "translation_prompt", "translation_provider", "gpt_model", "gemini_model", "history_size", "translation_timeout",
-    "gpt_base_url", "gemini_base_url", "processing_proxy", "use_json_result", "retry_if_translation_fails",
-    "show_timestamps", "hide_transcription", "output_file", "output_proxy", "cqhttp_url", "cqhttp_token",
-    "discord_hook", "telegram_token", "telegram_chat_id", "processing_proxy_trans", "gpt_base_url_trans"
+    "input_proxy", "openai_key", "google_key", "gpt_base_url", "gemini_base_url", "overall_proxy", "model_size",
+    "language", "whisper_backend", "openai_transcription_model", "vad_threshold", "min_audio_len", "max_audio_len",
+    "target_audio_len", "silence_threshold", "disable_dynamic_vad", "disable_dynamic_silence", "prefix_retention_len",
+    "whisper_filters", "disable_transcription_context", "translation_prompt", "translation_provider", "gpt_model",
+    "gemini_model", "history_size", "translation_timeout", "processing_proxy", "use_json_result",
+    "retry_if_translation_fails", "show_timestamps", "hide_transcription", "output_file", "output_proxy",
+    "cqhttp_url", "cqhttp_token", "discord_hook", "telegram_token", "telegram_chat_id", "processing_proxy_trans"
 ]
 
 
@@ -267,7 +267,19 @@ def build_translator_command(
 
         cmd.extend([flag, str_val])
 
-    # --- Input Args ---
+    # --- Overall (Keys & Proxy) ---
+    if openai_key:
+        cmd.extend(["--openai_api_key", openai_key])
+    if google_key:
+        cmd.extend(["--google_api_key", google_key])
+    if gpt_base_url and (whisper_backend == "OpenAI Transcription API" or translation_provider == "GPT"):
+        cmd.extend(["--gpt_base_url", gpt_base_url])
+    if gemini_base_url and translation_provider == "Gemini":
+        cmd.extend(["--gemini_base_url", gemini_base_url])
+    if overall_proxy:
+        cmd.extend(["--proxy", overall_proxy])
+
+    # --- Input ---
     target_url = ""
     if input_type == "URL":
         if not url:
@@ -293,19 +305,20 @@ def build_translator_command(
         if input_proxy:
             cmd.extend(["--input_proxy", input_proxy])
 
-    # --- Keys & Overall ---
-    if openai_key:
-        cmd.extend(["--openai_api_key", openai_key])
-    if google_key:
-        cmd.extend(["--google_api_key", google_key])
-    if overall_proxy:
-        cmd.extend(["--proxy", overall_proxy])
+    # --- Audio Slicing ---
+    add_arg("--vad_threshold", vad_threshold, "vad_threshold")
+    if disable_dynamic_vad:
+        cmd.append("--disable_dynamic_vad_threshold")
+
+    add_arg("--min_audio_length", min_audio_len, "min_audio_len")
+    add_arg("--max_audio_length", max_audio_len, "max_audio_len")
+    add_arg("--target_audio_length", target_audio_len, "target_audio_len")
+    add_arg("--continuous_no_speech_threshold", silence_threshold, "silence_threshold")
+    add_arg("--prefix_retention_length", prefix_retention_len, "prefix_retention_len")
+    if disable_dynamic_silence:
+        cmd.append("--disable_dynamic_no_speech_threshold")
 
     # --- Transcription ---
-    add_arg("--model", model_size, "model_size")
-    if language:
-        add_arg("--language", language, "language")
-
     if whisper_backend == "Faster-Whisper":
         cmd.append("--use_faster_whisper")
     elif whisper_backend == "Simul-Streaming":
@@ -316,60 +329,37 @@ def build_translator_command(
     elif whisper_backend == "OpenAI Transcription API":
         cmd.append("--use_openai_transcription_api")
         if openai_transcription_model:
-            # We don't strictly check default here as it depends on the flag being active,
-            # but usually okay to just pass if user selected it.
-            # CLI default is gpt-4o-mini-transcribe, let's optimize it too.
             if openai_transcription_model != "gpt-4o-mini-transcribe":
                 cmd.extend(["--openai_transcription_model", openai_transcription_model])
 
+    add_arg("--model", model_size, "model_size")
+    add_arg("--language", language, "language")
+    if disable_transcription_context:
+        cmd.append("--disable_transcription_context")
+
     if whisper_filters:
-        # Join list of filters into a comma-separated string
         filter_str = ",".join(whisper_filters)
         if filter_str:
             add_arg("--whisper_filters", filter_str, "whisper_filters")
 
-    if disable_transcription_context:
-        cmd.append("--disable_transcription_context")
-
-    add_arg("--vad_threshold", vad_threshold, "vad_threshold")
-    add_arg("--min_audio_length", min_audio_len, "min_audio_len")
-    add_arg("--max_audio_length", max_audio_len, "max_audio_len")
-    add_arg("--target_audio_length", target_audio_len, "target_audio_len")
-    add_arg("--continuous_no_speech_threshold", silence_threshold, "silence_threshold")
-    add_arg("--prefix_retention_length", prefix_retention_len, "prefix_retention_len")
-
-    if disable_dynamic_vad:
-        cmd.append("--disable_dynamic_vad_threshold")
-    if disable_dynamic_silence:
-        cmd.append("--disable_dynamic_no_speech_threshold")
-
     # --- Translation ---
     if translation_provider != "None":
-        # Always pass translation prompt if provider is active?
-        # CLI default is None, so we MUST pass it if used.
         cmd.extend(["--translation_prompt", translation_prompt])
+
+        if translation_provider == "GPT":
+            add_arg("--gpt_model", gpt_model, "gpt_model")
+        elif translation_provider == "Gemini":
+            add_arg("--gemini_model", gemini_model, "gemini_model")
 
         add_arg("--translation_history_size", int(history_size), "history_size")
         add_arg("--translation_timeout", int(translation_timeout), "translation_timeout")
 
-        # We pass both models, the script logic decides based on key/usage,
-        # but here we can't easily filter unless we strictly check keys.
-        # Just passing the selected values is safer.
-        add_arg("--gpt_model", gpt_model, "gpt_model")
-        add_arg("--gemini_model", gemini_model, "gemini_model")
-
-        if processing_proxy:
-            cmd.extend(["--processing_proxy", processing_proxy])
         if use_json_result:
             cmd.append("--use_json_result")
         if retry_if_translation_fails:
             cmd.append("--retry_if_translation_fails")
-
-    # gpt_base_url is used by both OpenAI Transcription API and GPT Translation
-    if gpt_base_url and (whisper_backend == "OpenAI Transcription API" or translation_provider == "GPT"):
-        cmd.extend(["--gpt_base_url", gpt_base_url])
-    if gemini_base_url and translation_provider == "Gemini":
-        cmd.extend(["--gemini_base_url", gemini_base_url])
+        if processing_proxy:
+            cmd.extend(["--processing_proxy", processing_proxy])
 
     # --- Output ---
     if show_timestamps:
@@ -378,18 +368,17 @@ def build_translator_command(
         cmd.append("--hide_transcribe_result")
     if output_file:
         cmd.extend(["--output_file_path", output_file])
-
     if output_proxy:
         cmd.extend(["--output_proxy", output_proxy])
-    if cqhttp_url:
-        cmd.extend(["--cqhttp_url", cqhttp_url])
-        if cqhttp_token:
-            cmd.extend(["--cqhttp_token", cqhttp_token])
     if discord_hook:
         cmd.extend(["--discord_webhook_url", discord_hook])
     if telegram_token and telegram_chat_id:
         cmd.extend(["--telegram_token", telegram_token])
         cmd.extend(["--telegram_chat_id", str(telegram_chat_id)])
+    if cqhttp_url:
+        cmd.extend(["--cqhttp_url", cqhttp_url])
+        if cqhttp_token:
+            cmd.extend(["--cqhttp_token", cqhttp_token])
 
     return cmd, None
 
@@ -626,11 +615,16 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                     google_key = gr.Textbox(label=i18n.get("google_api_key"),
                                             type="text",
                                             placeholder=i18n.get("google_api_key_ph"))
-
                 show_api_keys = gr.Checkbox(label=i18n.get("show_api_keys"), value=True)
+                with gr.Row():
+                    gpt_base_url = gr.Textbox(label=i18n.get("gpt_base_url"),
+                                              placeholder=i18n.get("gpt_base_url_ph"))
+                    gemini_base_url = gr.Textbox(label=i18n.get("gemini_base_url"),
+                                                 placeholder=i18n.get("gemini_base_url_ph"))
 
             with gr.Group():
-                overall_proxy = gr.Textbox(label=i18n.get("overall_proxy"), placeholder=i18n.get("overall_proxy_ph"))
+                overall_proxy = gr.Textbox(label=i18n.get("overall_proxy"),
+                                           placeholder=i18n.get("overall_proxy_ph"))
 
         with gr.Tab(i18n.get("input")):
             input_type = gr.Radio(choices=[(i18n.get("url_option", "URL"), "URL"),
@@ -705,22 +699,18 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                                        value=get_default("whisper_backend"))
 
             with gr.Row():
-                with gr.Column():
-                    model_size = gr.Dropdown([
-                        "tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large",
-                        "large-v1", "large-v2", "large-v3", "large-v3-turbo", "custom"
-                    ],
-                                             label=i18n.get("model_size"),
-                                             value=get_default("model_size"),
-                                         allow_custom_value=True)
-                    openai_transcription_model = gr.Dropdown(["gpt-4o-mini-transcribe", "gpt-4o-transcribe", "whisper-1"],
-                                                             label=i18n.get("openai_transcription_model"),
-                                                             value=get_default("openai_transcription_model"),
-                                                             visible=False,
-                                                             allow_custom_value=True)
-                    gpt_base_url_trans = gr.Textbox(label=i18n.get("gpt_base_url"),
-                                                placeholder=i18n.get("gpt_base_url_ph"),
-                                                visible=False)
+                model_size = gr.Dropdown([
+                    "tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large",
+                    "large-v1", "large-v2", "large-v3", "large-v3-turbo", "custom"
+                ],
+                                         label=i18n.get("model_size"),
+                                         value=get_default("model_size"),
+                                     allow_custom_value=True)
+                openai_transcription_model = gr.Dropdown(["gpt-4o-mini-transcribe", "gpt-4o-transcribe", "whisper-1"],
+                                                         label=i18n.get("openai_transcription_model"),
+                                                         value=get_default("openai_transcription_model"),
+                                                         visible=False,
+                                                         allow_custom_value=True)
                 language = gr.Dropdown(
                     [
                         "auto", "af", "am", "ar", "as", "az", "ba", "be", "bg", "bn", "bo", "br", "bs", "ca", "cs",
@@ -765,7 +755,6 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                                             label=i18n.get("gpt_model"),
                                             value=get_default("gpt_model"),
                                             allow_custom_value=True)
-                    gpt_base_url = gr.Textbox(label=i18n.get("gpt_base_url"), placeholder=i18n.get("gpt_base_url_ph"))
 
                 with gr.Group(visible=False) as gemini_group:
                     gemini_model = gr.Dropdown([
@@ -775,8 +764,6 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                                                label=i18n.get("gemini_model"),
                                                value=get_default("gemini_model"),
                                                allow_custom_value=True)
-                    gemini_base_url = gr.Textbox(label=i18n.get("gemini_base_url"),
-                                                 placeholder=i18n.get("gemini_base_url_ph"))
 
                 with gr.Row():
                     history_size = gr.Slider(0,
@@ -911,13 +898,11 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
         openai_visible = (choice == "OpenAI Transcription API")
         return {
             openai_transcription_model: gr.update(visible=openai_visible),
-            gpt_base_url_trans: gr.update(visible=openai_visible),
             model_size: gr.update(visible=not openai_visible)
         }
 
-    whisper_backend.change(update_backend_visibility, whisper_backend, [openai_transcription_model, gpt_base_url_trans, model_size])
+    whisper_backend.change(update_backend_visibility, whisper_backend, [openai_transcription_model, model_size])
 
-    # Translation Visibility
     # Translation Visibility
     def update_translation_visibility(choice):
         return {
@@ -1031,10 +1016,6 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
     # Sync Processing Proxy
     processing_proxy_trans.change(fn=None, inputs=processing_proxy_trans, outputs=processing_proxy, js="(x) => x")
     processing_proxy.change(fn=None, inputs=processing_proxy, outputs=processing_proxy_trans, js="(x) => x")
-
-    # Sync OpenAI Base URL
-    gpt_base_url_trans.change(fn=None, inputs=gpt_base_url_trans, outputs=gpt_base_url, js="(x) => x")
-    gpt_base_url.change(fn=None, inputs=gpt_base_url, outputs=gpt_base_url_trans, js="(x) => x")
 
     # LocalStorage Persistence
     # 1. Save on Change
