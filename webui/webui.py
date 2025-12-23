@@ -55,7 +55,7 @@ INPUT_KEYS = [
     "input_proxy", "openai_key", "google_key", "overall_proxy", "model_size", "language", "whisper_backend",
     "openai_transcription_model", "vad_threshold", "min_audio_len", "max_audio_len", "target_audio_len",
     "silence_threshold", "disable_dynamic_vad", "disable_dynamic_silence", "prefix_retention_len", "whisper_filters",
-    "translation_prompt", "translation_provider", "gpt_model", "gemini_model", "history_size", "translation_timeout",
+    "disable_transcription_context", "translation_prompt", "translation_provider", "gpt_model", "gemini_model", "history_size", "translation_timeout",
     "gpt_base_url", "gemini_base_url", "processing_proxy", "use_json_result", "retry_if_translation_fails",
     "show_timestamps", "hide_transcription", "output_file", "output_proxy", "cqhttp_url", "cqhttp_token",
     "discord_hook", "telegram_token", "telegram_chat_id", "processing_proxy_trans"
@@ -214,6 +214,7 @@ def build_translator_command(
         disable_dynamic_silence,
         prefix_retention_len,
         whisper_filters,
+        disable_transcription_context,
         translation_prompt,
         translation_provider,
         gpt_model,
@@ -327,6 +328,9 @@ def build_translator_command(
         if filter_str:
             add_arg("--whisper_filters", filter_str, "whisper_filters")
 
+    if disable_transcription_context:
+        cmd.append("--disable_transcription_context")
+
     add_arg("--vad_threshold", vad_threshold, "vad_threshold")
     add_arg("--min_audio_length", min_audio_len, "min_audio_len")
     add_arg("--max_audio_length", max_audio_len, "max_audio_len")
@@ -432,6 +436,7 @@ def run_translator(
         disable_dynamic_silence,
         prefix_retention_len,
         whisper_filters,
+        disable_transcription_context,
         # Translation
         translation_prompt,
         translation_provider,
@@ -502,6 +507,7 @@ def run_translator(
                                           disable_dynamic_silence=disable_dynamic_silence,
                                           prefix_retention_len=prefix_retention_len,
                                           whisper_filters=whisper_filters,
+                                          disable_transcription_context=disable_transcription_context,
                                           translation_prompt=translation_prompt,
                                           translation_provider=translation_provider,
                                           gpt_model=gpt_model,
@@ -723,6 +729,7 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                     value=get_default("language"),
                     allow_custom_value=True,
                     info="[Available Languages](https://github.com/openai/whisper#available-models-and-languages)")
+            disable_transcription_context = gr.Checkbox(label=i18n.get("disable_transcription_context"), value=get_default("disable_transcription_context"))
 
             with gr.Accordion(i18n.get("filters"), open=False):
                 whisper_filters = gr.CheckboxGroup(["emoji_filter", "japanese_stream_filter"],
@@ -922,7 +929,7 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                         input_cookies, input_proxy, openai_key, google_key, overall_proxy, model_size, language,
                         whisper_backend, openai_transcription_model, vad_threshold, min_audio_len, max_audio_len,
                         target_audio_len, silence_threshold, disable_dynamic_vad, disable_dynamic_silence,
-                        prefix_retention_len, whisper_filters, translation_prompt, translation_provider, gpt_model,
+                        prefix_retention_len, whisper_filters, disable_transcription_context, translation_prompt, translation_provider, gpt_model,
                         gemini_model, history_size, translation_timeout, gpt_base_url, gemini_base_url,
                         processing_proxy, use_json_result, retry_if_translation_fails, show_timestamps,
                         hide_transcription, output_file, output_proxy, cqhttp_url, cqhttp_token, discord_hook,

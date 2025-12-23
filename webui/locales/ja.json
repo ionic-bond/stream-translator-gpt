@@ -41,6 +41,7 @@
     "openai_transcription_model": "OpenAI 文字起こしモデル",
     "language": "言語",
     "filters": "フィルター",
+    "disable_transcription_context": "コンテキスト伝播を無効化 (前の文を参照しない)",
     "processing_proxy": "処理プロキシ",
     "processing_proxy_ph": "http://127.0.0.1:7890",
     "translation": "翻訳",

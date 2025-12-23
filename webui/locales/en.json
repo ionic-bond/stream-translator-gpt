@@ -41,6 +41,7 @@
     "openai_transcription_model": "OpenAI Transcription Model",
     "language": "Language",
     "filters": "Filters",
+    "disable_transcription_context": "Disable Context Propagation",
     "processing_proxy": "Processing Proxy",
     "processing_proxy_ph": "http://127.0.0.1:7890",
     "translation": "Translation",

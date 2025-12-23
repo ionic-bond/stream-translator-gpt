@@ -27,17 +27,21 @@ class AudioTranscriber(LoopWorkerBase):
         pass
 
     def loop(self, input_queue: queue.SimpleQueue[TranslationTask], output_queue: queue.SimpleQueue[TranslationTask],
-             whisper_filters: str, print_result: bool, output_timestamps: bool, **transcribe_options):
+             whisper_filters: str, print_result: bool, output_timestamps: bool, disable_transcription_context: bool = False, **transcribe_options):
+        previous_text = ""
         while True:
             task = input_queue.get()
             if task is None:
                 output_queue.put(None)
                 break
-            task.transcript = _filter_text(self.transcribe(task.audio, **transcribe_options), whisper_filters).strip()
+            
+            prompt = previous_text if not disable_transcription_context else None
+            task.transcript = _filter_text(self.transcribe(task.audio, initial_prompt=prompt, **transcribe_options), whisper_filters).strip()
             if not task.transcript:
                 if print_result:
                     print('skip...')
                 continue
+            previous_text = task.transcript
             if print_result:
                 if output_timestamps:
                     timestamp_text = f'{sec2str(task.time_range[0])} --> {sec2str(task.time_range[1])}'
@@ -112,6 +116,9 @@ class SimulStreaming(AudioTranscriber):
         self.asr_online = SimulWhisperOnline(asr)
 
     def transcribe(self, audio: np.array, **transcribe_options) -> str:
+        init_prompt = transcribe_options.get('initial_prompt')
+        if init_prompt:
+            self.asr_online.model.cfg.init_prompt = init_prompt
         self.asr_online.init()
         self.asr_online.insert_audio_chunk(audio)
         result = self.asr_online.finish()
@@ -137,7 +144,16 @@ class RemoteOpenaiTranscriber(AudioTranscriber):
         write_audio(audio_buffer, SAMPLE_RATE, audio)
         audio_buffer.seek(0)
 
+        call_args = {
+            'model': self.model,
+            'file': audio_buffer,
+            'language': self.language,
+        }
+        prompt = transcribe_options.get('initial_prompt')
+        if prompt:
+            call_args['prompt'] = prompt
+            
         ApiKeyPool.use_openai_api()
         client = OpenAI(http_client=httpx.Client(proxy=self.proxy))
-        result = client.audio.transcriptions.create(model=self.model, file=audio_buffer, language=self.language).text
+        result = client.audio.transcriptions.create(**call_args).text
         return result
