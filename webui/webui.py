@@ -358,16 +358,18 @@ def build_translator_command(
         add_arg("--gpt_model", gpt_model, "gpt_model")
         add_arg("--gemini_model", gemini_model, "gemini_model")
 
-        if gpt_base_url:
-            cmd.extend(["--gpt_base_url", gpt_base_url])
-        if gemini_base_url:
-            cmd.extend(["--gemini_base_url", gemini_base_url])
         if processing_proxy:
             cmd.extend(["--processing_proxy", processing_proxy])
         if use_json_result:
             cmd.append("--use_json_result")
         if retry_if_translation_fails:
             cmd.append("--retry_if_translation_fails")
+
+    # gpt_base_url is used by both OpenAI Transcription API and GPT Translation
+    if gpt_base_url and (whisper_backend == "OpenAI Transcription API" or translation_provider == "GPT"):
+        cmd.extend(["--gpt_base_url", gpt_base_url])
+    if gemini_base_url and translation_provider == "Gemini":
+        cmd.extend(["--gemini_base_url", gemini_base_url])
 
     # --- Output ---
     if show_timestamps:
