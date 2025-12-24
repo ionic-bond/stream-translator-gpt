@@ -373,7 +373,7 @@ def build_translator_command(
         whisper_filters.append("japanese_stream_filter")
     
     if whisper_filters:
-        add_arg("--whisper_filters", ",".join(whisper_filters), None)
+        add_arg("--whisper_filters", ",".join(whisper_filters), "whisper_filters")
 
     # --- Translation ---
     if translation_provider != "None":

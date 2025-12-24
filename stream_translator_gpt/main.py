@@ -298,7 +298,7 @@ def cli():
         '--whisper_filters',
         type=str,
         default='emoji_filter,repetition_filter',
-        help='Filters apply to whisper results, separated by ",". We provide emoji_filter and japanese_stream_filter.')
+        help='Filters apply to whisper results, separated by ",". We provide emoji_filter, repetition_filter and japanese_stream_filter.')
     parser.add_argument('--disable_transcription_context',
                         action='store_true',
                         help='Set this flag to disable context (previous sentence) propagation in transcription.')
