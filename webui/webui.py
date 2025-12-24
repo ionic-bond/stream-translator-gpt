@@ -55,7 +55,8 @@ INPUT_KEYS = [
     "input_proxy", "openai_key", "google_key", "gpt_base_url", "gemini_base_url", "overall_proxy", "model_size",
     "language", "whisper_backend", "openai_transcription_model", "vad_threshold", "min_audio_len", "max_audio_len",
     "target_audio_len", "silence_threshold", "disable_dynamic_vad", "disable_dynamic_silence", "prefix_retention_len",
-    "whisper_filters", "disable_transcription_context", "translation_prompt", "translation_provider", "gpt_model",
+    "filter_emoji", "filter_repetition", "filter_japanese_stream",
+    "disable_transcription_context", "translation_prompt", "translation_provider", "gpt_model",
     "gemini_model", "history_size", "translation_timeout", "processing_proxy", "use_json_result",
     "retry_if_translation_fails", "show_timestamps", "hide_transcription", "output_file", "output_proxy",
     "cqhttp_url", "cqhttp_token", "discord_hook", "telegram_token", "telegram_chat_id", "processing_proxy_trans"
@@ -213,7 +214,9 @@ def build_translator_command(
         disable_dynamic_vad,
         disable_dynamic_silence,
         prefix_retention_len,
-        whisper_filters,
+        filter_emoji,
+        filter_repetition,
+        filter_japanese_stream,
         disable_transcription_context,
         translation_prompt,
         translation_provider,
@@ -337,10 +340,16 @@ def build_translator_command(
     if disable_transcription_context:
         cmd.append("--disable_transcription_context")
 
+    whisper_filters = []
+    if filter_emoji:
+        whisper_filters.append("emoji_filter")
+    if filter_repetition:
+        whisper_filters.append("repetition_filter")
+    if filter_japanese_stream:
+        whisper_filters.append("japanese_stream_filter")
+    
     if whisper_filters:
-        filter_str = ",".join(whisper_filters)
-        if filter_str:
-            add_arg("--whisper_filters", filter_str, "whisper_filters")
+        add_arg("--whisper_filters", ",".join(whisper_filters), None)
 
     # --- Translation ---
     if translation_provider != "None":
@@ -426,7 +435,9 @@ def run_translator(
         disable_dynamic_vad,
         disable_dynamic_silence,
         prefix_retention_len,
-        whisper_filters,
+        filter_emoji,
+        filter_repetition,
+        filter_japanese_stream,
         disable_transcription_context,
         # Translation
         translation_prompt,
@@ -497,7 +508,9 @@ def run_translator(
                                           disable_dynamic_vad=disable_dynamic_vad,
                                           disable_dynamic_silence=disable_dynamic_silence,
                                           prefix_retention_len=prefix_retention_len,
-                                          whisper_filters=whisper_filters,
+                                          filter_emoji=filter_emoji,
+                                          filter_repetition=filter_repetition,
+                                          filter_japanese_stream=filter_japanese_stream,
                                           disable_transcription_context=disable_transcription_context,
                                           translation_prompt=translation_prompt,
                                           translation_provider=translation_provider,
@@ -728,9 +741,9 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
             disable_transcription_context = gr.Checkbox(label=i18n.get("disable_transcription_context"), value=get_default("disable_transcription_context"))
 
             with gr.Accordion(i18n.get("filters"), open=False):
-                whisper_filters = gr.CheckboxGroup(["emoji_filter", "japanese_stream_filter"],
-                                                   show_label=False,
-                                                   value=get_default("whisper_filters"))
+                filter_emoji = gr.Checkbox(label="Emoji Filter", value=get_default("filter_emoji"))
+                filter_repetition = gr.Checkbox(label="Repetition Filter", value=get_default("filter_repetition"))
+                filter_japanese_stream = gr.Checkbox(label="Japanese Stream Filter", value=get_default("filter_japanese_stream"))
 
             processing_proxy_trans = gr.Textbox(label=i18n.get("processing_proxy"),
                                                 placeholder=i18n.get("processing_proxy_ph"))
@@ -921,7 +934,7 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                         input_cookies, input_proxy, openai_key, google_key, overall_proxy, model_size, language,
                         whisper_backend, openai_transcription_model, vad_threshold, min_audio_len, max_audio_len,
                         target_audio_len, silence_threshold, disable_dynamic_vad, disable_dynamic_silence,
-                        prefix_retention_len, whisper_filters, disable_transcription_context, translation_prompt, translation_provider, gpt_model,
+                        prefix_retention_len, filter_emoji, filter_repetition, filter_japanese_stream, disable_transcription_context, translation_prompt, translation_provider, gpt_model,
                         gemini_model, history_size, translation_timeout, gpt_base_url, gemini_base_url,
                         processing_proxy, use_json_result, retry_if_translation_fails, show_timestamps,
                         hide_transcription, output_file, output_proxy, cqhttp_url, cqhttp_token, discord_hook,
@@ -967,7 +980,7 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
 
         updates = []
         for key in INPUT_KEYS:
-            updates.append(data.get(key, None))
+            updates.append(data.get(key, get_default(key)))
 
         return updates
 
