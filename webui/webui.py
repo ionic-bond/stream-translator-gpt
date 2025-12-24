@@ -735,7 +735,7 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
             with gr.Row():
                 model_size = gr.Dropdown([
                     "tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large",
-                    "large-v1", "large-v2", "large-v3", "large-v3-turbo", "custom"
+                    "large-v1", "large-v2", "large-v3", "large-v3-turbo"
                 ],
                                          label=i18n.get("model_size"),
                                          value=get_default("model_size"),
@@ -786,7 +786,7 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                 with gr.Group(visible=False) as gpt_group:
                     gpt_model = gr.Dropdown([
                         "gpt-4o", "gpt-4o-mini", "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-5", "gpt-5-mini",
-                        "gpt-5-nano"
+                        "gpt-5-nano", "gpt-5.1", "gpt-5.2"
                     ],
                                             label=i18n.get("gpt_model"),
                                             value=get_default("gpt_model"),
@@ -795,7 +795,7 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                 with gr.Group(visible=False) as gemini_group:
                     gemini_model = gr.Dropdown([
                         "gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite",
-                        "gemini-2.5-flash-preview-09-2025", "gemini-2.5-flash-lite-preview-09-2025"
+                        "gemini-2.5-flash-preview-09-2025", "gemini-2.5-flash-lite-preview-09-2025", "gemini-3.0-flash"
                     ],
                                                label=i18n.get("gemini_model"),
                                                value=get_default("gemini_model"),
