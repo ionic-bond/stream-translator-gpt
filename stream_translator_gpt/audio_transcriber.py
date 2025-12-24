@@ -26,15 +26,20 @@ class AudioTranscriber(LoopWorkerBase):
     def transcribe(self, audio: np.array, initial_prompt: str = None) -> str:
         pass
 
-    def loop(self, input_queue: queue.SimpleQueue[TranslationTask], output_queue: queue.SimpleQueue[TranslationTask],
-             whisper_filters: str, print_result: bool, output_timestamps: bool, disable_transcription_context: bool = False):
+    def loop(self,
+             input_queue: queue.SimpleQueue[TranslationTask],
+             output_queue: queue.SimpleQueue[TranslationTask],
+             whisper_filters: str,
+             print_result: bool,
+             output_timestamps: bool,
+             disable_transcription_context: bool = False):
         previous_text = ""
         while True:
             task = input_queue.get()
             if task is None:
                 output_queue.put(None)
                 break
-            
+
             prompt = previous_text if not disable_transcription_context else None
             task.transcript = _filter_text(self.transcribe(task.audio, initial_prompt=prompt), whisper_filters).strip()
             if not task.transcript:
@@ -61,7 +66,10 @@ class OpenaiWhisper(AudioTranscriber):
         self.language = language
 
     def transcribe(self, audio: np.array, initial_prompt: str = None) -> str:
-        result = self.model.transcribe(audio, without_timestamps=True, language=self.language, initial_prompt=initial_prompt)
+        result = self.model.transcribe(audio,
+                                       without_timestamps=True,
+                                       language=self.language,
+                                       initial_prompt=initial_prompt)
         return result.get('text')
 
 
@@ -150,7 +158,7 @@ class RemoteOpenaiTranscriber(AudioTranscriber):
         }
         if initial_prompt:
             call_args['prompt'] = initial_prompt
-            
+
         ApiKeyPool.use_openai_api()
         client = OpenAI(http_client=httpx.Client(proxy=self.proxy))
         result = client.audio.transcriptions.create(**call_args).text

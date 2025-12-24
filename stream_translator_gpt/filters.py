@@ -39,20 +39,20 @@ def repetition_filter(text: str, max_repeats=3):
 
     for sub_len in range(1, length // max_repeats + 1):
         for i in range(length - sub_len * max_repeats + 1):
-            substring = text[i : i + sub_len]
-            if text[i : i + sub_len * max_repeats] == substring * max_repeats:
+            substring = text[i:i + sub_len]
+            if text[i:i + sub_len * max_repeats] == substring * max_repeats:
                 count = 0
                 curr = i
                 while curr + sub_len <= length:
-                    if text[curr : curr + sub_len] == substring:
+                    if text[curr:curr + sub_len] == substring:
                         count += 1
                         curr += sub_len
                     else:
                         break
-                
+
                 if count >= max_repeats:
                     keep_count = max_repeats
                     kept_text = substring * keep_count
                     return text[:i] + kept_text + text[curr:]
-                    
+
     return text

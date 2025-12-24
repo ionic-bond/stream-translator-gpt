@@ -24,7 +24,7 @@ class I18n:
 
     def load_locale(self):
         locales_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "locales")
-        
+
         # Load fallback (English) first
         en_path = os.path.join(locales_dir, "en.json")
         if os.path.exists(en_path):
@@ -33,7 +33,7 @@ class I18n:
                     self.fallback_data = json.load(f)
             except Exception as e:
                 print(f"Error loading fallback locale en: {e}")
-        
+
         # Load target language if not English
         if self.lang_code != "en":
             locale_path = os.path.join(locales_dir, f"{self.lang_code}.json")
@@ -79,11 +79,11 @@ INPUT_KEYS = [
     "input_proxy", "openai_key", "google_key", "gpt_base_url", "gemini_base_url", "overall_proxy", "model_size",
     "language", "whisper_backend", "openai_transcription_model", "vad_threshold", "min_audio_len", "max_audio_len",
     "target_audio_len", "silence_threshold", "disable_dynamic_vad", "disable_dynamic_silence", "prefix_retention_len",
-    "filter_emoji", "filter_repetition", "filter_japanese_stream",
-    "disable_transcription_context", "translation_prompt", "translation_provider", "gpt_model",
-    "gemini_model", "history_size", "translation_timeout", "processing_proxy", "use_json_result",
-    "retry_if_translation_fails", "show_timestamps", "hide_transcription", "output_file", "output_proxy",
-    "cqhttp_url", "cqhttp_token", "discord_hook", "telegram_token", "telegram_chat_id", "processing_proxy_trans"
+    "filter_emoji", "filter_repetition", "filter_japanese_stream", "disable_transcription_context",
+    "translation_prompt", "translation_provider", "gpt_model", "gemini_model", "history_size", "translation_timeout",
+    "processing_proxy", "use_json_result", "retry_if_translation_fails", "show_timestamps", "hide_transcription",
+    "output_file", "output_proxy", "cqhttp_url", "cqhttp_token", "discord_hook", "telegram_token", "telegram_chat_id",
+    "processing_proxy_trans"
 ]
 
 
@@ -371,7 +371,7 @@ def build_translator_command(
         whisper_filters.append("repetition_filter")
     if filter_japanese_stream:
         whisper_filters.append("japanese_stream_filter")
-    
+
     if whisper_filters:
         add_arg("--whisper_filters", ",".join(whisper_filters), "whisper_filters")
 
@@ -654,18 +654,15 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                                             placeholder=i18n.get("google_api_key_ph"))
                 show_api_keys = gr.Checkbox(label=i18n.get("show_api_keys"), value=True)
                 with gr.Row():
-                    gpt_base_url = gr.Textbox(label=i18n.get("gpt_base_url"),
-                                              placeholder=i18n.get("gpt_base_url_ph"))
+                    gpt_base_url = gr.Textbox(label=i18n.get("gpt_base_url"), placeholder=i18n.get("gpt_base_url_ph"))
                     gemini_base_url = gr.Textbox(label=i18n.get("gemini_base_url"),
                                                  placeholder=i18n.get("gemini_base_url_ph"))
 
             with gr.Group():
-                overall_proxy = gr.Textbox(label=i18n.get("overall_proxy"),
-                                           placeholder=i18n.get("overall_proxy_ph"))
+                overall_proxy = gr.Textbox(label=i18n.get("overall_proxy"), placeholder=i18n.get("overall_proxy_ph"))
 
         with gr.Tab(i18n.get("input")):
-            input_type = gr.Radio(choices=[(i18n.get("url_option"), "URL"),
-                                           (i18n.get("device_option"), "Device"),
+            input_type = gr.Radio(choices=[(i18n.get("url_option"), "URL"), (i18n.get("device_option"), "Device"),
                                            (i18n.get("file_option"), "File")],
                                   label=i18n.get("input_source"),
                                   value=get_default("input_type"))
@@ -742,7 +739,7 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                 ],
                                          label=i18n.get("model_size"),
                                          value=get_default("model_size"),
-                                     allow_custom_value=True)
+                                         allow_custom_value=True)
                 openai_transcription_model = gr.Dropdown(["gpt-4o-mini-transcribe", "gpt-4o-transcribe", "whisper-1"],
                                                          label=i18n.get("openai_transcription_model"),
                                                          value=get_default("openai_transcription_model"),
@@ -762,12 +759,14 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                     value=get_default("language"),
                     allow_custom_value=True,
                     info="[Available Languages](https://github.com/openai/whisper#available-models-and-languages)")
-            disable_transcription_context = gr.Checkbox(label=i18n.get("disable_transcription_context"), value=get_default("disable_transcription_context"))
+            disable_transcription_context = gr.Checkbox(label=i18n.get("disable_transcription_context"),
+                                                        value=get_default("disable_transcription_context"))
 
             with gr.Accordion(i18n.get("filters"), open=False):
                 filter_emoji = gr.Checkbox(label="Emoji Filter", value=get_default("filter_emoji"))
                 filter_repetition = gr.Checkbox(label="Repetition Filter", value=get_default("filter_repetition"))
-                filter_japanese_stream = gr.Checkbox(label="Japanese Stream Filter", value=get_default("filter_japanese_stream"))
+                filter_japanese_stream = gr.Checkbox(label="Japanese Stream Filter",
+                                                     value=get_default("filter_japanese_stream"))
 
             processing_proxy_trans = gr.Textbox(label=i18n.get("processing_proxy"),
                                                 placeholder=i18n.get("processing_proxy_ph"))
@@ -872,7 +871,6 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                                       info=i18n.get("restart_hint"),
                                       interactive=True)
 
-
         with gr.Column(scale=4):
             output_box = gr.Textbox(label=i18n.get("output_log"),
                                     lines=40,
@@ -952,7 +950,6 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
 
     ui_language.change(on_language_change, inputs=[ui_language], outputs=[ui_language], js=js_lang_change)
 
-
     # Start Action
     start_btn.click(run_translator,
                     inputs=[
@@ -960,7 +957,8 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                         input_cookies, input_proxy, openai_key, google_key, overall_proxy, model_size, language,
                         whisper_backend, openai_transcription_model, vad_threshold, min_audio_len, max_audio_len,
                         target_audio_len, silence_threshold, disable_dynamic_vad, disable_dynamic_silence,
-                        prefix_retention_len, filter_emoji, filter_repetition, filter_japanese_stream, disable_transcription_context, translation_prompt, translation_provider, gpt_model,
+                        prefix_retention_len, filter_emoji, filter_repetition, filter_japanese_stream,
+                        disable_transcription_context, translation_prompt, translation_provider, gpt_model,
                         gemini_model, history_size, translation_timeout, gpt_base_url, gemini_base_url,
                         processing_proxy, use_json_result, retry_if_translation_fails, show_timestamps,
                         hide_transcription, output_file, output_proxy, cqhttp_url, cqhttp_token, discord_hook,
@@ -1030,12 +1028,10 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
     }}
     """
 
-    delete_preset_btn.click(
-        on_delete_preset,
-        inputs=[preset_select],
-        outputs=[preset_select, preset_select],
-        js=js_delete_confirm
-    )
+    delete_preset_btn.click(on_delete_preset,
+                            inputs=[preset_select],
+                            outputs=[preset_select, preset_select],
+                            js=js_delete_confirm)
 
     # Smart Scroll
     js_smart_scroll = """
