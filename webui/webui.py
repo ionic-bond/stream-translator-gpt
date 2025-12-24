@@ -19,21 +19,45 @@ class I18n:
     def __init__(self, lang_code):
         self.lang_code = lang_code
         self.locale_data = {}
+        self.fallback_data = {}
         self.load_locale()
 
     def load_locale(self):
-        locale_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "locales", f"{self.lang_code}.json")
-        if os.path.exists(locale_path):
+        locales_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "locales")
+        
+        # Load fallback (English) first
+        en_path = os.path.join(locales_dir, "en.json")
+        if os.path.exists(en_path):
             try:
-                with open(locale_path, "r", encoding="utf-8") as f:
-                    self.locale_data = json.load(f)
+                with open(en_path, "r", encoding="utf-8") as f:
+                    self.fallback_data = json.load(f)
             except Exception as e:
-                print(f"Error loading locale {self.lang_code}: {e}")
+                print(f"Error loading fallback locale en: {e}")
+        
+        # Load target language if not English
+        if self.lang_code != "en":
+            locale_path = os.path.join(locales_dir, f"{self.lang_code}.json")
+            if os.path.exists(locale_path):
+                try:
+                    with open(locale_path, "r", encoding="utf-8") as f:
+                        self.locale_data = json.load(f)
+                except Exception as e:
+                    print(f"Error loading locale {self.lang_code}: {e}")
+            else:
+                print(f"Locale file not found: {locale_path}")
         else:
-            print(f"Locale file not found: {locale_path}")
+            self.locale_data = self.fallback_data
 
-    def get(self, key, default=None):
-        return self.locale_data.get(key, default or key)
+    def get(self, key):
+        # Try current language first
+        if key in self.locale_data:
+            return self.locale_data[key]
+        # Fallback to English
+        if key in self.fallback_data:
+            return self.fallback_data[key]
+        # Not found in any locale
+        print(f"Missing i18n key: {key}")
+        return ""
 
 
 # Global state for process management
@@ -640,9 +664,9 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                                            placeholder=i18n.get("overall_proxy_ph"))
 
         with gr.Tab(i18n.get("input")):
-            input_type = gr.Radio(choices=[(i18n.get("url_option", "URL"), "URL"),
-                                           (i18n.get("device_option", "Device"), "Device"),
-                                           (i18n.get("file_option", "File"), "File")],
+            input_type = gr.Radio(choices=[(i18n.get("url_option"), "URL"),
+                                           (i18n.get("device_option"), "Device"),
+                                           (i18n.get("file_option"), "File")],
                                   label=i18n.get("input_source"),
                                   value=get_default("input_type"))
 
@@ -706,7 +730,7 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
             whisper_backend = gr.Radio(choices=[
                 ("Whisper", "Whisper"), ("Faster-Whisper", "Faster-Whisper"), ("Simul-Streaming", "Simul-Streaming"),
                 ("Faster-Whisper & Simul-Streaming", "Faster-Whisper & Simul-Streaming"),
-                (i18n.get("openai_transcription_api_option", "OpenAI Transcription API"), "OpenAI Transcription API")
+                (i18n.get("openai_transcription_api_option"), "OpenAI Transcription API")
             ],
                                        label=i18n.get("transcription_type"),
                                        value=get_default("whisper_backend"))
@@ -749,7 +773,7 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                                                 placeholder=i18n.get("processing_proxy_ph"))
 
         with gr.Tab(i18n.get("translation")):
-            translation_provider = gr.Radio(choices=[(i18n.get("none_option", "None"), "None"), ("GPT", "GPT"),
+            translation_provider = gr.Radio(choices=[(i18n.get("none_option"), "None"), ("GPT", "GPT"),
                                                      ("Gemini", "Gemini")],
                                             label=i18n.get("llm_provider"),
                                             value=get_default("translation_provider"))
@@ -849,9 +873,8 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                                       interactive=True)
 
             current_ui_lang = get_default("ui_language", "en")
-            confirm_msg = i18n.get("restart_confirmation",
-                                   "Changing language requires a restart. Do you want to close the program now?")
-            exit_msg = i18n.get("program_exited", "Program exited. You can close this tab now.")
+            confirm_msg = i18n.get("restart_confirmation")
+            exit_msg = i18n.get("program_exited")
 
             js_lang_change = f"""
             (new_val) => {{
