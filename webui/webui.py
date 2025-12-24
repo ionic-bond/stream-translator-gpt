@@ -872,43 +872,6 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                                       info=i18n.get("restart_hint"),
                                       interactive=True)
 
-            current_ui_lang = get_default("ui_language", "en")
-            confirm_msg = i18n.get("restart_confirmation")
-            exit_msg = i18n.get("program_exited")
-
-            js_lang_change = f"""
-            (new_val) => {{
-                const current = "{current_ui_lang}";
-                if (new_val === current) return new_val;
-                
-                let ok = confirm("{confirm_msg}");
-                if (ok) {{
-                    setTimeout(() => {{
-                        window.close();
-                        document.body.innerHTML = "<div style='color:white; background:black; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; font-family:sans-serif;'><h1>" + "{exit_msg}" + "</h1></div>";
-                    }}, 200);
-                    return new_val;
-                }} else {{
-                    return current;
-                }}
-            }}
-            """
-
-            def on_language_change(lang):
-                if lang == current_ui_lang:
-                    return gr.update(value=current_ui_lang)
-                SYSTEM_SETTINGS["ui_language"] = lang
-                save_settings(SYSTEM_SETTINGS)
-                print(f"Language changed to {lang}. Exiting...")
-
-                def kill():
-                    time.sleep(0.5)
-                    os._exit(0)
-
-                threading.Thread(target=kill).start()
-                return gr.update(value=lang)
-
-            ui_language.change(on_language_change, inputs=[ui_language], outputs=[ui_language], js=js_lang_change)
 
         with gr.Column(scale=4):
             output_box = gr.Textbox(label=i18n.get("output_log"),
@@ -950,6 +913,46 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
     translation_provider.change(update_translation_visibility, translation_provider,
                                 [common_translation_group, gpt_group, gemini_group])
 
+    # UI Language Change
+    current_ui_lang = get_default("ui_language", "en")
+    confirm_msg = i18n.get("restart_confirmation")
+    exit_msg = i18n.get("program_exited")
+
+    js_lang_change = f"""
+    (new_val) => {{
+        const current = "{current_ui_lang}";
+        if (new_val === current) return new_val;
+        
+        let ok = confirm("{confirm_msg}");
+        if (ok) {{
+            setTimeout(() => {{
+                window.close();
+                document.body.innerHTML = "<div style='color:white; background:black; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; font-family:sans-serif;'><h1>" + "{exit_msg}" + "</h1></div>";
+            }}, 200);
+            return new_val;
+        }} else {{
+            return current;
+        }}
+    }}
+    """
+
+    def on_language_change(lang):
+        if lang == current_ui_lang:
+            return gr.update(value=current_ui_lang)
+        SYSTEM_SETTINGS["ui_language"] = lang
+        save_settings(SYSTEM_SETTINGS)
+        print(f"Language changed to {lang}. Exiting...")
+
+        def kill():
+            time.sleep(0.5)
+            os._exit(0)
+
+        threading.Thread(target=kill).start()
+        return gr.update(value=lang)
+
+    ui_language.change(on_language_change, inputs=[ui_language], outputs=[ui_language], js=js_lang_change)
+
+
     # Start Action
     start_btn.click(run_translator,
                     inputs=[
@@ -979,8 +982,6 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                           scroll_to_output=False)
 
     # Preset Logic
-    # Automatically define all_inputs based on INPUT_KEYS to ensure synchronization
-    # and avoiding manual list maintenance.
     all_inputs = [globals()[key] for key in INPUT_KEYS]
 
     def on_save_preset(name, *args):
@@ -1005,8 +1006,6 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
         for key in INPUT_KEYS:
             updates.append(data.get(key, get_default(key)))
 
-        # Append the preset name to fill the save input box
-        # For 'default', don't fill it since it can't be overwritten
         preset_name_value = "" if name == "default" else name
         updates.append(preset_name_value)
 
@@ -1038,9 +1037,7 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
         js=js_delete_confirm
     )
 
-    # --- Smart Scroll Logic ---
-    # Fixes issue where page scrolls to top on output, and implements "sticky scroll" behavior
-    # (only auto-scroll if user is already at the bottom).
+    # Smart Scroll
     js_smart_scroll = """
     function() {
         const el = document.getElementById("output_log").querySelector("textarea");
@@ -1075,15 +1072,12 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
     processing_proxy.change(fn=None, inputs=processing_proxy, outputs=processing_proxy_trans, js="(x) => x")
 
     # LocalStorage Persistence
-    # 1. Save on Change
     for i, component in enumerate(all_inputs):
         key = INPUT_KEYS[i]
 
-        # Use a closure for JS to embed the key
         js_save = f"(x) => {{ localStorage.setItem('{key}', JSON.stringify(x)); return x; }}"
         component.change(fn=None, inputs=[component], outputs=[], js=js_save)
 
-    # 2. Load on Startup
     js_load = f"""
     (...args) => {{
         const keys = {json.dumps(INPUT_KEYS)};
