@@ -86,5 +86,6 @@
     "openai_transcription_api_option": "OpenAI Transcription API",
     "none_option": "なし",
     "restart_confirmation": "言語を変更するには再起動が必要です。今すぐプログラムを終了しますか？",
-    "program_exited": "プログラムは終了しました。このタブを閉じることができます。"
+    "program_exited": "プログラムは終了しました。このタブを閉じることができます。",
+    "delete_confirmation": "このプリセットを削除してもよろしいですか？"
 }

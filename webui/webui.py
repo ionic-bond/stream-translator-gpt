@@ -976,23 +976,44 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
     def on_load_preset(name):
         data = load_preset_data(name)
         if not data:
-            return [gr.update()] * len(all_inputs)
+            return [gr.update()] * (len(all_inputs) + 1)
 
         updates = []
         for key in INPUT_KEYS:
             updates.append(data.get(key, get_default(key)))
 
+        # Append the preset name to fill the save input box
+        # For 'default', don't fill it since it can't be overwritten
+        preset_name_value = "" if name == "default" else name
+        updates.append(preset_name_value)
+
         return updates
 
-    load_preset_btn.click(on_load_preset, inputs=[preset_select], outputs=all_inputs)
+    load_preset_btn.click(on_load_preset, inputs=[preset_select], outputs=all_inputs + [preset_name_input])
 
     def on_delete_preset(name):
+        if not name:
+            return gr.update(choices=get_preset_list()), gr.update()
         success = delete_preset_data(name)
         if not success:
-            return gr.update(choices=get_preset_list()), gr.update(value=name)
+            return gr.update(choices=get_preset_list()), gr.update()
         return gr.update(choices=get_preset_list()), gr.update(value=None)
 
-    delete_preset_btn.click(on_delete_preset, inputs=[preset_select], outputs=[preset_select, preset_select])
+    delete_confirm_msg = i18n.get("delete_confirmation")
+    js_delete_confirm = f"""
+    (name) => {{
+        if (!name || name === 'default') return null;
+        let ok = confirm("{delete_confirm_msg}");
+        return ok ? name : null;
+    }}
+    """
+
+    delete_preset_btn.click(
+        on_delete_preset,
+        inputs=[preset_select],
+        outputs=[preset_select, preset_select],
+        js=js_delete_confirm
+    )
 
     # --- Smart Scroll Logic ---
     # Fixes issue where page scrolls to top on output, and implements "sticky scroll" behavior

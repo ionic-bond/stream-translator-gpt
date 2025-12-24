@@ -86,5 +86,6 @@
     "openai_transcription_api_option": "OpenAI Transcription API",
     "none_option": "无",
     "restart_confirmation": "更改语言需要重启。您是否要立即关闭程序？",
-    "program_exited": "程序已退出。您现在可以关闭此标签页。"
+    "program_exited": "程序已退出。您现在可以关闭此标签页。",
+    "delete_confirmation": "确定要删除此预设吗？"
 }

@@ -86,5 +86,6 @@
     "openai_transcription_api_option": "OpenAI Transcription API",
     "none_option": "None",
     "restart_confirmation": "Changing language requires a restart. Do you want to close the program now?",
-    "program_exited": "Program exited. You can close this tab now."
+    "program_exited": "Program exited. You can close this tab now.",
+    "delete_confirmation": "Are you sure you want to delete this preset?"
 }
