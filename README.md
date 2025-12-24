@@ -60,13 +60,13 @@ flowchart LR
     gd ==> ge
 ```
 
-Uses [yt-dlp](https://github.com/yt-dlp/yt-dlp) to extract audio data from live streams.
+Uses [**yt-dlp**](https://github.com/yt-dlp/yt-dlp) to extract audio data from live streams.
 
-Dynamic threshold audio slicing based on [Silero-VAD](https://github.com/snakers4/silero-vad).
+Dynamic threshold audio slicing based on [**Silero-VAD**](https://github.com/snakers4/silero-vad).
 
-Use [Whisper](https://github.com/openai/whisper) / [Faster-Whisper](https://github.com/SYSTRAN/faster-whisper) /  [Simul Streaming](https://github.com/ufal/SimulStreaming) locally or call [OpenAI Transcription API](https://platform.openai.com/docs/guides/speech-to-text) remotely for transcription.
+Use [**Whisper**](https://github.com/openai/whisper) / [**Faster-Whisper**](https://github.com/SYSTRAN/faster-whisper) /  [**Simul Streaming**](https://github.com/ufal/SimulStreaming) locally or call [**OpenAI Transcription API**](https://platform.openai.com/docs/guides/speech-to-text) remotely for transcription.
 
-Use OpenAI's [GPT API](https://platform.openai.com/docs/overview) / Google's [Gemini API](https://ai.google.dev/gemini-api/docs) for translation.
+Use OpenAI's [**GPT API**](https://platform.openai.com/docs/overview) / Google's [**Gemini API**](https://ai.google.dev/gemini-api/docs) for translation.
 
 Finally, the results can be printed to the terminal, saved to a file, or sent to a group via social media bot.
 

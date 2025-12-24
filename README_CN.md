@@ -60,13 +60,13 @@ flowchart LR
     gd ==> ge
 ````
 
-使用 [yt-dlp](https://github.com/yt-dlp/yt-dlp) 从直播流中提取音频数据。
+使用 [**yt-dlp**](https://github.com/yt-dlp/yt-dlp) 从直播流中提取音频数据。
 
-基于 [Silero-VAD](https://github.com/snakers4/silero-vad) 的动态阈值音频切片。
+基于 [**Silero-VAD**](https://github.com/snakers4/silero-vad) 的动态阈值音频切片。
 
-在本地使用 [Whisper](https://github.com/openai/whisper) / [Faster-Whisper](https://github.com/SYSTRAN/faster-whisper) /  [Simul Streaming](https://github.com/ufal/SimulStreaming) 或远程调用 [OpenAI Transcription API](https://platform.openai.com/docs/guides/speech-to-text) 进行转录。
+在本地使用 [**Whisper**](https://github.com/openai/whisper) / [**Faster-Whisper**](https://github.com/SYSTRAN/faster-whisper) /  [**Simul Streaming**](https://github.com/ufal/SimulStreaming) 或远程调用 [**OpenAI Transcription API**](https://platform.openai.com/docs/guides/speech-to-text) 进行转录。
 
-使用 OpenAI 的 [GPT API](https://platform.openai.com/docs/overview) / Google 的 [Gemini API](https://ai.google.dev/gemini-api/docs) 进行翻译。
+使用 OpenAI 的 [**GPT API**](https://platform.openai.com/docs/overview) / Google 的 [**Gemini API**](https://ai.google.dev/gemini-api/docs) 进行翻译。
 
 最后，结果可以打印到终端、保存到文件，或通过社交媒体机器人发送到群组。
 
