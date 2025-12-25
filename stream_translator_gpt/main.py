@@ -9,12 +9,13 @@ if __name__ == '__main__':
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     __package__ = "stream_translator_gpt"
 
-from .common import ApiKeyPool, start_daemon_thread, is_url, WARNING, ERROR
+from .common import ApiKeyPool, start_daemon_thread, is_url, WARNING, ERROR, INFO
 from .audio_getter import StreamAudioGetter, LocalFileAudioGetter, DeviceAudioGetter
 from .audio_slicer import AudioSlicer
 from .audio_transcriber import OpenaiWhisper, FasterWhisper, SimulStreaming, RemoteOpenaiTranscriber
 from .llm_translator import LLMClient, ParallelTranslator, SerialTranslator
 from .result_exporter import ResultExporter
+from . import __version__
 
 
 def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_proxy, device_index,
@@ -172,6 +173,7 @@ def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_prox
 
 
 def cli():
+    print(f'{INFO} Version: {__version__}')
     parser = argparse.ArgumentParser(description='Parameters for translator.py')
     parser.add_argument(
         'URL',
