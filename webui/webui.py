@@ -14,6 +14,7 @@ import time
 import threading
 
 import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from stream_translator_gpt import __version__
 
@@ -649,7 +650,8 @@ def run_list_formats(url, cookies, input_proxy):
 # --- UI Setup ---
 
 with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
-    gr.Markdown(f"<h1>Stream Translator GPT WebUI <small style='font-weight: normal; color: gray;'>{__version__}</small></h1>")
+    gr.Markdown(
+        f"<h1>Stream Translator GPT WebUI <small style='font-weight: normal; color: gray;'>{__version__}</small></h1>")
 
     with gr.Tabs():
         with gr.Tab(i18n.get("overall")):
