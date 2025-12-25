@@ -173,7 +173,7 @@ def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_prox
 
 
 def cli():
-    print(f'{INFO} Version: {__version__}')
+    print(f'{INFO}Version: {__version__}')
     parser = argparse.ArgumentParser(description='Parameters for translator.py')
     parser.add_argument(
         'URL',
