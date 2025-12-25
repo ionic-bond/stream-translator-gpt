@@ -60,7 +60,8 @@ class AudioTranscriber(LoopWorkerBase):
             if not initial_prompt:
                 initial_prompt = None
 
-            task.transcript = _filter_text(self.transcribe(task.audio, initial_prompt=initial_prompt), whisper_filters).strip()
+            task.transcript = _filter_text(self.transcribe(task.audio, initial_prompt=initial_prompt),
+                                           whisper_filters).strip()
             if not task.transcript:
                 if print_result:
                     print('skip...')

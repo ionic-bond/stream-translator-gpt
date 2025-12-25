@@ -79,11 +79,11 @@ INPUT_KEYS = [
     "input_proxy", "openai_key", "google_key", "gpt_base_url", "gemini_base_url", "overall_proxy", "model_size",
     "language", "whisper_backend", "openai_transcription_model", "vad_threshold", "min_audio_len", "max_audio_len",
     "target_audio_len", "silence_threshold", "disable_dynamic_vad", "disable_dynamic_silence", "prefix_retention_len",
-    "filter_emoji", "filter_repetition", "filter_japanese_stream", "disable_transcription_context", "transcription_initial_prompt",
-    "translation_prompt", "translation_provider", "gpt_model", "gemini_model", "history_size", "translation_timeout",
-    "processing_proxy", "use_json_result", "retry_if_translation_fails", "show_timestamps", "hide_transcription",
-    "output_file", "output_proxy", "cqhttp_url", "cqhttp_token", "discord_hook", "telegram_token", "telegram_chat_id",
-    "processing_proxy_trans"
+    "filter_emoji", "filter_repetition", "filter_japanese_stream", "disable_transcription_context",
+    "transcription_initial_prompt", "translation_prompt", "translation_provider", "gpt_model", "gemini_model",
+    "history_size", "translation_timeout", "processing_proxy", "use_json_result", "retry_if_translation_fails",
+    "show_timestamps", "hide_transcription", "output_file", "output_proxy", "cqhttp_url", "cqhttp_token",
+    "discord_hook", "telegram_token", "telegram_chat_id", "processing_proxy_trans"
 ]
 
 
@@ -966,9 +966,9 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                         whisper_backend, openai_transcription_model, vad_threshold, min_audio_len, max_audio_len,
                         target_audio_len, silence_threshold, disable_dynamic_vad, disable_dynamic_silence,
                         prefix_retention_len, filter_emoji, filter_repetition, filter_japanese_stream,
-                        disable_transcription_context, transcription_initial_prompt, translation_prompt, translation_provider, gpt_model,
-                        gemini_model, history_size, translation_timeout, gpt_base_url, gemini_base_url,
-                        processing_proxy, use_json_result, retry_if_translation_fails, show_timestamps,
+                        disable_transcription_context, transcription_initial_prompt, translation_prompt,
+                        translation_provider, gpt_model, gemini_model, history_size, translation_timeout, gpt_base_url,
+                        gemini_base_url, processing_proxy, use_json_result, retry_if_translation_fails, show_timestamps,
                         hide_transcription, output_file, output_proxy, cqhttp_url, cqhttp_token, discord_hook,
                         telegram_token, telegram_chat_id
                     ],
