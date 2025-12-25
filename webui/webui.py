@@ -572,7 +572,7 @@ def run_translator(
         return
     # Start Process
     is_running = True
-    start_msg = f"Running command: {' '.join(cmd)}\n\n"
+    start_msg = f"Running command: {subprocess.list2cmdline(cmd)}\n\n"
     log_history = [start_msg]
     yield start_msg
 
