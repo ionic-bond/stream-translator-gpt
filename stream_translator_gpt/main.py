@@ -22,7 +22,7 @@ def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_prox
          continuous_no_speech_threshold, disable_dynamic_no_speech_threshold, prefix_retention_length, vad_threshold,
          disable_dynamic_vad_threshold, model, language, use_faster_whisper, use_simul_streaming,
          use_openai_transcription_api, openai_transcription_model, whisper_filters, disable_transcription_context,
-         translation_prompt, translation_history_size, gpt_model, gemini_model, translation_timeout, gpt_base_url,
+         transcription_initial_prompt, translation_prompt, translation_history_size, gpt_model, gemini_model, translation_timeout, gpt_base_url,
          gemini_base_url, processing_proxy, use_json_result, retry_if_translation_fails, output_timestamps,
          hide_transcribe_result, output_proxy, output_file_path, cqhttp_url, cqhttp_token, discord_webhook_url,
          telegram_token, telegram_chat_id):
@@ -97,7 +97,8 @@ def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_prox
                             input_queue=slicer_to_transcriber_queue,
                             output_queue=transcriber_to_translator_queue,
                             whisper_filters=whisper_filters,
-                            disable_transcription_context=disable_transcription_context)
+                            disable_transcription_context=disable_transcription_context,
+                            transcription_initial_prompt=transcription_initial_prompt)
     elif use_faster_whisper:
         start_daemon_thread(FasterWhisper.work,
                             model=model,
@@ -107,7 +108,8 @@ def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_prox
                             input_queue=slicer_to_transcriber_queue,
                             output_queue=transcriber_to_translator_queue,
                             whisper_filters=whisper_filters,
-                            disable_transcription_context=disable_transcription_context)
+                            disable_transcription_context=disable_transcription_context,
+                            transcription_initial_prompt=transcription_initial_prompt)
     elif use_openai_transcription_api:
         start_daemon_thread(RemoteOpenaiTranscriber.work,
                             model=openai_transcription_model,
@@ -118,7 +120,8 @@ def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_prox
                             input_queue=slicer_to_transcriber_queue,
                             output_queue=transcriber_to_translator_queue,
                             whisper_filters=whisper_filters,
-                            disable_transcription_context=disable_transcription_context)
+                            disable_transcription_context=disable_transcription_context,
+                            transcription_initial_prompt=transcription_initial_prompt)
     else:
         start_daemon_thread(OpenaiWhisper.work,
                             model=model,
@@ -128,7 +131,8 @@ def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_prox
                             input_queue=slicer_to_transcriber_queue,
                             output_queue=transcriber_to_translator_queue,
                             whisper_filters=whisper_filters,
-                            disable_transcription_context=disable_transcription_context)
+                            disable_transcription_context=disable_transcription_context,
+                            transcription_initial_prompt=transcription_initial_prompt)
     start_daemon_thread(
         AudioSlicer.work,
         min_audio_length=min_audio_length,
@@ -300,6 +304,13 @@ def cli():
         default='emoji_filter,repetition_filter',
         help=
         'Filters apply to whisper results, separated by ",". We provide emoji_filter, repetition_filter and japanese_stream_filter.'
+    )
+    parser.add_argument(
+        '--transcription_initial_prompt',
+        type=str,
+        default=None,
+        help=
+        'General purpose prompt or glossary for transcription. Format: "Word1, Word2, Word3, ...".'
     )
     parser.add_argument('--disable_transcription_context',
                         action='store_true',

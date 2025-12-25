@@ -1,6 +1,7 @@
 import os
 import io
 import queue
+import re
 from abc import abstractmethod
 from scipy.io.wavfile import write as write_audio
 
@@ -32,16 +33,34 @@ class AudioTranscriber(LoopWorkerBase):
              whisper_filters: str,
              print_result: bool,
              output_timestamps: bool,
-             disable_transcription_context: bool = False):
+             disable_transcription_context: bool = False,
+             transcription_initial_prompt: str = None):
+        constant_prompt = re.sub(r',\s*', ', ', transcription_initial_prompt) if transcription_initial_prompt else ""
+        if constant_prompt and not constant_prompt.strip().endswith(','):
+            constant_prompt += ','
         previous_text = ""
+
         while True:
             task = input_queue.get()
             if task is None:
                 output_queue.put(None)
                 break
 
-            prompt = previous_text if not disable_transcription_context else None
-            task.transcript = _filter_text(self.transcribe(task.audio, initial_prompt=prompt), whisper_filters).strip()
+            dynamic_context = previous_text if not disable_transcription_context else ""
+
+            if constant_prompt:
+                limit = 500 - len(constant_prompt) - 1
+                if len(dynamic_context) > limit:
+                    if limit > 0:
+                        dynamic_context = dynamic_context[-limit:]
+                    else:
+                        dynamic_context = ""
+
+            initial_prompt = f"{constant_prompt} {dynamic_context}".strip()
+            if not initial_prompt:
+                initial_prompt = None
+
+            task.transcript = _filter_text(self.transcribe(task.audio, initial_prompt=initial_prompt), whisper_filters).strip()
             if not task.transcript:
                 if print_result:
                     print('skip...')

@@ -41,6 +41,8 @@
     "openai_transcription_model": "OpenAI Transcription Model",
     "language": "Language",
     "filters": "Filters",
+    "transcription_initial_prompt": "Transcription Initial Prompt / Glossary",
+    "transcription_initial_prompt_ph": "Word1, Word2, Word3, ...",
     "disable_transcription_context": "Disable Context Propagation",
     "processing_proxy": "Processing Proxy",
     "processing_proxy_ph": "http://127.0.0.1:7890",
