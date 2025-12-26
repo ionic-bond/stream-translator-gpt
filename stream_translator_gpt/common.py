@@ -40,8 +40,6 @@ class LoopWorkerBase(ABC):
         pass
 
 
-
-
 def start_daemon_thread(func, *args, **kwargs):
     thread = threading.Thread(target=func, args=args, kwargs=kwargs)
     thread.daemon = True

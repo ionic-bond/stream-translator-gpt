@@ -42,6 +42,7 @@ def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_prox
 
     # Init workers
     with ThreadPoolExecutor() as executor:
+
         def init_audio_getter():
             if url.lower() == 'device':
                 return DeviceAudioGetter(
@@ -57,6 +58,7 @@ def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_prox
                 )
             else:
                 return LocalFileAudioGetter(file_path=url)
+
         audio_getter_future = executor.submit(init_audio_getter)
         slicer_future = executor.submit(
             AudioSlicer,
@@ -69,6 +71,7 @@ def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_prox
             vad_threshold=vad_threshold,
             dynamic_vad_threshold=not disable_dynamic_vad_threshold,
         )
+
         def init_transcriber():
             common_args = {
                 'whisper_filters': whisper_filters,
@@ -78,32 +81,22 @@ def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_prox
                 'transcription_initial_prompt': transcription_initial_prompt,
             }
             if use_simul_streaming:
-                return SimulStreaming(
-                    model=model,
-                    language=language,
-                    use_faster_whisper=use_faster_whisper,
-                    **common_args
-                )
+                return SimulStreaming(model=model,
+                                      language=language,
+                                      use_faster_whisper=use_faster_whisper,
+                                      **common_args)
             elif use_faster_whisper:
-                return FasterWhisper(
-                    model=model,
-                    language=language,
-                    **common_args
-                )
+                return FasterWhisper(model=model, language=language, **common_args)
             elif use_openai_transcription_api:
-                return RemoteOpenaiTranscriber(
-                    model=openai_transcription_model,
-                    language=language,
-                    proxy=processing_proxy,
-                    **common_args
-                )
+                return RemoteOpenaiTranscriber(model=openai_transcription_model,
+                                               language=language,
+                                               proxy=processing_proxy,
+                                               **common_args)
             else:
-                return OpenaiWhisper(
-                    model=model,
-                    language=language,
-                    **common_args
-                )
+                return OpenaiWhisper(model=model, language=language, **common_args)
+
         transcriber_future = executor.submit(init_transcriber)
+
         def init_translator():
             if not translation_prompt:
                 return None
@@ -138,6 +131,7 @@ def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_prox
                     timeout=translation_timeout,
                     retry_if_translation_fails=retry_if_translation_fails,
                 )
+
         translator_future = executor.submit(init_translator)
         exporter_future = executor.submit(
             ResultExporter,

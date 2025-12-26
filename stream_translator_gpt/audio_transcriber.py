@@ -31,7 +31,8 @@ class AudioTranscriber(LoopWorkerBase):
         self.disable_transcription_context = disable_transcription_context
         self.transcription_initial_prompt = transcription_initial_prompt
 
-        self.constant_prompt = re.sub(r',\s*', ', ', transcription_initial_prompt) if transcription_initial_prompt else ""
+        self.constant_prompt = re.sub(r',\s*', ', ',
+                                      transcription_initial_prompt) if transcription_initial_prompt else ""
         if self.constant_prompt and not self.constant_prompt.strip().endswith(','):
             self.constant_prompt += ','
 

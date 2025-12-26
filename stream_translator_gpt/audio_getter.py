@@ -76,7 +76,7 @@ class StreamAudioGetter(LoopWorkerBase):
     def loop(self, output_queue: queue.SimpleQueue[np.array]):
         print(f'{INFO}Opening stream: {self.url}')
         self.ffmpeg_process, self.ytdlp_process = _open_stream(self.url, self.format, self.cookies, self.proxy,
-                                                             self.temp_dir)
+                                                               self.temp_dir)
         while self.ffmpeg_process.poll() is None:
             in_bytes = self.ffmpeg_process.stdout.read(self.byte_size)
             if not in_bytes:
@@ -151,6 +151,7 @@ class DeviceAudioGetter(LoopWorkerBase):
         print(f'{INFO}Recording device: {self.device_name}')
 
         import sounddevice as sd
+
         def audio_callback(indata: np.ndarray, frames: int, time_info, status) -> None:
             if status:
                 print(status)
@@ -166,6 +167,7 @@ class DeviceAudioGetter(LoopWorkerBase):
 
             self.remaining_audio = audio[-remaining_samples:] if remaining_samples > 0 else np.array([],
                                                                                                      dtype=np.float32)
+
         with sd.InputStream(samplerate=SAMPLE_RATE,
                             blocksize=round(SAMPLE_RATE * self.recording_interval),
                             device=self.device_index,
