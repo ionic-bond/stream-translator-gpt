@@ -33,21 +33,13 @@ class TranslationTask:
         self.translation_failed = False
 
 
-def _auto_args(func, kwargs):
-    names = func.__code__.co_varnames
-    return {k: v for k, v in kwargs.items() if k in names}
-
-
 class LoopWorkerBase(ABC):
 
     @abstractmethod
     def loop(self):
         pass
 
-    @classmethod
-    def work(cls, **kwargs):
-        obj = cls(**_auto_args(cls.__init__, kwargs))
-        obj.loop(**_auto_args(obj.loop, kwargs))
+
 
 
 def start_daemon_thread(func, *args, **kwargs):

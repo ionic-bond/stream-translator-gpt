@@ -8,12 +8,16 @@ from .common import TranslationTask, LoopWorkerBase, sec2str, start_daemon_threa
 class ResultExporter(LoopWorkerBase):
 
     def __init__(self, cqhttp_url: str, cqhttp_token: str, discord_webhook_url: str, telegram_token: str,
-                 telegram_chat_id: int, output_file_path: str, proxy: str) -> None:
+                 telegram_chat_id: int, output_file_path: str, proxy: str, output_whisper_result: bool,
+                 output_timestamps: bool) -> None:
         self.proxies = {"http": proxy, "https": proxy} if proxy else None
         self.cqhttp_queue = None
         self.discord_queue = None
         self.telegram_queue = None
         self.file_queue = None
+        self.output_whisper_result = output_whisper_result
+        self.output_timestamps = output_timestamps
+
         if cqhttp_url:
             self.cqhttp_queue = queue.SimpleQueue()
             start_daemon_thread(self._send_message_to_cqhttp, url=cqhttp_url, token=cqhttp_token)
@@ -73,8 +77,7 @@ class ResultExporter(LoopWorkerBase):
             with open(file_path, 'a', encoding='utf-8') as f:
                 f.write(text + '\n\n')
 
-    def loop(self, input_queue: queue.SimpleQueue[TranslationTask], output_whisper_result: bool,
-             output_timestamps: bool):
+    def loop(self, input_queue: queue.SimpleQueue[TranslationTask]):
         while True:
             task = input_queue.get()
             if task is None:
@@ -88,12 +91,12 @@ class ResultExporter(LoopWorkerBase):
                     self.file_queue.put(None)
                 break
             timestamp_text = f'{sec2str(task.time_range[0])} --> {sec2str(task.time_range[1])}'
-            text_to_send = (task.transcript + '\n') if output_whisper_result else ''
-            if output_timestamps:
+            text_to_send = (task.transcript + '\n') if self.output_whisper_result else ''
+            if self.output_timestamps:
                 text_to_send = timestamp_text + '\n' + text_to_send
             if task.translation:
                 text_to_print = task.translation
-                if output_timestamps:
+                if self.output_timestamps:
                     text_to_print = timestamp_text + ' ' + text_to_print
                 text_to_print = text_to_print.strip()
                 print(f'{BOLD}{text_to_print}{ENDC}')

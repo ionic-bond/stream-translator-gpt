@@ -51,19 +51,22 @@ def _open_stream(url: str, format: str, cookies: str, proxy: str, cwd: str):
 class StreamAudioGetter(LoopWorkerBase):
 
     def __init__(self, url: str, format: str, cookies: str, proxy: str) -> None:
+        self.url = url
+        self.format = format
+        self.cookies = cookies
+        self.proxy = proxy
         self.temp_dir = tempfile.mkdtemp()
-
-        print(f'{INFO}Opening stream: {url}')
-        self.ffmpeg_process, self.ytdlp_process = _open_stream(url, format, cookies, proxy, self.temp_dir)
+        self.ffmpeg_process = None
+        self.ytdlp_process = None
         self.byte_size = round(SAMPLES_PER_FRAME * 4)  # Factor 4 comes from float32 (4 bytes per sample)
-        signal.signal(signal.SIGINT, self._exit_handler)
 
     def __del__(self):
         if hasattr(self, 'temp_dir') and os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def _exit_handler(self, signum, frame):
-        self.ffmpeg_process.kill()
+        if self.ffmpeg_process:
+            self.ffmpeg_process.kill()
         if self.ytdlp_process:
             self.ytdlp_process.kill()
         if hasattr(self, 'temp_dir') and os.path.exists(self.temp_dir):
@@ -71,6 +74,9 @@ class StreamAudioGetter(LoopWorkerBase):
         sys.exit(0)
 
     def loop(self, output_queue: queue.SimpleQueue[np.array]):
+        print(f'{INFO}Opening stream: {self.url}')
+        self.ffmpeg_process, self.ytdlp_process = _open_stream(self.url, self.format, self.cookies, self.proxy,
+                                                             self.temp_dir)
         while self.ffmpeg_process.poll() is None:
             in_bytes = self.ffmpeg_process.stdout.read(self.byte_size)
             if not in_bytes:
@@ -91,9 +97,19 @@ class StreamAudioGetter(LoopWorkerBase):
 class LocalFileAudioGetter(LoopWorkerBase):
 
     def __init__(self, file_path: str) -> None:
-        print(f'{INFO}Opening local file: {file_path}')
+        self.file_path = file_path
+        self.ffmpeg_process = None
+        self.byte_size = round(SAMPLES_PER_FRAME * 4)  # Factor 4 comes from float32 (4 bytes per sample)
+
+    def _exit_handler(self, signum, frame):
+        if self.ffmpeg_process:
+            self.ffmpeg_process.kill()
+        sys.exit(0)
+
+    def loop(self, output_queue: queue.SimpleQueue[np.array]):
+        print(f'{INFO}Opening local file: {self.file_path}')
         try:
-            self.ffmpeg_process = (ffmpeg.input(file_path,
+            self.ffmpeg_process = (ffmpeg.input(self.file_path,
                                                 loglevel='panic').output('pipe:',
                                                                          format='f32le',
                                                                          acodec='pcm_f32le',
@@ -102,14 +118,7 @@ class LocalFileAudioGetter(LoopWorkerBase):
                                                                                                    pipe_stdout=True))
         except ffmpeg.Error as e:
             raise RuntimeError(f'Failed to load audio: {e.stderr.decode()}') from e
-        self.byte_size = round(SAMPLES_PER_FRAME * 4)  # Factor 4 comes from float32 (4 bytes per sample)
-        signal.signal(signal.SIGINT, self._exit_handler)
 
-    def _exit_handler(self, signum, frame):
-        self.ffmpeg_process.kill()
-        sys.exit(0)
-
-    def loop(self, output_queue: queue.SimpleQueue[np.array]):
         while self.ffmpeg_process.poll() is None:
             in_bytes = self.ffmpeg_process.stdout.read(self.byte_size)
             if not in_bytes:
@@ -133,14 +142,15 @@ class DeviceAudioGetter(LoopWorkerBase):
         else:
             sd.default.device[0] = device_index
         self.device_index = device_index
-        device_name = sd.query_devices(device_index)['name']
-        print(f'{INFO}Recording device: {device_name}')
+        self.device_name = sd.query_devices(device_index)['name']
 
         self.recording_interval = recording_interval
         self.remaining_audio = np.array([], dtype=np.float32)
 
     def loop(self, output_queue: queue.SimpleQueue[np.array]):
+        print(f'{INFO}Recording device: {self.device_name}')
 
+        import sounddevice as sd
         def audio_callback(indata: np.ndarray, frames: int, time_info, status) -> None:
             if status:
                 print(status)
@@ -156,8 +166,6 @@ class DeviceAudioGetter(LoopWorkerBase):
 
             self.remaining_audio = audio[-remaining_samples:] if remaining_samples > 0 else np.array([],
                                                                                                      dtype=np.float32)
-
-        import sounddevice as sd
         with sd.InputStream(samplerate=SAMPLE_RATE,
                             blocksize=round(SAMPLE_RATE * self.recording_interval),
                             device=self.device_index,

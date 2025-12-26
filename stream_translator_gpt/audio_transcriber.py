@@ -23,21 +23,23 @@ def _filter_text(text: str, whisper_filters: str):
 
 class AudioTranscriber(LoopWorkerBase):
 
+    def __init__(self, whisper_filters: str, print_result: bool, output_timestamps: bool,
+                 disable_transcription_context: bool, transcription_initial_prompt: str):
+        self.whisper_filters = whisper_filters
+        self.print_result = print_result
+        self.output_timestamps = output_timestamps
+        self.disable_transcription_context = disable_transcription_context
+        self.transcription_initial_prompt = transcription_initial_prompt
+
+        self.constant_prompt = re.sub(r',\s*', ', ', transcription_initial_prompt) if transcription_initial_prompt else ""
+        if self.constant_prompt and not self.constant_prompt.strip().endswith(','):
+            self.constant_prompt += ','
+
     @abstractmethod
     def transcribe(self, audio: np.array, initial_prompt: str = None) -> str:
         pass
 
-    def loop(self,
-             input_queue: queue.SimpleQueue[TranslationTask],
-             output_queue: queue.SimpleQueue[TranslationTask],
-             whisper_filters: str,
-             print_result: bool,
-             output_timestamps: bool,
-             disable_transcription_context: bool = False,
-             transcription_initial_prompt: str = None):
-        constant_prompt = re.sub(r',\s*', ', ', transcription_initial_prompt) if transcription_initial_prompt else ""
-        if constant_prompt and not constant_prompt.strip().endswith(','):
-            constant_prompt += ','
+    def loop(self, input_queue: queue.SimpleQueue[TranslationTask], output_queue: queue.SimpleQueue[TranslationTask]):
         previous_text = ""
 
         while True:
@@ -46,29 +48,29 @@ class AudioTranscriber(LoopWorkerBase):
                 output_queue.put(None)
                 break
 
-            dynamic_context = previous_text if not disable_transcription_context else ""
+            dynamic_context = previous_text if not self.disable_transcription_context else ""
 
-            if constant_prompt:
-                limit = 500 - len(constant_prompt) - 1
+            if self.constant_prompt:
+                limit = 500 - len(self.constant_prompt) - 1
                 if len(dynamic_context) > limit:
                     if limit > 0:
                         dynamic_context = dynamic_context[-limit:]
                     else:
                         dynamic_context = ""
 
-            initial_prompt = f"{constant_prompt} {dynamic_context}".strip()
+            initial_prompt = f"{self.constant_prompt} {dynamic_context}".strip()
             if not initial_prompt:
                 initial_prompt = None
 
             task.transcript = _filter_text(self.transcribe(task.audio, initial_prompt=initial_prompt),
-                                           whisper_filters).strip()
+                                           self.whisper_filters).strip()
             if not task.transcript:
-                if print_result:
+                if self.print_result:
                     print('skip...')
                 continue
             previous_text = task.transcript
-            if print_result:
-                if output_timestamps:
+            if self.print_result:
+                if self.output_timestamps:
                     timestamp_text = f'{sec2str(task.time_range[0])} --> {sec2str(task.time_range[1])}'
                     print(timestamp_text + ' ' + task.transcript)
                 else:
@@ -78,7 +80,8 @@ class AudioTranscriber(LoopWorkerBase):
 
 class OpenaiWhisper(AudioTranscriber):
 
-    def __init__(self, model: str, language: str) -> None:
+    def __init__(self, model: str, language: str, **kwargs) -> None:
+        super().__init__(**kwargs)
         import whisper
 
         print(f'{INFO}Loading Whisper model: {model}')
@@ -95,7 +98,8 @@ class OpenaiWhisper(AudioTranscriber):
 
 class FasterWhisper(AudioTranscriber):
 
-    def __init__(self, model: str, language: str) -> None:
+    def __init__(self, model: str, language: str, **kwargs) -> None:
+        super().__init__(**kwargs)
         from faster_whisper import WhisperModel
 
         print(f'{INFO}Loading Faster-Whisper model: {model}')
@@ -112,7 +116,8 @@ class FasterWhisper(AudioTranscriber):
 
 class SimulStreaming(AudioTranscriber):
 
-    def __init__(self, model: str, language: str, use_faster_whisper: bool) -> None:
+    def __init__(self, model: str, language: str, use_faster_whisper: bool, **kwargs) -> None:
+        super().__init__(**kwargs)
         from .simul_streaming.simulstreaming_whisper import SimulWhisperASR, SimulWhisperOnline
 
         fw_encoder = None
@@ -155,7 +160,8 @@ class SimulStreaming(AudioTranscriber):
 class RemoteOpenaiTranscriber(AudioTranscriber):
     # https://platform.openai.com/docs/api-reference/audio/createTranscription?lang=python
 
-    def __init__(self, model: str, language: str, proxy: str) -> None:
+    def __init__(self, model: str, language: str, proxy: str, **kwargs) -> None:
+        super().__init__(**kwargs)
         print(f'{INFO}Using {model} API as transcription engine.')
         self.model = model
         self.language = language

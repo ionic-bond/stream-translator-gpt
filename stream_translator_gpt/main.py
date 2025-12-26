@@ -1,12 +1,14 @@
 import argparse
 import os
 import queue
+import signal
 import sys
 import time
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 
 if __name__ == '__main__':
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     __package__ = "stream_translator_gpt"
 
 from .common import ApiKeyPool, start_daemon_thread, is_url, WARNING, ERROR, INFO
@@ -32,144 +34,161 @@ def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_prox
 
     ApiKeyPool.init(openai_api_key=openai_api_key, google_api_key=google_api_key)
 
+    # Init queues
     getter_to_slicer_queue = queue.SimpleQueue()
     slicer_to_transcriber_queue = queue.SimpleQueue()
     transcriber_to_translator_queue = queue.SimpleQueue()
     translator_to_exporter_queue = queue.SimpleQueue() if translation_prompt else transcriber_to_translator_queue
 
-    exporter_thread = start_daemon_thread(
-        ResultExporter.work,
-        output_whisper_result=not hide_transcribe_result,
-        output_timestamps=output_timestamps,
-        proxy=output_proxy,
-        output_file_path=output_file_path,
-        cqhttp_url=cqhttp_url,
-        cqhttp_token=cqhttp_token,
-        discord_webhook_url=discord_webhook_url,
-        telegram_token=telegram_token,
-        telegram_chat_id=telegram_chat_id,
-        input_queue=translator_to_exporter_queue,
-    )
-    if translation_prompt:
-        if google_api_key:
-            llm_client = LLMClient(
-                llm_type=LLMClient.LLM_TYPE.GEMINI,
-                model=gemini_model,
-                prompt=translation_prompt,
-                history_size=translation_history_size,
-                proxy=processing_proxy,
-                use_json_result=use_json_result,
-                gemini_base_url=gemini_base_url,
-            )
-        else:
-            llm_client = LLMClient(
-                llm_type=LLMClient.LLM_TYPE.GPT,
-                model=gpt_model,
-                prompt=translation_prompt,
-                history_size=translation_history_size,
-                proxy=processing_proxy,
-                use_json_result=use_json_result,
-            )
-        if translation_history_size == 0:
-            start_daemon_thread(
-                ParallelTranslator.work,
-                llm_client=llm_client,
-                timeout=translation_timeout,
-                retry_if_translation_fails=retry_if_translation_fails,
-                input_queue=transcriber_to_translator_queue,
-                output_queue=translator_to_exporter_queue,
-            )
-        else:
-            start_daemon_thread(
-                SerialTranslator.work,
-                llm_client=llm_client,
-                timeout=translation_timeout,
-                retry_if_translation_fails=retry_if_translation_fails,
-                input_queue=transcriber_to_translator_queue,
-                output_queue=translator_to_exporter_queue,
-            )
-    if use_simul_streaming:
-        start_daemon_thread(SimulStreaming.work,
-                            model=model,
-                            language=language,
-                            use_faster_whisper=use_faster_whisper,
-                            print_result=not hide_transcribe_result,
-                            output_timestamps=output_timestamps,
-                            input_queue=slicer_to_transcriber_queue,
-                            output_queue=transcriber_to_translator_queue,
-                            whisper_filters=whisper_filters,
-                            disable_transcription_context=disable_transcription_context,
-                            transcription_initial_prompt=transcription_initial_prompt)
-    elif use_faster_whisper:
-        start_daemon_thread(FasterWhisper.work,
-                            model=model,
-                            language=language,
-                            print_result=not hide_transcribe_result,
-                            output_timestamps=output_timestamps,
-                            input_queue=slicer_to_transcriber_queue,
-                            output_queue=transcriber_to_translator_queue,
-                            whisper_filters=whisper_filters,
-                            disable_transcription_context=disable_transcription_context,
-                            transcription_initial_prompt=transcription_initial_prompt)
-    elif use_openai_transcription_api:
-        start_daemon_thread(RemoteOpenaiTranscriber.work,
-                            model=openai_transcription_model,
-                            language=language,
-                            proxy=processing_proxy,
-                            print_result=not hide_transcribe_result,
-                            output_timestamps=output_timestamps,
-                            input_queue=slicer_to_transcriber_queue,
-                            output_queue=transcriber_to_translator_queue,
-                            whisper_filters=whisper_filters,
-                            disable_transcription_context=disable_transcription_context,
-                            transcription_initial_prompt=transcription_initial_prompt)
-    else:
-        start_daemon_thread(OpenaiWhisper.work,
-                            model=model,
-                            language=language,
-                            print_result=not hide_transcribe_result,
-                            output_timestamps=output_timestamps,
-                            input_queue=slicer_to_transcriber_queue,
-                            output_queue=transcriber_to_translator_queue,
-                            whisper_filters=whisper_filters,
-                            disable_transcription_context=disable_transcription_context,
-                            transcription_initial_prompt=transcription_initial_prompt)
+    # Init workers
+    with ThreadPoolExecutor() as executor:
+        def init_audio_getter():
+            if url.lower() == 'device':
+                return DeviceAudioGetter(
+                    device_index=device_index,
+                    recording_interval=device_recording_interval,
+                )
+            elif is_url(url):
+                return StreamAudioGetter(
+                    url=url,
+                    format=format,
+                    cookies=cookies,
+                    proxy=input_proxy,
+                )
+            else:
+                return LocalFileAudioGetter(file_path=url)
+        audio_getter_future = executor.submit(init_audio_getter)
+        slicer_future = executor.submit(
+            AudioSlicer,
+            min_audio_length=min_audio_length,
+            max_audio_length=max_audio_length,
+            target_audio_length=target_audio_length,
+            continuous_no_speech_threshold=continuous_no_speech_threshold,
+            dynamic_no_speech_threshold=not disable_dynamic_no_speech_threshold,
+            prefix_retention_length=prefix_retention_length,
+            vad_threshold=vad_threshold,
+            dynamic_vad_threshold=not disable_dynamic_vad_threshold,
+        )
+        def init_transcriber():
+            common_args = {
+                'whisper_filters': whisper_filters,
+                'print_result': not hide_transcribe_result,
+                'output_timestamps': output_timestamps,
+                'disable_transcription_context': disable_transcription_context,
+                'transcription_initial_prompt': transcription_initial_prompt,
+            }
+            if use_simul_streaming:
+                return SimulStreaming(
+                    model=model,
+                    language=language,
+                    use_faster_whisper=use_faster_whisper,
+                    **common_args
+                )
+            elif use_faster_whisper:
+                return FasterWhisper(
+                    model=model,
+                    language=language,
+                    **common_args
+                )
+            elif use_openai_transcription_api:
+                return RemoteOpenaiTranscriber(
+                    model=openai_transcription_model,
+                    language=language,
+                    proxy=processing_proxy,
+                    **common_args
+                )
+            else:
+                return OpenaiWhisper(
+                    model=model,
+                    language=language,
+                    **common_args
+                )
+        transcriber_future = executor.submit(init_transcriber)
+        def init_translator():
+            if not translation_prompt:
+                return None
+            if google_api_key:
+                llm_client = LLMClient(
+                    llm_type=LLMClient.LLM_TYPE.GEMINI,
+                    model=gemini_model,
+                    prompt=translation_prompt,
+                    history_size=translation_history_size,
+                    proxy=processing_proxy,
+                    use_json_result=use_json_result,
+                    gemini_base_url=gemini_base_url,
+                )
+            else:
+                llm_client = LLMClient(
+                    llm_type=LLMClient.LLM_TYPE.GPT,
+                    model=gpt_model,
+                    prompt=translation_prompt,
+                    history_size=translation_history_size,
+                    proxy=processing_proxy,
+                    use_json_result=use_json_result,
+                )
+            if translation_history_size == 0:
+                return ParallelTranslator(
+                    llm_client=llm_client,
+                    timeout=translation_timeout,
+                    retry_if_translation_fails=retry_if_translation_fails,
+                )
+            else:
+                return SerialTranslator(
+                    llm_client=llm_client,
+                    timeout=translation_timeout,
+                    retry_if_translation_fails=retry_if_translation_fails,
+                )
+        translator_future = executor.submit(init_translator)
+        exporter_future = executor.submit(
+            ResultExporter,
+            cqhttp_url=cqhttp_url,
+            cqhttp_token=cqhttp_token,
+            discord_webhook_url=discord_webhook_url,
+            telegram_token=telegram_token,
+            telegram_chat_id=telegram_chat_id,
+            output_file_path=output_file_path,
+            proxy=output_proxy,
+            output_whisper_result=not hide_transcribe_result,
+            output_timestamps=output_timestamps,
+        )
+
+        audio_getter = audio_getter_future.result()
+        slicer = slicer_future.result()
+        transcriber = transcriber_future.result()
+        translator = translator_future.result()
+        exporter = exporter_future.result()
+
+    if hasattr(audio_getter, '_exit_handler'):
+        signal.signal(signal.SIGINT, audio_getter._exit_handler)
+
+    print(f'{INFO}Initialization complete, starting up...')
+
+    # Start working
+    start_daemon_thread(audio_getter.loop, output_queue=getter_to_slicer_queue)
     start_daemon_thread(
-        AudioSlicer.work,
-        min_audio_length=min_audio_length,
-        max_audio_length=max_audio_length,
-        target_audio_length=target_audio_length,
-        continuous_no_speech_threshold=continuous_no_speech_threshold,
-        dynamic_no_speech_threshold=not disable_dynamic_no_speech_threshold,
-        prefix_retention_length=prefix_retention_length,
-        vad_threshold=vad_threshold,
-        dynamic_vad_threshold=not disable_dynamic_vad_threshold,
+        slicer.loop,
         input_queue=getter_to_slicer_queue,
         output_queue=slicer_to_transcriber_queue,
     )
-    if url.lower() == 'device':
-        DeviceAudioGetter.work(
-            device_index=device_index,
-            recording_interval=device_recording_interval,
-            output_queue=getter_to_slicer_queue,
+    start_daemon_thread(
+        transcriber.loop,
+        input_queue=slicer_to_transcriber_queue,
+        output_queue=transcriber_to_translator_queue,
+    )
+    if translator:
+        start_daemon_thread(
+            translator.loop,
+            input_queue=transcriber_to_translator_queue,
+            output_queue=translator_to_exporter_queue,
         )
-    elif is_url(url):
-        StreamAudioGetter.work(
-            url=url,
-            format=format,
-            cookies=cookies,
-            proxy=input_proxy,
-            output_queue=getter_to_slicer_queue,
-        )
-    else:
-        LocalFileAudioGetter.work(
-            file_path=url,
-            output_queue=getter_to_slicer_queue,
-        )
+    exporter_thread = start_daemon_thread(
+        exporter.loop,
+        input_queue=translator_to_exporter_queue,
+    )
 
     while exporter_thread.is_alive():
         time.sleep(1)
-    print('All processing completed, program exits.')
+    print(f'{INFO}All processing completed, program exits.')
 
 
 def cli():
