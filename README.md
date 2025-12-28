@@ -96,8 +96,6 @@ stream-translator-gpt-webui
 
 ## Command Line
 
-### Installation
-
 **Install release version from PyPI:**
 
 ```
