@@ -85,9 +85,10 @@ class AudioSlicer(LoopWorkerBase):
         if self.dynamic_vad_threshold:
             self.vad_lookback_length = round(30 / FRAME_DURATION)  # 30 seconds
             self.vad_prob_buffer = collections.deque(maxlen=self.vad_lookback_length)
-            self.vad_recalc_interval = round(15 / FRAME_DURATION)  # 15 seconds
+            self.vad_recalc_interval = round(5 / FRAME_DURATION)   # 5 seconds
             self.vad_recalc_quantile = 0.5
             self.min_vad_threshold = 0.0001
+            self.max_vad_threshold = 0.6
 
     def put(self, audio: np.array):
         self.counter += 1
@@ -103,7 +104,7 @@ class AudioSlicer(LoopWorkerBase):
             self.audio_buffer.append(audio)
             self.no_speech_count += 1
             self.continuous_no_speech_count += 1
-        if self.speech_count and self.no_speech_count / 5 > self.speech_count:
+        if self.speech_count and self.no_speech_count / 10 > self.speech_count:
             self.slice()
 
         if self.dynamic_vad_threshold:
@@ -111,8 +112,9 @@ class AudioSlicer(LoopWorkerBase):
             if self.counter >= self.vad_lookback_length and self.counter % self.vad_recalc_interval == 0:
                 data = np.array(self.vad_prob_buffer)
                 new_vad_threshold = np.quantile(data, self.vad_recalc_quantile, method='linear') * 0.7
-                self.vad_threshold = self.vad_threshold * 0.5 + new_vad_threshold * 0.5
+                self.vad_threshold = self.vad_threshold * 0.25 + new_vad_threshold * 0.75
                 self.vad_threshold = max(self.vad_threshold, self.min_vad_threshold)
+                self.vad_threshold = min(self.vad_threshold, self.max_vad_threshold)
                 self.vad_neg_threshold = _get_neg_threshold(self.vad_threshold)
 
     def should_slice(self):

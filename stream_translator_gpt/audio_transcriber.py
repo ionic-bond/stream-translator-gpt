@@ -9,6 +9,7 @@ import numpy as np
 
 from . import filters
 from .common import TranslationTask, SAMPLE_RATE, LoopWorkerBase, sec2str, ApiKeyPool, INFO
+from .simul_streaming.simul_whisper.whisper.utils import compression_ratio
 
 
 def _filter_text(text: str, whisper_filters: str):
@@ -37,7 +38,12 @@ class AudioTranscriber(LoopWorkerBase):
             self.constant_prompt += ','
 
     @abstractmethod
-    def transcribe(self, audio: np.array, initial_prompt: str = None) -> str:
+    def transcribe(self, audio: np.array, initial_prompt: str = None) -> tuple[str, list | None]:
+        """Returns (text, tokens). tokens can be None if not available."""
+        pass
+
+    def reset_context(self):
+        """Override in subclass to reset model context when repetition is detected."""
         pass
 
     def loop(self, input_queue: queue.SimpleQueue[TranslationTask], output_queue: queue.SimpleQueue[TranslationTask]):
@@ -63,13 +69,25 @@ class AudioTranscriber(LoopWorkerBase):
             if not initial_prompt:
                 initial_prompt = None
 
-            task.transcript = _filter_text(self.transcribe(task.audio, initial_prompt=initial_prompt),
-                                           self.whisper_filters).strip()
+            text, tokens = self.transcribe(task.audio, initial_prompt=initial_prompt)
+
+            if self.constant_prompt and text.strip().rstrip(',') == self.constant_prompt.strip().rstrip(','):
+                text = ""
+
+            # Repetition detection: reset context if compression ratio too high OR token diversity too low
+            is_repetitive = False
+            if len(text) > 10:
+                zlib_ratio = compression_ratio(text)
+                unique_ratio = len(set(tokens)) / len(tokens) if tokens else 1.0
+
+                if zlib_ratio > 2.0 or unique_ratio < 0.4:
+                    self.reset_context()
+                    is_repetitive = True
+
+            task.transcript = _filter_text(text, self.whisper_filters).strip()
             if not task.transcript:
-                if self.print_result:
-                    print('skip...')
                 continue
-            previous_text = task.transcript
+            previous_text = "" if is_repetitive else task.transcript
             if self.print_result:
                 if self.output_timestamps:
                     timestamp_text = f'{sec2str(task.time_range[0])} --> {sec2str(task.time_range[1])}'
@@ -89,12 +107,16 @@ class OpenaiWhisper(AudioTranscriber):
         self.model = whisper.load_model(model)
         self.language = language
 
-    def transcribe(self, audio: np.array, initial_prompt: str = None) -> str:
+    def transcribe(self, audio: np.array, initial_prompt: str = None) -> tuple[str, list | None]:
         result = self.model.transcribe(audio,
                                        without_timestamps=True,
                                        language=self.language,
                                        initial_prompt=initial_prompt)
-        return result.get('text')
+        text = result.get('text', '')
+        tokens = []
+        for segment in result.get('segments', []):
+            tokens.extend(segment.get('tokens', []))
+        return text, tokens if tokens else None
 
 
 class FasterWhisper(AudioTranscriber):
@@ -107,12 +129,14 @@ class FasterWhisper(AudioTranscriber):
         self.model = WhisperModel(model, device='auto', compute_type='auto')
         self.language = language
 
-    def transcribe(self, audio: np.array, initial_prompt: str = None) -> str:
+    def transcribe(self, audio: np.array, initial_prompt: str = None) -> tuple[str, list | None]:
         segments, info = self.model.transcribe(audio, language=self.language, initial_prompt=initial_prompt)
-        transcript = ''
+        text = ''
+        tokens = []
         for segment in segments:
-            transcript += segment.text
-        return transcript
+            text += segment.text
+            tokens.extend(getattr(segment, 'tokens', None) or [])
+        return text, tokens if tokens else None
 
 
 class SimulStreaming(AudioTranscriber):
@@ -140,7 +164,7 @@ class SimulStreaming(AudioTranscriber):
             "beams": 1,
             "decoder_type": "greedy",
             "never_fire": False,
-            "init_prompt": None,
+            "init_prompt": self.constant_prompt,
             "static_init_prompt": None,
             "max_context_tokens": None,
             "logdir": None,
@@ -148,14 +172,16 @@ class SimulStreaming(AudioTranscriber):
         }
         asr = SimulWhisperASR(**simulstreaming_params)
         self.asr_online = SimulWhisperOnline(asr)
-
-    def transcribe(self, audio: np.array, initial_prompt: str = None) -> str:
-        if initial_prompt:
-            self.asr_online.model.cfg.init_prompt = initial_prompt
         self.asr_online.init()
+
+    def transcribe(self, audio: np.array, initial_prompt: str = None) -> tuple[str, list | None]:
         self.asr_online.insert_audio_chunk(audio)
-        result = self.asr_online.finish()
-        return result.get('text', '')
+        result = self.asr_online.process_iter(is_last=True)
+        return result.get('text', ''), result.get('tokens', None)
+
+    def reset_context(self):
+        self.asr_online.model.refresh_segment(complete=True)
+        self.asr_online.unicode_buffer = []
 
 
 class RemoteOpenaiTranscriber(AudioTranscriber):
@@ -168,7 +194,7 @@ class RemoteOpenaiTranscriber(AudioTranscriber):
         self.language = language
         self.proxy = proxy
 
-    def transcribe(self, audio: np.array, initial_prompt: str = None) -> str:
+    def transcribe(self, audio: np.array, initial_prompt: str = None) -> tuple[str, list | None]:
         from openai import OpenAI
         import httpx
 
@@ -189,4 +215,4 @@ class RemoteOpenaiTranscriber(AudioTranscriber):
         ApiKeyPool.use_openai_api()
         client = OpenAI(http_client=httpx.Client(proxy=self.proxy))
         result = client.audio.transcriptions.create(**call_args).text
-        return result
+        return result, None

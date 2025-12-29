@@ -62,7 +62,6 @@ class SimulWhisperOnline(OnlineProcessorInterface):
             self.offset = offset
         else:
             self.offset = 0
-        self.is_last = False
         self.beg = self.offset
         self.end = self.offset
 
@@ -75,19 +74,19 @@ class SimulWhisperOnline(OnlineProcessorInterface):
     def insert_audio_chunk(self, audio):
         self.audio_chunks.append(torch.from_numpy(audio))
 
-    def timestamped_text(self, tokens, generation):
+    def timestamped_text(self, tokens, generation, prepended_len=0):
         if not generation:
             return []
 
         pr = generation["progress"]
-        if "result" not in generation or self.unicode_buffer != []:
+        if "result" not in generation or prepended_len > 0 or self.unicode_buffer != []:
             split_words, split_tokens = self.model.tokenizer.split_to_word_tokens(tokens)
         else:
             split_words, split_tokens = generation["result"]["split_words"], generation["result"]["split_tokens"]
 
         frames = [p["most_attended_frames"][0] for p in pr]
-        if frames and self.unicode_buffer != []:
-            a = [frames[0]] * len(self.unicode_buffer)
+        if frames and prepended_len > 0:
+            a = [frames[0]] * prepended_len
             frames = a + frames
 
         tokens = tokens.copy()
@@ -125,7 +124,7 @@ class SimulWhisperOnline(OnlineProcessorInterface):
             return tokens[:-1]  # remove the last token, which is incomplete unicode character
         return tokens
 
-    def process_iter(self):
+    def process_iter(self, is_last=False):
         if len(self.audio_chunks) == 0:
             audio = None
         else:
@@ -136,8 +135,9 @@ class SimulWhisperOnline(OnlineProcessorInterface):
                 self.end += audio.shape[0] / self.SAMPLING_RATE
         self.audio_chunks = []
         self.audio_bufer_offset += self.model.insert_audio(audio)
-        tokens, generation_progress = self.model.infer(is_last=self.is_last)
+        tokens, generation_progress = self.model.infer(is_last=is_last)
 
+        prepended_len = len(self.unicode_buffer)
         tokens = self.hide_incomplete_unicode(tokens)
 
         text = self.model.tokenizer.decode(tokens)
@@ -145,12 +145,12 @@ class SimulWhisperOnline(OnlineProcessorInterface):
             return {}
 
         # word-level timestamps
-        ts_words = self.timestamped_text(tokens, generation_progress)
+        ts_words = self.timestamped_text(tokens, generation_progress, prepended_len)
 
         self.beg = min(word['start'] for word in ts_words)  # it should be this
         self.beg = max(self.beg,
                        self.last_ts + 0.001)  # but let's create the timestamps non-decreasing -- at least last beg + 1
-        if self.is_last:
+        if is_last:
             e = self.end
         else:
             e = max(word['end'] for word in ts_words)
@@ -162,8 +162,6 @@ class SimulWhisperOnline(OnlineProcessorInterface):
         return {'start': self.beg, 'end': e, 'text': text, 'tokens': tokens, 'words': ts_words}
 
     def finish(self):
-        self.is_last = True
-        o = self.process_iter()
-        self.is_last = False
+        o = self.process_iter(is_last=True)
         self.model.refresh_segment(complete=True)
         return o
