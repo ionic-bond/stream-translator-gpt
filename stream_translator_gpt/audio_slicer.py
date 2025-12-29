@@ -85,7 +85,7 @@ class AudioSlicer(LoopWorkerBase):
         if self.dynamic_vad_threshold:
             self.vad_lookback_length = round(30 / FRAME_DURATION)  # 30 seconds
             self.vad_prob_buffer = collections.deque(maxlen=self.vad_lookback_length)
-            self.vad_recalc_interval = round(5 / FRAME_DURATION)   # 5 seconds
+            self.vad_recalc_interval = round(5 / FRAME_DURATION)  # 5 seconds
             self.vad_recalc_quantile = 0.5
             self.min_vad_threshold = 0.0001
             self.max_vad_threshold = 0.6
