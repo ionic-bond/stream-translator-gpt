@@ -23,6 +23,7 @@ DEC_PAD = 50257
 
 import sys
 import wave
+import gc
 
 
 # New features added to the original version of Simul-Whisper:
@@ -504,6 +505,18 @@ class PaddedAlignAttWhisper:
         self._clean_cache()
 
         self.logdir_save(input_segments, new_hypothesis, generation)
+
+        # Cleanup to prevent memory leaks
+        del encoder_feature
+        del input_segments
+        if 'mel' in locals():
+            del mel
+        if 'encoder_feature_ctranslate' in locals():
+            del encoder_feature_ctranslate
+        
+        torch.cuda.empty_cache()
+        gc.collect()
+
         return new_hypothesis, generation
 
     def logdir_save(self, input_segments, new_hypothesis, generation):
