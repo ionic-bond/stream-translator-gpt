@@ -255,7 +255,7 @@ class PaddedAlignAttWhisper:
                 text_to_append = self.tokenizer.decode(self.tokens[1][0, :])
                 sanitized_text = symbol_filter(text_to_append)
                 self.context.append_text(sanitized_text)
-                
+
                 self.tokens = [self.initial_tokens] + self.tokens[2:]
         return removed_len
 

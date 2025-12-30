@@ -11,9 +11,9 @@ def symbol_filter(text: str):
     It removes symbols like ♪ and applies standard emoji filtering.
     """
     text = emoji_filter(text)
-    
+
     # Remove music notes which often trigger singing hallucinations
-    # Also remove Miscellaneous Symbols (2600-26FF), Dingbats (2700-27BF), 
+    # Also remove Miscellaneous Symbols (2600-26FF), Dingbats (2700-27BF),
     # and Musical Symbols (1D100-1D1FF)
     return re.sub(r'[♪♫♬♩\u2600-\u26FF\u2700-\u27BF\U0001D100-\U0001D1FF]', '', text)
 
