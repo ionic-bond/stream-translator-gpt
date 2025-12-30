@@ -66,6 +66,9 @@ class TokenBuffer:
         assert tokenizer is not None, "Tokenizer is not set."
         self.text += self.tokenizer.decode(token_ids)
 
+    def append_text(self, text):
+        self.text += text
+
     def as_split_word_tokens(self):
         tokenizer = self.tokenizer
         assert tokenizer is not None, "Tokenizer is not set."

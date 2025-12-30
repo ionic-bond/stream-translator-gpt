@@ -250,7 +250,12 @@ class PaddedAlignAttWhisper:
             self.last_attend_frame -= int(TOKENS_PER_SECOND * removed_len)
             self.segments = self.segments[1:]
             if len(self.tokens) > 1:
-                self.context.append_token_ids(self.tokens[1][0, :])
+                # [MODIFIED] Decode, filter, and then append text to prevent hallucination loops
+                from ...filters import symbol_filter
+                text_to_append = self.tokenizer.decode(self.tokens[1][0, :])
+                sanitized_text = symbol_filter(text_to_append)
+                self.context.append_text(sanitized_text)
+                
                 self.tokens = [self.initial_tokens] + self.tokens[2:]
         return removed_len
 

@@ -5,12 +5,25 @@ def emoji_filter(text: str):
     return re.sub(r'[\U0001F600-\U0001F64F\U0001F300-\U0001F5FF\U0001F680-\U0001F6FF\U0001F1E0-\U0001F1FF]+', '', text)
 
 
+def symbol_filter(text: str):
+    """
+    Filter used for SimulStreaming context to prevent hallucinations.
+    It removes symbols like ♪ and applies standard emoji filtering.
+    """
+    text = emoji_filter(text)
+    
+    # Remove music notes which often trigger singing hallucinations
+    # Also remove Miscellaneous Symbols (2600-26FF), Dingbats (2700-27BF), 
+    # and Musical Symbols (1D100-1D1FF)
+    return re.sub(r'[♪♫♬♩\u2600-\u26FF\u2700-\u27BF\U0001D100-\U0001D1FF]', '', text)
+
+
 def japanese_stream_filter(text: str):
     for filter_pattern in [
             r'【.+】', r'ご視聴ありがとうございました', r'チャンネル登録をお願いいたします', r'ご視聴いただきありがとうございます', r'チャンネル登録してね', r'字幕視聴ありがとうございました',
             r'動画をご覧頂きましてありがとうございました', r'次の動画でお会いしましょう', r'最後までご視聴頂きありがとうございました', r'次の動画もお楽しみに', r'次回もお楽しみに',
             r'また次回の動画でお会いしましょう', r'ご覧いただきありがとうございます', r'最後までご視聴頂き有難うございました', r'最後までご視聴頂き有難う御座いました',
-            r'チャンネル登録よろしくお願いします', r'おつかれさまです', r'チャンネル登録よろしくね'
+            r'チャンネル登録よろしくお願いします', r'おつかれさまです', r'チャンネル登録よろしくね', r'ご視聴頂きありがとうございました', r'最後まで見ていただきありがとうございます'
     ]:
         text = re.sub(filter_pattern, '', text)
 
