@@ -111,7 +111,7 @@ class AudioSlicer(LoopWorkerBase):
             self.vad_prob_buffer.append(speech_prob)
             if self.counter >= self.vad_lookback_length and self.counter % self.vad_recalc_interval == 0:
                 data = np.array(self.vad_prob_buffer)
-                new_vad_threshold = np.quantile(data, self.vad_recalc_quantile, method='linear') * 0.7
+                new_vad_threshold = np.quantile(data, self.vad_recalc_quantile, method='linear')
                 self.vad_threshold = self.vad_threshold * 0.25 + new_vad_threshold * 0.75
                 self.vad_threshold = max(self.vad_threshold, self.min_vad_threshold)
                 self.vad_threshold = min(self.vad_threshold, self.max_vad_threshold)

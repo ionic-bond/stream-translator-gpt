@@ -32,7 +32,7 @@ def japanese_stream_filter(text: str):
             print('filter', text)
             return ''
 
-    for filter_text in ['エンディング', '次回予告', 'またね', 'ありがとうございました', 'それではまた', 'それではまた。', 'また会いましょう']:
+    for filter_text in ['エンディング', '次回予告', 'またね', 'ありがとうございました', 'それではまた', 'それではまた。', 'また会いましょう', 'おわり', 'お疲れ様でした', 'おやすみなさい']:
         if filter_text == text:
             print('filter', text)
             return ''
