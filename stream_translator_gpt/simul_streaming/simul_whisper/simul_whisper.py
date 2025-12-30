@@ -513,7 +513,7 @@ class PaddedAlignAttWhisper:
             del mel
         if 'encoder_feature_ctranslate' in locals():
             del encoder_feature_ctranslate
-        
+
         torch.cuda.empty_cache()
         gc.collect()
 
