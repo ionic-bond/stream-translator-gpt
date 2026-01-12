@@ -157,7 +157,7 @@ class SimulStreaming(AudioTranscriber):
             "model": model,
             "cif_ckpt_path": None,
             "frame_threshold": 25,
-            "audio_max_len": 20.0,
+            "audio_max_len": 10.0,
             "audio_min_len": 0.0,
             "segment_length": 0.5,
             "task": "transcribe",
@@ -166,7 +166,7 @@ class SimulStreaming(AudioTranscriber):
             "never_fire": False,
             "init_prompt": self.constant_prompt,
             "static_init_prompt": None,
-            "max_context_tokens": None,
+            "max_context_tokens": 50,
             "logdir": None,
             "fw_encoder": fw_encoder,
         }
