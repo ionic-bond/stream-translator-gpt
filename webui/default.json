@@ -1,8 +1,8 @@
 {
     "input_type": "URL",
     "input_url": "",
-    "device_index": null,
     "device_rec_interval": 0.5,
+    "audio_source": "Output Audio",
     "input_file": null,
     "input_format": "ba/wa*",
     "input_cookies": null,

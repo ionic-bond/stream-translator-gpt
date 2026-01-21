@@ -153,15 +153,13 @@ The commands on Colab [![Open In Colab](https://colab.research.google.com/assets
 
     ```stream-translator-gpt /path/to/file --model large --language {input_language}```
 
-- Computer microphone as input:
+- Record system audio as input:
 
     ```stream-translator-gpt device --model large --language {input_language}```
-    
-    Will use the system's default audio device as input.
 
-    If you want to use another audio input device, `stream-translator-gpt device --list_devices` get device index and then run the CLI with `--device_index {index}`.
+- Record microphone as input:
 
-    If you want to use the audio output of another program as input, you need to [**enable stereo mix**](https://www.howtogeek.com/39532/how-to-enable-stereo-mix-in-windows-7-to-record-audio/).
+    ```stream-translator-gpt device --model large --language {input_language} --mic```
 
 - Sending result to Discord:
 

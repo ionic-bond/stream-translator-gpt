@@ -1,5 +1,6 @@
 import argparse
 import os
+import platform
 import queue
 import signal
 import sys
@@ -21,7 +22,7 @@ from . import __version__
 
 
 def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_proxy, device_index,
-         device_recording_interval, min_audio_length, max_audio_length, target_audio_length,
+         device_recording_interval, mic, min_audio_length, max_audio_length, target_audio_length,
          continuous_no_speech_threshold, disable_dynamic_no_speech_threshold, prefix_retention_length, vad_threshold,
          disable_dynamic_vad_threshold, model, language, use_faster_whisper, use_simul_streaming,
          use_openai_transcription_api, openai_transcription_model, whisper_filters, disable_transcription_context,
@@ -47,7 +48,8 @@ def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_prox
             if url.lower() == 'device':
                 return DeviceAudioGetter(
                     device_index=device_index,
-                    recording_interval=device_recording_interval,
+                    use_mic=mic,
+                    interval=device_recording_interval,
                 )
             elif is_url(url):
                 return StreamAudioGetter(
@@ -237,7 +239,6 @@ def cli():
         help=
         'The index of the device that needs to be recorded. If not set, the system default recording device will be used.'
     )
-    parser.add_argument('--list_devices', action='store_true', help='Print all audio devices info then exit.')
     parser.add_argument(
         '--device_recording_interval',
         type=float,
@@ -245,6 +246,9 @@ def cli():
         help=
         'The shorter the recording interval, the lower the latency, but it will increase CPU usage. It is recommended to set it between 0.1 and 1.0.'
     )
+    parser.add_argument('--list_devices', action='store_true', help='Print all audio devices info then exit.')
+    parser.add_argument('--mic', action='store_true', help='Use microphone instead of system audio (loopback).')
+
     parser.add_argument('--min_audio_length', type=float, default=0.5, help='Minimum slice audio length in seconds.')
     parser.add_argument('--max_audio_length', type=float, default=30.0, help='Maximum slice audio length in seconds.')
     parser.add_argument(
@@ -273,7 +277,7 @@ def cli():
         type=float,
         default=0.35,
         help=
-        'Range 0~1. the higher this value, the stricter the speech judgment. If dynamic VAD threshold is enabled (enabled by default), this threshold will be adjusted dynamically based on the input speech\'s VAD results.'
+        'Range 0~1. the higher this value, the stricter the speech judgment. If dynamic VAD threshold is enabled (enabled by default), this threshold will be adjusted dynamically based on this value.'
     )
     parser.add_argument('--disable_dynamic_vad_threshold',
                         action='store_true',
@@ -419,8 +423,25 @@ def cli():
             args['output_proxy'] = args['proxy']
 
     if args['list_devices']:
-        import sounddevice as sd
-        print(sd.query_devices())
+        if platform.system() == 'Windows':
+            import pyaudiowpatch as pa
+        else:
+            import pyaudio as pa
+
+        pyaudio = pa.PyAudio()
+        info = pyaudio.get_host_api_info_by_type(pa.paWASAPI) if platform.system() == 'Windows' else None
+
+        print("Available audio devices:")
+        for i in range(pyaudio.get_device_count()):
+            dev = pyaudio.get_device_info_by_index(i)
+            if dev.get('maxInputChannels') > 0:
+                print(f"{dev['index']}: {dev['name']}")
+
+        if platform.system() == 'Windows':
+             print("\nLoopback devices (for system audio):")
+             for loopback in pyaudio.get_loopback_device_info_generator():
+                 print(f"{loopback['index']}: {loopback['name']}")
+        pyaudio.terminate()
         exit(0)
 
     if args['list_format']:

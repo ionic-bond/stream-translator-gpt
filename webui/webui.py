@@ -80,7 +80,7 @@ SETTINGS_FILE = os.path.join(USER_CONFIG_DIR, "settings.json")
 os.makedirs(USER_PRESETS_DIR, exist_ok=True)
 
 INPUT_KEYS = [
-    "input_type", "input_url", "device_index", "device_rec_interval", "input_file", "input_format", "input_cookies",
+    "input_type", "input_url", "device_rec_interval", "audio_source", "input_file", "input_format", "input_cookies",
     "input_proxy", "openai_key", "google_key", "gpt_base_url", "gemini_base_url", "overall_proxy", "model_size",
     "language", "whisper_backend", "openai_transcription_model", "vad_threshold", "min_audio_len", "max_audio_len",
     "target_audio_len", "silence_threshold", "disable_dynamic_vad", "disable_dynamic_silence", "prefix_retention_len",
@@ -222,8 +222,8 @@ def build_translator_command(
         *,  # Enforce keyword-only arguments
         input_type,
         url,
-        device_index,
         device_rec_interval,
+        audio_source,
         file_path,
         input_format,
         input_cookies,
@@ -320,9 +320,9 @@ def build_translator_command(
         target_url = url
     elif input_type == "Device":
         target_url = "device"
-        if device_index is not None:
-            cmd.extend(["--device_index", str(int(device_index))])
         add_arg("--device_recording_interval", device_rec_interval, "device_rec_interval")
+        if audio_source == "Input Audio":
+            cmd.append("--mic")
     elif input_type == "File":
         if not file_path:
             return None, "Error: File path is required.\n"
@@ -444,8 +444,8 @@ def run_translator(
         # Input
         input_type,
         url,
-        device_index,
         device_rec_interval,
+        audio_source,
         file_path,
         input_format,
         input_cookies,
@@ -520,8 +520,8 @@ def run_translator(
     # Construct command
     cmd, error = build_translator_command(input_type=input_type,
                                           url=url,
-                                          device_index=device_index,
                                           device_rec_interval=device_rec_interval,
+                                          audio_source=audio_source,
                                           file_path=file_path,
                                           input_format=input_format,
                                           input_cookies=input_cookies,
@@ -616,15 +616,7 @@ def stop_translator():
     return "No running process to stop."
 
 
-def run_list_devices():
-    cmd = [sys.executable, "-m", "stream_translator_gpt", "device", "--list_devices"]
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True, env=get_subprocess_env())
-        return result.stdout
-    except subprocess.CalledProcessError as e:
-        return f"Error listing devices:\n{e.stderr}"
-    except Exception as e:
-        return f"Error: {str(e)}"
+
 
 
 def run_list_formats(url, cookies, input_proxy):
@@ -691,12 +683,18 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
 
             with gr.Group(visible=False) as device_group:
                 with gr.Row():
-                    device_index = gr.Number(label=i18n.get("device_index"), precision=0, scale=3)
-                    list_devices_btn = gr.Button(i18n.get("list_available_devices"), scale=1)
-                device_rec_interval = gr.Slider(0.1,
-                                                5.0,
-                                                value=get_default("device_rec_interval"),
-                                                label=i18n.get("recording_interval"))
+                    audio_source = gr.Radio(choices=[(i18n.get("audio_input_option"), "Input Audio"),
+                                                     (i18n.get("audio_output_option"), "Output Audio")],
+                                            value=get_default("audio_source", "Output Audio"),
+                                            label=i18n.get("audio_source"),
+                                            interactive=True,
+                                            scale=1)
+                    device_rec_interval = gr.Slider(0.1,
+                                                    5.0,
+                                                    value=get_default("device_rec_interval"),
+                                                    label=i18n.get("recording_interval"),
+                                                    info=i18n.get("recording_interval_info"),
+                                                    scale=1)
 
             with gr.Group(visible=False) as file_group:
                 input_file = gr.File(label=i18n.get("local_file_path"), type="filepath", file_count="single")
@@ -967,7 +965,7 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
     # Start Action
     start_btn.click(run_translator,
                     inputs=[
-                        input_type, input_url, device_index, device_rec_interval, input_file, input_format,
+                        input_type, input_url, device_rec_interval, audio_source, input_file, input_format,
                         input_cookies, input_proxy, openai_key, google_key, overall_proxy, model_size, language,
                         whisper_backend, openai_transcription_model, vad_threshold, min_audio_len, max_audio_len,
                         target_audio_len, silence_threshold, disable_dynamic_vad, disable_dynamic_silence,
@@ -986,7 +984,7 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
     stop_btn.click(stop_translator, outputs=output_box, scroll_to_output=False)
 
     # List Actions
-    list_devices_btn.click(run_list_devices, outputs=output_box, scroll_to_output=False)
+
 
     list_format_btn.click(run_list_formats,
                           inputs=[input_url, input_cookies, input_proxy],

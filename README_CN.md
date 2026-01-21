@@ -153,15 +153,13 @@ Colab上的命令 [![Open In Colab](https://colab.research.google.com/assets/col
 
     ```stream-translator-gpt {文件路径} --model large --language {输入语言}```
 
-- 使用电脑麦克风作为输入:
+- 录制系统声音作为输入:
 
     ```stream-translator-gpt device --model large --language {输入语言}```
 
-  将使用系统的默认音频设备作为输入。
+- 录制麦克风作为输入:
 
-  如果您想使用其他音频输入设备，运行 `stream-translator-gpt device --list_devices` 获取设备索引，然后使用 `--device_index {索引}` 运行 CLI。
-
-  如果您想使用其他程序的音频输出作为输入，您需要 [**启用立体声混音**](https://www.howtogeek.com/39532/how-to-enable-stereo-mix-in-windows-7-to-record-audio/)。
+    ```stream-translator-gpt device --model large --language {输入语言} --mic```
 
 - 发送结果到 Discord:
 
