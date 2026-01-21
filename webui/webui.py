@@ -616,9 +616,6 @@ def stop_translator():
     return "No running process to stop."
 
 
-
-
-
 def run_list_formats(url, cookies, input_proxy):
     if not url:
         return "Error: URL is required to list formats."
@@ -984,7 +981,6 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
     stop_btn.click(stop_translator, outputs=output_box, scroll_to_output=False)
 
     # List Actions
-
 
     list_format_btn.click(run_list_formats,
                           inputs=[input_url, input_cookies, input_proxy],

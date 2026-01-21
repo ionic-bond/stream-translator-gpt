@@ -135,6 +135,7 @@ class LocalFileAudioGetter(LoopWorkerBase):
 
 
 class DeviceAudioGetter(LoopWorkerBase):
+
     def __init__(self, device_index: int, use_mic: bool, interval: float = 0.5) -> None:
         if platform.system() == 'Windows':
             import pyaudiowpatch as pyaudio
@@ -171,17 +172,17 @@ class DeviceAudioGetter(LoopWorkerBase):
                             loopback = next(self.pyaudio.get_loopback_device_info_generator())
                             self.device_index = loopback['index']
                         except StopIteration:
-                             raise RuntimeError("No loopback device found.")
+                            raise RuntimeError("No loopback device found.")
             else:
                 if self.device_index is None:
-                     for i in range(self.pyaudio.get_device_count()):
-                         info = self.pyaudio.get_device_info_by_index(i)
-                         if 'monitor' in info['name'].lower() and info['maxInputChannels'] > 0:
-                             self.device_index = info['index']
-                             break 
-                     else:
-                         raise RuntimeError("No monitor device found for loopback capture.")
-        
+                    for i in range(self.pyaudio.get_device_count()):
+                        info = self.pyaudio.get_device_info_by_index(i)
+                        if 'monitor' in info['name'].lower() and info['maxInputChannels'] > 0:
+                            self.device_index = info['index']
+                            break
+                    else:
+                        raise RuntimeError("No monitor device found for loopback capture.")
+
         self.device_name = self.pyaudio.get_device_info_by_index(self.device_index)['name']
 
     def _exit_handler(self, signum, frame):
@@ -193,12 +194,11 @@ class DeviceAudioGetter(LoopWorkerBase):
 
     def loop(self, output_queue: queue.SimpleQueue[np.array]):
         print(f'{INFO}Recording device: {self.device_name} ({"Input" if self.use_mic else "Output"})')
-        
+
         if platform.system() == 'Windows':
             import pyaudiowpatch as pyaudio
         else:
             import pyaudio
-
 
         try:
             device_info = self.pyaudio.get_device_info_by_index(self.device_index)
@@ -208,18 +208,18 @@ class DeviceAudioGetter(LoopWorkerBase):
             except:
                 native_channels = 1
             if native_channels < 1:
-                 native_channels = 2
+                native_channels = 2
 
             read_size = int(native_rate * self.interval)
             self.stream = self.pyaudio.open(format=pyaudio.paFloat32,
-                                      channels=native_channels,
-                                      rate=native_rate,
-                                      input=True,
-                                      input_device_index=self.device_index,
-                                      frames_per_buffer=read_size)
+                                            channels=native_channels,
+                                            rate=native_rate,
+                                            input=True,
+                                            input_device_index=self.device_index,
+                                            frames_per_buffer=read_size)
             self.stream.start_stream()
             buffer = np.array([], dtype=np.float32)
-            
+
             while self.stream.is_active():
                 try:
                     in_data = self.stream.read(read_size, exception_on_overflow=False)
@@ -245,4 +245,3 @@ class DeviceAudioGetter(LoopWorkerBase):
                 self.stream.close()
             self.pyaudio.terminate()
         output_queue.put(None)
-

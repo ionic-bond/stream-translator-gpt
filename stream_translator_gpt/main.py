@@ -438,9 +438,9 @@ def cli():
                 print(f"{dev['index']}: {dev['name']}")
 
         if platform.system() == 'Windows':
-             print("\nLoopback devices (for system audio):")
-             for loopback in pyaudio.get_loopback_device_info_generator():
-                 print(f"{loopback['index']}: {loopback['name']}")
+            print("\nLoopback devices (for system audio):")
+            for loopback in pyaudio.get_loopback_device_info_generator():
+                print(f"{loopback['index']}: {loopback['name']}")
         pyaudio.terminate()
         exit(0)
 
