@@ -704,6 +704,10 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
 
             with gr.Group():
                 with gr.Row():
+                    target_audio_len = gr.Slider(1.0,
+                                                 30.0,
+                                                 value=get_default("target_audio_len"),
+                                                 label=i18n.get("target_audio_length"))
                     min_audio_len = gr.Slider(0.1,
                                               10.0,
                                               value=get_default("min_audio_len"),
@@ -712,10 +716,6 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                                               60.0,
                                               value=get_default("max_audio_len"),
                                               label=i18n.get("max_audio_length"))
-                target_audio_len = gr.Slider(1.0,
-                                             30.0,
-                                             value=get_default("target_audio_len"),
-                                             label=i18n.get("target_audio_length"))
 
                 with gr.Row():
                     silence_threshold = gr.Slider(0.0,
