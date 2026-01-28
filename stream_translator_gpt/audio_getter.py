@@ -200,8 +200,6 @@ class DeviceAudioGetter(LoopWorkerBase):
     def loop(self, output_queue: queue.SimpleQueue[np.array]):
         print(f'{INFO}Recording device: {self.device_name} ({"Input" if self.use_mic else "Output"})')
 
-
-
         try:
             device_info = self.pyaudio.get_device_info_by_index(self.device_index)
             native_rate = int(device_info['defaultSampleRate'])
