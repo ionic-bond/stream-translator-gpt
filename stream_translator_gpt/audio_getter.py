@@ -140,9 +140,14 @@ class DeviceAudioGetter(LoopWorkerBase):
         if platform.system() == 'Windows':
             import pyaudiowpatch as pyaudio
         else:
-            import pyaudio
+            try:
+                import pyaudio
+            except ImportError as e:
+                raise RuntimeError("PyAudio is not installed. Please install it to use device capture.\n"
+                                   "Debian/Ubuntu/Colab: apt install portaudio19-dev && pip install pyaudio") from e
 
         self.pyaudio = pyaudio.PyAudio()
+        self.pyaudio_module = pyaudio
         self.device_index = device_index
         self.use_mic = use_mic
         self.interval = interval
@@ -195,10 +200,7 @@ class DeviceAudioGetter(LoopWorkerBase):
     def loop(self, output_queue: queue.SimpleQueue[np.array]):
         print(f'{INFO}Recording device: {self.device_name} ({"Input" if self.use_mic else "Output"})')
 
-        if platform.system() == 'Windows':
-            import pyaudiowpatch as pyaudio
-        else:
-            import pyaudio
+
 
         try:
             device_info = self.pyaudio.get_device_info_by_index(self.device_index)
@@ -211,7 +213,7 @@ class DeviceAudioGetter(LoopWorkerBase):
                 native_channels = 2
 
             read_size = int(native_rate * self.interval)
-            self.stream = self.pyaudio.open(format=pyaudio.paFloat32,
+            self.stream = self.pyaudio.open(format=self.pyaudio_module.paFloat32,
                                             channels=native_channels,
                                             rate=native_rate,
                                             input=True,

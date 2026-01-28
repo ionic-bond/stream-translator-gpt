@@ -426,7 +426,12 @@ def cli():
         if platform.system() == 'Windows':
             import pyaudiowpatch as pa
         else:
-            import pyaudio as pa
+            try:
+                import pyaudio as pa
+            except ImportError:
+                print("PyAudio is not installed. Unable to list devices.")
+                print("Debian/Ubuntu/Colab: apt install portaudio19-dev && pip install pyaudio")
+                exit(1)
 
         pyaudio = pa.PyAudio()
         info = pyaudio.get_host_api_info_by_type(pa.paWASAPI) if platform.system() == 'Windows' else None

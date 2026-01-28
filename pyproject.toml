@@ -44,7 +44,6 @@ dependencies = [
   "yt-dlp>=2025.11.12",
   "ffmpeg-python>=0.2.0,<0.3",
   "pyaudiowpatch>=0.2.12,<0.3; sys_platform == 'win32'",
-  "pyaudio>=0.2.14,<0.3; sys_platform != 'win32'",
   "openai-whisper==20250625",
   "faster-whisper>=1.1.1,<2.0.0",
   "openai>=2.0,<3.0",
