@@ -97,7 +97,7 @@ class LLMClient():
         import httpx
 
         ApiKeyPool.use_openai_api()
-        client = OpenAI(http_client=httpx.Client(proxy=self.proxy))
+        client = OpenAI(http_client=httpx.Client(proxy=self.proxy, verify=False))
         system_prompt = 'You are a professional translator. Translate the text accurately and concisely. Do not output any explanation or extra text.'
         if self.use_json_result:
             system_prompt += " Output the answer in json format, key is translation."
@@ -155,7 +155,9 @@ class LLMClient():
 
         http_options = {}
         if self.proxy:
-            http_options['client_args'] = {'proxy': self.proxy}
+            http_options['client_args'] = {'proxy': self.proxy, 'verify': False}
+        else:
+            http_options['client_args'] = {'verify': False}
 
         if self.gemini_base_url:
             http_options['base_url'] = self.gemini_base_url
