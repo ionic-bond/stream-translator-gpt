@@ -370,16 +370,16 @@ def build_translator_command(
     if disable_transcription_context:
         cmd.append("--disable_transcription_context")
 
-    whisper_filters = []
+    transcription_filters = []
     if filter_emoji:
-        whisper_filters.append("emoji_filter")
+        transcription_filters.append("emoji_filter")
     if filter_repetition:
-        whisper_filters.append("repetition_filter")
+        transcription_filters.append("repetition_filter")
     if filter_japanese_stream:
-        whisper_filters.append("japanese_stream_filter")
+        transcription_filters.append("japanese_stream_filter")
 
-    if whisper_filters:
-        add_arg("--whisper_filters", ",".join(whisper_filters), "whisper_filters")
+    if transcription_filters:
+        add_arg("--transcription_filters", ",".join(transcription_filters), "transcription_filters")
 
     add_arg("--transcription_initial_prompt", transcription_initial_prompt, "transcription_initial_prompt")
 

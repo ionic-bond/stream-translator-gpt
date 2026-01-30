@@ -25,7 +25,7 @@ def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_prox
          device_recording_interval, mic, min_audio_length, max_audio_length, target_audio_length,
          continuous_no_speech_threshold, disable_dynamic_no_speech_threshold, prefix_retention_length, vad_threshold,
          disable_dynamic_vad_threshold, model, language, use_faster_whisper, use_simul_streaming,
-         use_openai_transcription_api, openai_transcription_model, whisper_filters, disable_transcription_context,
+         use_openai_transcription_api, openai_transcription_model, transcription_filters, disable_transcription_context,
          transcription_initial_prompt, translation_prompt, translation_history_size, gpt_model, gemini_model,
          translation_timeout, gpt_base_url, gemini_base_url, processing_proxy, use_json_result,
          retry_if_translation_fails, output_timestamps, hide_transcribe_result, output_proxy, output_file_path,
@@ -76,7 +76,7 @@ def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_prox
 
         def init_transcriber():
             common_args = {
-                'whisper_filters': whisper_filters,
+                'transcription_filters': transcription_filters,
                 'print_result': not hide_transcribe_result,
                 'output_timestamps': output_timestamps,
                 'disable_transcription_context': disable_transcription_context,
@@ -318,11 +318,17 @@ def cli():
         default='gpt-4o-mini-transcribe',
         help='OpenAI\'s transcription model name, whisper-1 / gpt-4o-mini-transcribe / gpt-4o-transcribe')
     parser.add_argument(
-        '--whisper_filters',
+        '--transcription_filters',
         type=str,
         default='emoji_filter,repetition_filter',
         help=
-        'Filters apply to whisper results, separated by ",". We provide emoji_filter, repetition_filter and japanese_stream_filter.'
+        'Filters apply to transcription results, separated by ",". We provide emoji_filter, repetition_filter and japanese_stream_filter.'
+    )
+    parser.add_argument(
+        '--whisper_filters',
+        type=str,
+        default=None,
+        help='(Deprecated) Use --transcription_filters instead.'
     )
     parser.add_argument(
         '--transcription_initial_prompt',
@@ -499,6 +505,13 @@ def cli():
 
     if args['language'] == 'auto':
         args['language'] = None
+
+    if args['whisper_filters'] is not None:
+        print(f'{WARNING}--whisper_filters is deprecated and will be removed in future versions. Please use --transcription_filters instead.')
+        if args['transcription_filters'] == 'emoji_filter,repetition_filter':
+            args['transcription_filters'] = args['whisper_filters']
+    
+    args.pop('whisper_filters', None)
 
     args.pop('list_format', None)
     args.pop('list_devices', None)

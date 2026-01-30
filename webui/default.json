@@ -25,7 +25,7 @@
     "filter_emoji": true,
     "filter_repetition": true,
     "filter_japanese_stream": false,
-    "whisper_filters": "emoji_filter,repetition_filter",
+    "transcription_filters": "emoji_filter,repetition_filter",
     "translation_prompt": "Translate from Japanese to Chinese",
     "translation_provider": "None",
     "gpt_model": "gpt-5-nano",

@@ -12,8 +12,8 @@ from .common import TranslationTask, SAMPLE_RATE, LoopWorkerBase, sec2str, ApiKe
 from .simul_streaming.simul_whisper.whisper.utils import compression_ratio
 
 
-def _filter_text(text: str, whisper_filters: str):
-    filter_name_list = whisper_filters.split(',')
+def _filter_text(text: str, transcription_filters: str):
+    filter_name_list = transcription_filters.split(',')
     for filter_name in filter_name_list:
         filter = getattr(filters, filter_name)
         if not filter:
@@ -24,9 +24,9 @@ def _filter_text(text: str, whisper_filters: str):
 
 class AudioTranscriber(LoopWorkerBase):
 
-    def __init__(self, whisper_filters: str, print_result: bool, output_timestamps: bool,
+    def __init__(self, transcription_filters: str, print_result: bool, output_timestamps: bool,
                  disable_transcription_context: bool, transcription_initial_prompt: str):
-        self.whisper_filters = whisper_filters
+        self.transcription_filters = transcription_filters
         self.print_result = print_result
         self.output_timestamps = output_timestamps
         self.disable_transcription_context = disable_transcription_context
@@ -84,7 +84,7 @@ class AudioTranscriber(LoopWorkerBase):
                     self.reset_context()
                     is_repetitive = True
 
-            task.transcript = _filter_text(text, self.whisper_filters).strip()
+            task.transcript = _filter_text(text, self.transcription_filters).strip()
             if not task.transcript:
                 continue
             previous_text = "" if is_repetitive else task.transcript
