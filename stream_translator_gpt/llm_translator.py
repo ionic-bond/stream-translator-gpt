@@ -112,7 +112,7 @@ class LLMClient():
                     model=self.model,
                     messages=messages,
                     response_format={"type": "json_object"} if self.use_json_result else None,
-                    temperature=0,
+                    temperature=0.7,
                     top_p=0.9,
                     stop=None if self.use_json_result else ['\n'],
                 )
@@ -174,8 +174,9 @@ class LLMClient():
 
         config = types.GenerateContentConfig(
             candidate_count=1,
-            temperature=0.0,
+            temperature=0.7,
             top_p=0.9,
+            top_k=50,
             stop_sequences=None if self.use_json_result else ['\n'],
             system_instruction=system_prompt,
             thinking_config=types.ThinkingConfig(include_thoughts=False),
