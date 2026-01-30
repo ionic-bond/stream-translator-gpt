@@ -324,12 +324,10 @@ def cli():
         help=
         'Filters apply to transcription results, separated by ",". We provide emoji_filter, repetition_filter and japanese_stream_filter.'
     )
-    parser.add_argument(
-        '--whisper_filters',
-        type=str,
-        default=None,
-        help='(Deprecated) Use --transcription_filters instead.'
-    )
+    parser.add_argument('--whisper_filters',
+                        type=str,
+                        default=None,
+                        help='(Deprecated) Use --transcription_filters instead.')
     parser.add_argument(
         '--transcription_initial_prompt',
         type=str,
@@ -507,10 +505,12 @@ def cli():
         args['language'] = None
 
     if args['whisper_filters'] is not None:
-        print(f'{WARNING}--whisper_filters is deprecated and will be removed in future versions. Please use --transcription_filters instead.')
+        print(
+            f'{WARNING}--whisper_filters is deprecated and will be removed in future versions. Please use --transcription_filters instead.'
+        )
         if args['transcription_filters'] == 'emoji_filter,repetition_filter':
             args['transcription_filters'] = args['whisper_filters']
-    
+
     args.pop('whisper_filters', None)
 
     args.pop('list_format', None)
