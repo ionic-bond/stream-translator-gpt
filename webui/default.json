@@ -46,5 +46,7 @@
     "discord_hook": "",
     "telegram_token": "",
     "telegram_chat_id": "",
-    "processing_proxy_trans": ""
+    "processing_proxy_trans": "",
+    "openai_key_trans": "",
+    "openai_base_url_trans": ""
 }

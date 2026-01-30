@@ -88,7 +88,8 @@ INPUT_KEYS = [
     "transcription_initial_prompt", "translation_prompt", "translation_provider", "gpt_model", "gemini_model",
     "history_size", "translation_timeout", "processing_proxy", "use_json_result", "retry_if_translation_fails",
     "show_timestamps", "hide_transcription", "output_file", "output_proxy", "cqhttp_url", "cqhttp_token",
-    "discord_hook", "telegram_token", "telegram_chat_id", "processing_proxy_trans"
+    "discord_hook", "telegram_token", "telegram_chat_id", "processing_proxy_trans",
+    "openai_key_trans", "openai_base_url_trans"
 ]
 
 
@@ -300,18 +301,6 @@ def build_translator_command(
 
         cmd.extend([flag, str_val])
 
-    # --- Overall (Keys & Proxy) ---
-    if openai_key:
-        cmd.extend(["--openai_api_key", openai_key])
-    if google_key:
-        cmd.extend(["--google_api_key", google_key])
-    if openai_base_url and (whisper_backend == "OpenAI Transcription API" or translation_provider == "GPT"):
-        cmd.extend(["--openai_base_url", openai_base_url])
-    if google_base_url and translation_provider == "Gemini":
-        cmd.extend(["--google_base_url", google_base_url])
-    if overall_proxy:
-        cmd.extend(["--proxy", overall_proxy])
-
     # --- Input ---
     target_url = ""
     if input_type == "URL":
@@ -351,6 +340,16 @@ def build_translator_command(
     if disable_dynamic_silence:
         cmd.append("--disable_dynamic_no_speech_threshold")
 
+    # --- API Keys & Base URLs ---
+    if openai_key and (whisper_backend == "OpenAI Transcription API" or translation_provider == "GPT"):
+        cmd.extend(["--openai_api_key", openai_key])
+    if google_key and translation_provider == "Gemini":
+        cmd.extend(["--google_api_key", google_key])
+    if openai_base_url and (whisper_backend == "OpenAI Transcription API" or translation_provider == "GPT"):
+        cmd.extend(["--openai_base_url", openai_base_url])
+    if google_base_url and translation_provider == "Gemini":
+        cmd.extend(["--google_base_url", google_base_url])
+
     # --- Transcription ---
     if whisper_backend == "Faster-Whisper":
         cmd.append("--use_faster_whisper")
@@ -361,9 +360,7 @@ def build_translator_command(
         cmd.append("--use_simul_streaming")
     elif whisper_backend == "OpenAI Transcription API":
         cmd.append("--use_openai_transcription_api")
-        if openai_transcription_model:
-            if openai_transcription_model != "gpt-4o-mini-transcribe":
-                cmd.extend(["--openai_transcription_model", openai_transcription_model])
+        add_arg("--openai_transcription_model", openai_transcription_model, "openai_transcription_model")
 
     add_arg("--model", model_size, "model_size")
     add_arg("--language", language, "language")
@@ -420,6 +417,10 @@ def build_translator_command(
         cmd.extend(["--cqhttp_url", cqhttp_url])
         if cqhttp_token:
             cmd.extend(["--cqhttp_token", cqhttp_token])
+
+    # --- Overall ---
+    if overall_proxy:
+        cmd.extend(["--proxy", overall_proxy])
 
     return cmd, None
 
@@ -644,23 +645,8 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
 
     with gr.Tabs():
         with gr.Tab(i18n.get("overall")):
-            with gr.Group():
-                with gr.Row():
-                    openai_key = gr.Textbox(label=i18n.get("openai_api_key"),
-                                            type="text",
-                                            placeholder=i18n.get("openai_api_key_ph"))
-                    google_key = gr.Textbox(label=i18n.get("google_api_key"),
-                                            type="text",
-                                            placeholder=i18n.get("google_api_key_ph"))
-                show_api_keys = gr.Checkbox(label=i18n.get("show_api_keys"), value=True)
 
-                with gr.Row():
-                    openai_base_url = gr.Textbox(label=i18n.get("gpt_base_url"),
-                                                 placeholder=i18n.get("gpt_base_url_ph"))
-                    google_base_url = gr.Textbox(label=i18n.get("gemini_base_url"),
-                                                 placeholder=i18n.get("gemini_base_url_ph"))
 
-            with gr.Group():
                 overall_proxy = gr.Textbox(label=i18n.get("overall_proxy"), placeholder=i18n.get("overall_proxy_ph"))
 
         with gr.Tab(i18n.get("input")):
@@ -740,6 +726,12 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                                        label=i18n.get("transcription_type"),
                                        value=get_default("whisper_backend"))
 
+            with gr.Group(visible=False) as openai_transcription_group:
+                with gr.Row():
+                    openai_key_trans = gr.Textbox(label=i18n.get("openai_api_key"),
+                                                  placeholder=i18n.get("openai_api_key_ph"))
+                    openai_base_url_trans = gr.Textbox(label=i18n.get("gpt_base_url"),
+                                                       placeholder=i18n.get("gpt_base_url_ph"))
             with gr.Row():
                 model_size = gr.Dropdown([
                     "tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large",
@@ -789,12 +781,13 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                                             value=get_default("translation_provider"))
 
             with gr.Group(visible=False) as common_translation_group:
-                translation_prompt = gr.Textbox(label=i18n.get("translation_prompt"),
-                                                value=get_default("translation_prompt"),
-                                                lines=2,
-                                                placeholder=i18n.get("translation_prompt_ph"))
-
                 with gr.Group(visible=False) as gpt_group:
+                    with gr.Row():
+                        openai_key = gr.Textbox(label=i18n.get("openai_api_key"),
+                                                placeholder=i18n.get("openai_api_key_ph"))
+                        openai_base_url = gr.Textbox(label=i18n.get("gpt_base_url"),
+                                                     placeholder=i18n.get("gpt_base_url_ph"))
+
                     gpt_model = gr.Dropdown([
                         "gpt-4o", "gpt-4o-mini", "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-5", "gpt-5-mini",
                         "gpt-5-nano", "gpt-5.1", "gpt-5.2"
@@ -804,13 +797,23 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                                             allow_custom_value=True)
 
                 with gr.Group(visible=False) as gemini_group:
+                    with gr.Row():
+                        google_key = gr.Textbox(label=i18n.get("google_api_key"),
+                                                placeholder=i18n.get("google_api_key_ph"))
+                        google_base_url = gr.Textbox(label=i18n.get("gemini_base_url"),
+                                                     placeholder=i18n.get("gemini_base_url_ph"))
+
                     gemini_model = gr.Dropdown([
-                        "gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite",
-                        "gemini-2.5-flash-preview-09-2025", "gemini-2.5-flash-lite-preview-09-2025", "gemini-3.0-flash"
+                        "gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3.0-flash"
                     ],
                                                label=i18n.get("gemini_model"),
                                                value=get_default("gemini_model"),
                                                allow_custom_value=True)
+
+                translation_prompt = gr.Textbox(label=i18n.get("translation_prompt"),
+                                                value=get_default("translation_prompt"),
+                                                lines=2,
+                                                placeholder=i18n.get("translation_prompt_ph"))
 
                 with gr.Row():
                     history_size = gr.Slider(0,
@@ -906,10 +909,12 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
         openai_visible = (choice == "OpenAI Transcription API")
         return {
             openai_transcription_model: gr.update(visible=openai_visible),
-            model_size: gr.update(visible=not openai_visible)
+            model_size: gr.update(visible=not openai_visible),
+            openai_transcription_group: gr.update(visible=openai_visible)
         }
 
-    whisper_backend.change(update_backend_visibility, whisper_backend, [openai_transcription_model, model_size])
+    whisper_backend.change(update_backend_visibility, whisper_backend,
+                           [openai_transcription_model, model_size, openai_transcription_group])
 
     # Translation Visibility
     def update_translation_visibility(choice):
@@ -1067,15 +1072,19 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
     output_box.change(None, None, None, js=js_smart_scroll, scroll_to_output=False)
 
     # API Key Visibility Toggle
-    def toggle_keys(show):
-        new_type = "text" if show else "password"
-        return gr.update(type=new_type), gr.update(type=new_type)
-
-    show_api_keys.change(toggle_keys, inputs=show_api_keys, outputs=[openai_key, google_key])
+    # Removed as keys are now scattered and use password type
 
     # Sync Processing Proxy
     processing_proxy_trans.change(fn=None, inputs=processing_proxy_trans, outputs=processing_proxy, js="(x) => x")
     processing_proxy.change(fn=None, inputs=processing_proxy, outputs=processing_proxy_trans, js="(x) => x")
+
+    # Sync OpenAI Transcription Keys
+    openai_key.change(fn=None, inputs=openai_key, outputs=openai_key_trans, js="(x) => x")
+    openai_key_trans.change(fn=None, inputs=openai_key_trans, outputs=openai_key, js="(x) => x")
+
+    openai_base_url.change(fn=None, inputs=openai_base_url, outputs=openai_base_url_trans, js="(x) => x")
+    openai_base_url_trans.change(fn=None, inputs=openai_base_url_trans, outputs=openai_base_url,
+                                 js="(x) => x")
 
     # LocalStorage Persistence
     for i, component in enumerate(all_inputs):
