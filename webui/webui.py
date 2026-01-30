@@ -88,8 +88,8 @@ INPUT_KEYS = [
     "transcription_initial_prompt", "translation_prompt", "translation_provider", "gpt_model", "gemini_model",
     "history_size", "translation_timeout", "processing_proxy", "use_json_result", "retry_if_translation_fails",
     "show_timestamps", "hide_transcription", "output_file", "output_proxy", "cqhttp_url", "cqhttp_token",
-    "discord_hook", "telegram_token", "telegram_chat_id", "processing_proxy_trans",
-    "openai_key_trans", "openai_base_url_trans"
+    "discord_hook", "telegram_token", "telegram_chat_id", "processing_proxy_trans", "openai_key_trans",
+    "openai_base_url_trans"
 ]
 
 
@@ -646,8 +646,7 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
     with gr.Tabs():
         with gr.Tab(i18n.get("overall")):
 
-
-                overall_proxy = gr.Textbox(label=i18n.get("overall_proxy"), placeholder=i18n.get("overall_proxy_ph"))
+            overall_proxy = gr.Textbox(label=i18n.get("overall_proxy"), placeholder=i18n.get("overall_proxy_ph"))
 
         with gr.Tab(i18n.get("input")):
             input_type = gr.Radio(choices=[(i18n.get("url_option"), "URL"), (i18n.get("device_option"), "Device"),
@@ -803,12 +802,11 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                         google_base_url = gr.Textbox(label=i18n.get("gemini_base_url"),
                                                      placeholder=i18n.get("gemini_base_url_ph"))
 
-                    gemini_model = gr.Dropdown([
-                        "gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3.0-flash"
-                    ],
-                                               label=i18n.get("gemini_model"),
-                                               value=get_default("gemini_model"),
-                                               allow_custom_value=True)
+                    gemini_model = gr.Dropdown(
+                        ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3.0-flash"],
+                        label=i18n.get("gemini_model"),
+                        value=get_default("gemini_model"),
+                        allow_custom_value=True)
 
                 translation_prompt = gr.Textbox(label=i18n.get("translation_prompt"),
                                                 value=get_default("translation_prompt"),
@@ -975,10 +973,10 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                         target_audio_len, silence_threshold, disable_dynamic_vad, disable_dynamic_silence,
                         prefix_retention_len, filter_emoji, filter_repetition, filter_japanese_stream,
                         disable_transcription_context, transcription_initial_prompt, translation_prompt,
-                        translation_provider, gpt_model, gemini_model, history_size, translation_timeout, openai_base_url,
-                        google_base_url, processing_proxy, use_json_result, retry_if_translation_fails, show_timestamps,
-                        hide_transcription, output_file, output_proxy, cqhttp_url, cqhttp_token, discord_hook,
-                        telegram_token, telegram_chat_id
+                        translation_provider, gpt_model, gemini_model, history_size, translation_timeout,
+                        openai_base_url, google_base_url, processing_proxy, use_json_result, retry_if_translation_fails,
+                        show_timestamps, hide_transcription, output_file, output_proxy, cqhttp_url, cqhttp_token,
+                        discord_hook, telegram_token, telegram_chat_id
                     ],
                     outputs=output_box,
                     concurrency_limit=1,
@@ -1083,8 +1081,7 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
     openai_key_trans.change(fn=None, inputs=openai_key_trans, outputs=openai_key, js="(x) => x")
 
     openai_base_url.change(fn=None, inputs=openai_base_url, outputs=openai_base_url_trans, js="(x) => x")
-    openai_base_url_trans.change(fn=None, inputs=openai_base_url_trans, outputs=openai_base_url,
-                                 js="(x) => x")
+    openai_base_url_trans.change(fn=None, inputs=openai_base_url_trans, outputs=openai_base_url, js="(x) => x")
 
     # LocalStorage Persistence
     for i, component in enumerate(all_inputs):

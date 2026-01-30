@@ -363,16 +363,16 @@ def cli():
         type=int,
         default=10,
         help='If the GPT / Gemini translation exceeds this number of seconds, the translation will be discarded.')
-    parser.add_argument('--openai_base_url', type=str, default=None, help='Customize the API endpoint of OpenAI (Affects GPT translation & OpenAI Transcription).')
-    parser.add_argument('--google_base_url', type=str, default=None, help='Customize the API endpoint of Google (Affects Gemini translation).')
-    parser.add_argument('--gpt_base_url',
+    parser.add_argument('--openai_base_url',
                         type=str,
                         default=None,
-                        help='(Deprecated) Use --openai_base_url instead.')
-    parser.add_argument('--gemini_base_url',
+                        help='Customize the API endpoint of OpenAI (Affects GPT translation & OpenAI Transcription).')
+    parser.add_argument('--google_base_url',
                         type=str,
                         default=None,
-                        help='(Deprecated) Use --google_base_url instead.')
+                        help='Customize the API endpoint of Google (Affects Gemini translation).')
+    parser.add_argument('--gpt_base_url', type=str, default=None, help='(Deprecated) Use --openai_base_url instead.')
+    parser.add_argument('--gemini_base_url', type=str, default=None, help='(Deprecated) Use --google_base_url instead.')
     parser.add_argument(
         '--processing_proxy',
         type=str,
@@ -510,12 +510,16 @@ def cli():
         sys.exit(0)
 
     if args['gpt_base_url'] is not None:
-        print(f'{WARNING}--gpt_base_url is deprecated and will be removed in future versions. Please use --openai_base_url instead.')
+        print(
+            f'{WARNING}--gpt_base_url is deprecated and will be removed in future versions. Please use --openai_base_url instead.'
+        )
         if args['openai_base_url'] is None:
             args['openai_base_url'] = args['gpt_base_url']
 
     if args['gemini_base_url'] is not None:
-        print(f'{WARNING}--gemini_base_url is deprecated and will be removed in future versions. Please use --google_base_url instead.')
+        print(
+            f'{WARNING}--gemini_base_url is deprecated and will be removed in future versions. Please use --google_base_url instead.'
+        )
         if args['google_base_url'] is None:
             args['google_base_url'] = args['gemini_base_url']
 
