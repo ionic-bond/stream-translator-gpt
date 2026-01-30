@@ -81,7 +81,7 @@ os.makedirs(USER_PRESETS_DIR, exist_ok=True)
 
 INPUT_KEYS = [
     "input_type", "input_url", "device_rec_interval", "audio_source", "input_file", "input_format", "input_cookies",
-    "input_proxy", "openai_key", "google_key", "gpt_base_url", "gemini_base_url", "overall_proxy", "model_size",
+    "input_proxy", "openai_key", "google_key", "openai_base_url", "google_base_url", "overall_proxy", "model_size",
     "language", "whisper_backend", "openai_transcription_model", "vad_threshold", "min_audio_len", "max_audio_len",
     "target_audio_len", "silence_threshold", "disable_dynamic_vad", "disable_dynamic_silence", "prefix_retention_len",
     "filter_emoji", "filter_repetition", "filter_japanese_stream", "disable_transcription_context",
@@ -254,8 +254,8 @@ def build_translator_command(
         gemini_model,
         history_size,
         translation_timeout,
-        gpt_base_url,
-        gemini_base_url,
+        openai_base_url,
+        google_base_url,
         processing_proxy,
         use_json_result,
         retry_if_translation_fails,
@@ -305,10 +305,10 @@ def build_translator_command(
         cmd.extend(["--openai_api_key", openai_key])
     if google_key:
         cmd.extend(["--google_api_key", google_key])
-    if gpt_base_url and (whisper_backend == "OpenAI Transcription API" or translation_provider == "GPT"):
-        cmd.extend(["--gpt_base_url", gpt_base_url])
-    if gemini_base_url and translation_provider == "Gemini":
-        cmd.extend(["--gemini_base_url", gemini_base_url])
+    if openai_base_url and (whisper_backend == "OpenAI Transcription API" or translation_provider == "GPT"):
+        cmd.extend(["--openai_base_url", openai_base_url])
+    if google_base_url and translation_provider == "Gemini":
+        cmd.extend(["--google_base_url", google_base_url])
     if overall_proxy:
         cmd.extend(["--proxy", overall_proxy])
 
@@ -479,8 +479,8 @@ def run_translator(
         gemini_model,
         history_size,
         translation_timeout,
-        gpt_base_url,
-        gemini_base_url,
+        openai_base_url,
+        google_base_url,
         processing_proxy,
         use_json_result,
         retry_if_translation_fails,
@@ -552,8 +552,8 @@ def run_translator(
                                           gemini_model=gemini_model,
                                           history_size=history_size,
                                           translation_timeout=translation_timeout,
-                                          gpt_base_url=gpt_base_url,
-                                          gemini_base_url=gemini_base_url,
+                                          openai_base_url=openai_base_url,
+                                          google_base_url=google_base_url,
                                           processing_proxy=processing_proxy,
                                           use_json_result=use_json_result,
                                           retry_if_translation_fails=retry_if_translation_fails,
@@ -653,9 +653,11 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                                             type="text",
                                             placeholder=i18n.get("google_api_key_ph"))
                 show_api_keys = gr.Checkbox(label=i18n.get("show_api_keys"), value=True)
+
                 with gr.Row():
-                    gpt_base_url = gr.Textbox(label=i18n.get("gpt_base_url"), placeholder=i18n.get("gpt_base_url_ph"))
-                    gemini_base_url = gr.Textbox(label=i18n.get("gemini_base_url"),
+                    openai_base_url = gr.Textbox(label=i18n.get("gpt_base_url"),
+                                                 placeholder=i18n.get("gpt_base_url_ph"))
+                    google_base_url = gr.Textbox(label=i18n.get("gemini_base_url"),
                                                  placeholder=i18n.get("gemini_base_url_ph"))
 
             with gr.Group():
@@ -968,8 +970,8 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                         target_audio_len, silence_threshold, disable_dynamic_vad, disable_dynamic_silence,
                         prefix_retention_len, filter_emoji, filter_repetition, filter_japanese_stream,
                         disable_transcription_context, transcription_initial_prompt, translation_prompt,
-                        translation_provider, gpt_model, gemini_model, history_size, translation_timeout, gpt_base_url,
-                        gemini_base_url, processing_proxy, use_json_result, retry_if_translation_fails, show_timestamps,
+                        translation_provider, gpt_model, gemini_model, history_size, translation_timeout, openai_base_url,
+                        google_base_url, processing_proxy, use_json_result, retry_if_translation_fails, show_timestamps,
                         hide_transcription, output_file, output_proxy, cqhttp_url, cqhttp_token, discord_hook,
                         telegram_token, telegram_chat_id
                     ],

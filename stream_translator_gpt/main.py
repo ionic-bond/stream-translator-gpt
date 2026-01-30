@@ -27,11 +27,11 @@ def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_prox
          disable_dynamic_vad_threshold, model, language, use_faster_whisper, use_simul_streaming,
          use_openai_transcription_api, openai_transcription_model, transcription_filters, disable_transcription_context,
          transcription_initial_prompt, translation_prompt, translation_history_size, gpt_model, gemini_model,
-         translation_timeout, gpt_base_url, gemini_base_url, processing_proxy, use_json_result,
+         translation_timeout, openai_base_url, google_base_url, processing_proxy, use_json_result,
          retry_if_translation_fails, output_timestamps, hide_transcribe_result, output_proxy, output_file_path,
          cqhttp_url, cqhttp_token, discord_webhook_url, telegram_token, telegram_chat_id):
-    if gpt_base_url:
-        os.environ['OPENAI_BASE_URL'] = gpt_base_url
+    if openai_base_url:
+        os.environ['OPENAI_BASE_URL'] = openai_base_url
 
     ApiKeyPool.init(openai_api_key=openai_api_key, google_api_key=google_api_key)
 
@@ -110,7 +110,7 @@ def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_prox
                     history_size=translation_history_size,
                     proxy=processing_proxy,
                     use_json_result=use_json_result,
-                    gemini_base_url=gemini_base_url,
+                    google_base_url=google_base_url,
                 )
             else:
                 llm_client = LLMClient(
@@ -363,8 +363,16 @@ def cli():
         type=int,
         default=10,
         help='If the GPT / Gemini translation exceeds this number of seconds, the translation will be discarded.')
-    parser.add_argument('--gpt_base_url', type=str, default=None, help='Customize the API endpoint of GPT.')
-    parser.add_argument('--gemini_base_url', type=str, default=None, help='Customize the API endpoint of Gemini.')
+    parser.add_argument('--openai_base_url', type=str, default=None, help='Customize the API endpoint of OpenAI (Affects GPT translation & OpenAI Transcription).')
+    parser.add_argument('--google_base_url', type=str, default=None, help='Customize the API endpoint of Google (Affects Gemini translation).')
+    parser.add_argument('--gpt_base_url',
+                        type=str,
+                        default=None,
+                        help='(Deprecated) Use --openai_base_url instead.')
+    parser.add_argument('--gemini_base_url',
+                        type=str,
+                        default=None,
+                        help='(Deprecated) Use --google_base_url instead.')
     parser.add_argument(
         '--processing_proxy',
         type=str,
@@ -500,6 +508,19 @@ def cli():
     if args['translation_prompt'] and not (args['openai_api_key'] or args['google_api_key']):
         print(f'{ERROR}Please fill in the OpenAI / Google API key when enabling LLM translation')
         sys.exit(0)
+
+    if args['gpt_base_url'] is not None:
+        print(f'{WARNING}--gpt_base_url is deprecated and will be removed in future versions. Please use --openai_base_url instead.')
+        if args['openai_base_url'] is None:
+            args['openai_base_url'] = args['gpt_base_url']
+
+    if args['gemini_base_url'] is not None:
+        print(f'{WARNING}--gemini_base_url is deprecated and will be removed in future versions. Please use --google_base_url instead.')
+        if args['google_base_url'] is None:
+            args['google_base_url'] = args['gemini_base_url']
+
+    args.pop('gpt_base_url', None)
+    args.pop('gemini_base_url', None)
 
     if args['language'] == 'auto':
         args['language'] = None
