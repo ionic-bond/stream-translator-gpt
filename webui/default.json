@@ -25,6 +25,8 @@
     "filter_emoji": true,
     "filter_repetition": true,
     "filter_japanese_stream": false,
+    "disable_transcription_context": false,
+    "transcription_initial_prompt": "",
     "transcription_filters": "emoji_filter,repetition_filter",
     "translation_prompt": "Translate from Japanese to Chinese",
     "translation_provider": "None",
