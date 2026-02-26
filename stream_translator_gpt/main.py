@@ -21,15 +21,16 @@ from .result_exporter import ResultExporter
 from . import __version__
 
 
-def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_proxy, device_index,
-         device_recording_interval, mic, min_audio_length, max_audio_length, target_audio_length,
+def main(url, openai_api_key, google_api_key, openai_base_url, google_base_url, proxy, format, cookies, input_proxy,
+         device_index, device_recording_interval, mic, min_audio_length, max_audio_length, target_audio_length,
          continuous_no_speech_threshold, disable_dynamic_no_speech_threshold, prefix_retention_length, vad_threshold,
          disable_dynamic_vad_threshold, model, language, use_faster_whisper, use_simul_streaming,
          use_openai_transcription_api, openai_transcription_model, transcription_filters, disable_transcription_context,
-         transcription_initial_prompt, translation_prompt, translation_history_size, gpt_model, gemini_model,
-         translation_timeout, openai_base_url, google_base_url, processing_proxy, use_json_result,
-         retry_if_translation_fails, output_timestamps, hide_transcribe_result, output_proxy, output_file_path,
-         cqhttp_url, cqhttp_token, discord_webhook_url, telegram_token, telegram_chat_id):
+         transcription_initial_prompt, gpt_model, gemini_model, translation_prompt, translation_history_size,
+         translation_timeout, use_json_result, retry_if_translation_fails,
+         temperature, top_p, top_k, prompt_cache_key, reasoning_effort, verbosity, service_tier, processing_proxy,
+         output_timestamps, hide_transcribe_result, output_file_path,
+         cqhttp_url, cqhttp_token, discord_webhook_url, telegram_token, telegram_chat_id, output_proxy):
     if openai_base_url:
         os.environ['OPENAI_BASE_URL'] = openai_base_url
 
@@ -111,6 +112,9 @@ def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_prox
                     proxy=processing_proxy,
                     use_json_result=use_json_result,
                     google_base_url=google_base_url,
+                    temperature=temperature,
+                    top_p=top_p,
+                    top_k=top_k,
                 )
             else:
                 llm_client = LLMClient(
@@ -120,6 +124,12 @@ def main(url, proxy, openai_api_key, google_api_key, format, cookies, input_prox
                     history_size=translation_history_size,
                     proxy=processing_proxy,
                     use_json_result=use_json_result,
+                    prompt_cache_key=prompt_cache_key,
+                    temperature=temperature,
+                    top_p=top_p,
+                    reasoning_effort=reasoning_effort,
+                    verbosity=verbosity,
+                    service_tier=service_tier,
                 )
             if translation_history_size == 0:
                 return ParallelTranslator(
@@ -196,10 +206,6 @@ def cli():
         help=
         'The URL of the stream. If a local file path is filled in, it will be used as input. If fill in "device", the input will be obtained from your PC device.'
     )
-    parser.add_argument('--proxy',
-                        type=str,
-                        default=None,
-                        help='Used to set the proxy for all --*_proxy flags if they are not specifically set.')
     parser.add_argument(
         '--openai_api_key',
         type=str,
@@ -214,6 +220,20 @@ def cli():
         help=
         'Google API key if using Gemini translation. If you have multiple keys, you can separate them with \",\" and each key will be used in turn.'
     )
+    parser.add_argument('--openai_base_url',
+                        type=str,
+                        default=None,
+                        help='Customize the API endpoint of OpenAI (Affects GPT translation & OpenAI Transcription).')
+    parser.add_argument('--google_base_url',
+                        type=str,
+                        default=None,
+                        help='Customize the API endpoint of Google (Affects Gemini translation).')
+    parser.add_argument('--gpt_base_url', type=str, default=None, help='(Deprecated) Use --openai_base_url instead.')
+    parser.add_argument('--gemini_base_url', type=str, default=None, help='(Deprecated) Use --google_base_url instead.')
+    parser.add_argument('--proxy',
+                        type=str,
+                        default=None,
+                        help='Used to set the proxy for all --*_proxy flags if they are not specifically set.')
     parser.add_argument(
         '--format',
         type=str,
@@ -363,16 +383,40 @@ def cli():
         type=int,
         default=10,
         help='If the GPT / Gemini translation exceeds this number of seconds, the translation will be discarded.')
-    parser.add_argument('--openai_base_url',
+    parser.add_argument('--use_json_result',
+                        action='store_true',
+                        help='Using JSON result in LLM translation for some locally deployed models.')
+    parser.add_argument('--retry_if_translation_fails',
+                        action='store_true',
+                        help='Retry when translation times out/fails. Used to generate subtitles offline.')
+    parser.add_argument('--temperature',
+                        type=float,
+                        default=None,
+                        help='Override the temperature parameter for LLM translation.')
+    parser.add_argument('--top_p',
+                        type=float,
+                        default=None,
+                        help='Override the top_p parameter for LLM translation.')
+    parser.add_argument('--top_k',
+                        type=int,
+                        default=None,
+                        help='Override the top_k parameter for LLM translation (Affects Gemini translation only).')
+    parser.add_argument('--prompt_cache_key',
                         type=str,
                         default=None,
-                        help='Customize the API endpoint of OpenAI (Affects GPT translation & OpenAI Transcription).')
-    parser.add_argument('--google_base_url',
+                        help='If set, will pass prompt_cache_key to the LLM backend for caching optimization (Affects GPT translation only).')
+    parser.add_argument('--reasoning_effort',
                         type=str,
                         default=None,
-                        help='Customize the API endpoint of Google (Affects Gemini translation).')
-    parser.add_argument('--gpt_base_url', type=str, default=None, help='(Deprecated) Use --openai_base_url instead.')
-    parser.add_argument('--gemini_base_url', type=str, default=None, help='(Deprecated) Use --google_base_url instead.')
+                        help='Override the reasoning_effort parameter for LLM translation (Affects GPT translation only).')
+    parser.add_argument('--verbosity',
+                        type=str,
+                        default=None,
+                        help='Override the verbosity parameter for LLM translation (Affects GPT translation only).')
+    parser.add_argument('--service_tier',
+                        type=str,
+                        default=None,
+                        help='Override the service_tier parameter for LLM translation (Affects GPT translation only).')
     parser.add_argument(
         '--processing_proxy',
         type=str,
@@ -380,21 +424,10 @@ def cli():
         help=
         'Use the specified HTTP/HTTPS/SOCKS proxy for Whisper/GPT API (Gemini currently doesn\'t support specifying a proxy within the program), e.g. http://127.0.0.1:7890.'
     )
-    parser.add_argument('--use_json_result',
-                        action='store_true',
-                        help='Using JSON result in LLM translation for some locally deployed models.')
-    parser.add_argument('--retry_if_translation_fails',
-                        action='store_true',
-                        help='Retry when translation times out/fails. Used to generate subtitles offline.')
     parser.add_argument('--output_timestamps',
                         action='store_true',
                         help='Output the timestamp of the text when outputting the text.')
     parser.add_argument('--hide_transcribe_result', action='store_true', help='Hide the result of Whisper transcribe.')
-    parser.add_argument(
-        '--output_proxy',
-        type=str,
-        default=None,
-        help='Use the specified HTTP/HTTPS/SOCKS proxy for Cqhttp/Discord/Telegram, e.g. http://127.0.0.1:7890.')
     parser.add_argument('--output_file_path',
                         type=str,
                         default=None,
@@ -417,6 +450,11 @@ def cli():
         type=int,
         default=None,
         help='If set, will send the result text to this Telegram chat. Needs to be used with \"--telegram_token\".')
+    parser.add_argument(
+        '--output_proxy',
+        type=str,
+        default=None,
+        help='Use the specified HTTP/HTTPS/SOCKS proxy for Cqhttp/Discord/Telegram, e.g. http://127.0.0.1:7890.')
 
     args = parser.parse_args().__dict__
 

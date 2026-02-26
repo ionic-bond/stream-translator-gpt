@@ -65,7 +65,14 @@ class LLMClient():
                  history_size: int,
                  proxy: str,
                  use_json_result: bool,
-                 google_base_url: str = None) -> None:
+                 google_base_url: str = None,
+                 prompt_cache_key: str = None,
+                 temperature: float = None,
+                 top_p: float = None,
+                 top_k: int = None,
+                 reasoning_effort: str = None,
+                 verbosity: str = None,
+                 service_tier: str = None) -> None:
         if llm_type not in (self.LLM_TYPE.GPT, self.LLM_TYPE.GEMINI):
             raise ValueError(f'Unknow LLM type: {llm_type}')
         print(f'{INFO}Using {model} API as translation engine.')
@@ -77,6 +84,13 @@ class LLMClient():
         self.proxy = proxy
         self.use_json_result = use_json_result
         self.google_base_url = google_base_url
+        self.prompt_cache_key = prompt_cache_key
+        self.temperature = temperature
+        self.top_p = top_p
+        self.top_k = top_k
+        self.reasoning_effort = reasoning_effort
+        self.verbosity = verbosity
+        self.service_tier = service_tier
 
     def _append_history_message(self, user_content: str, assistant_content: str):
         if not user_content or not assistant_content:
@@ -98,7 +112,7 @@ class LLMClient():
 
         ApiKeyPool.use_openai_api()
         client = OpenAI(http_client=httpx.Client(proxy=self.proxy, verify=False))
-        system_prompt = 'You are a professional translator. Translate the text accurately and concisely. Do not output any explanation or extra text.'
+        system_prompt = 'You are a professional translator.'
         if self.use_json_result:
             system_prompt += " Output the answer in json format, key is translation."
         messages = [{'role': 'system', 'content': system_prompt}]
@@ -107,22 +121,39 @@ class LLMClient():
         messages.append({'role': 'user', 'content': user_content})
 
         try:
-            if self.model.startswith('gpt-4') or self.model.startswith('gpt-3'):
-                completion = client.chat.completions.create(
-                    model=self.model,
-                    messages=messages,
-                    response_format={"type": "json_object"} if self.use_json_result else None,
-                    temperature=0.7,
-                    top_p=0.9,
-                    stop=None if self.use_json_result else ['\n'],
-                )
-            else:
-                completion = client.chat.completions.create(
-                    model=self.model,
-                    messages=messages,
-                    response_format={"type": "json_object"} if self.use_json_result else None,
-                    reasoning_effort='minimal',
-                )
+            kwargs = {
+                "model": self.model,
+                "messages": messages,
+            }
+                
+            if self.use_json_result:
+                kwargs["response_format"] = {"type": "json_object"}
+
+            match = re.match(r'^gpt-(\d+(?:\.\d+)?)', self.model)
+            if match:
+                version = float(match.group(1))
+                if version < 5.0 or version >= 5.1:
+                    kwargs["temperature"] = 0.7
+                    kwargs["top_p"] = 0.9
+                if version >= 5.0:
+                    kwargs["reasoning_effort"] = "none" if version >= 5.1 else "minimal"
+                elif not self.use_json_result:
+                    kwargs["stop"] = ['\n']
+
+            if self.prompt_cache_key is not None:
+                kwargs["prompt_cache_key"] = self.prompt_cache_key
+            if self.temperature is not None:
+                kwargs["temperature"] = self.temperature
+            if self.top_p is not None:
+                kwargs["top_p"] = self.top_p
+            if self.reasoning_effort is not None:
+                kwargs["reasoning_effort"] = self.reasoning_effort
+            if self.verbosity is not None:
+                kwargs["verbosity"] = self.verbosity
+            if self.service_tier is not None:
+                kwargs["service_tier"] = self.service_tier
+
+            completion = client.chat.completions.create(**kwargs)
 
             translation_task.translation = completion.choices[0].message.content
             if self.use_json_result:
@@ -164,7 +195,7 @@ class LLMClient():
 
         client = genai.Client(api_key=os.environ.get("GOOGLE_API_KEY"), http_options=http_options)
 
-        system_prompt = 'You are a professional translator. Translate the text accurately and concisely. Do not output any explanation or extra text.'
+        system_prompt = 'You are a professional translator.'
         if self.use_json_result:
             system_prompt += " Output the answer in json format, key is translation."
 
@@ -179,7 +210,7 @@ class LLMClient():
             top_k=50,
             stop_sequences=None if self.use_json_result else ['\n'],
             system_instruction=system_prompt,
-            thinking_config=types.ThinkingConfig(include_thoughts=False),
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
             response_mime_type='application/json' if self.use_json_result else 'text/plain',
             safety_settings=[
                 types.SafetySetting(category='HARM_CATEGORY_HARASSMENT', threshold='BLOCK_NONE'),
@@ -187,6 +218,13 @@ class LLMClient():
                 types.SafetySetting(category='HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold='BLOCK_NONE'),
                 types.SafetySetting(category='HARM_CATEGORY_DANGEROUS_CONTENT', threshold='BLOCK_NONE')
             ])
+
+        if self.temperature is not None:
+            config.temperature = self.temperature
+        if self.top_p is not None:
+            config.top_p = self.top_p
+        if self.top_k is not None:
+            config.top_k = self.top_k
 
         try:
             response = client.models.generate_content(model=self.model, contents=messages, config=config)
