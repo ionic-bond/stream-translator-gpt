@@ -28,9 +28,9 @@ def main(url, openai_api_key, google_api_key, openai_base_url, google_base_url, 
          use_openai_transcription_api, openai_transcription_model, transcription_filters, disable_transcription_context,
          transcription_initial_prompt, gpt_model, gemini_model, translation_prompt, translation_history_size,
          translation_timeout, use_json_result, retry_if_translation_fails, temperature, top_p, top_k, prompt_cache_key,
-         reasoning_effort, verbosity, service_tier, print_llm_usage, processing_proxy, output_timestamps, hide_transcribe_result,
-         output_file_path, cqhttp_url, cqhttp_token, discord_webhook_url, telegram_token, telegram_chat_id,
-         output_proxy):
+         reasoning_effort, verbosity, service_tier, print_llm_usage, processing_proxy, output_timestamps,
+         hide_transcribe_result, output_file_path, cqhttp_url, cqhttp_token, discord_webhook_url, telegram_token,
+         telegram_chat_id, output_proxy):
     if openai_base_url:
         os.environ['OPENAI_BASE_URL'] = openai_base_url
 
@@ -420,7 +420,9 @@ def cli():
                         type=str,
                         default=None,
                         help='Specify the service_tier parameter for LLM translation (Affects GPT translation only).')
-    parser.add_argument('--print_llm_usage', action='store_true', help='Print LLM usage info after each translation call.')
+    parser.add_argument('--print_llm_usage',
+                        action='store_true',
+                        help='Print LLM usage info after each translation call.')
     parser.add_argument(
         '--processing_proxy',
         type=str,
