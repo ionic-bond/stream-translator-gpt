@@ -72,7 +72,8 @@ class LLMClient():
                  top_k: int = None,
                  reasoning_effort: str = None,
                  verbosity: str = None,
-                 service_tier: str = None) -> None:
+                 service_tier: str = None,
+                 print_llm_usage: bool = False) -> None:
         if llm_type not in (self.LLM_TYPE.GPT, self.LLM_TYPE.GEMINI):
             raise ValueError(f'Unknow LLM type: {llm_type}')
         print(f'{INFO}Using {model} API as translation engine.')
@@ -91,6 +92,7 @@ class LLMClient():
         self.reasoning_effort = reasoning_effort
         self.verbosity = verbosity
         self.service_tier = service_tier
+        self.print_llm_usage = print_llm_usage
 
     def _append_history_message(self, user_content: str, assistant_content: str):
         if not user_content or not assistant_content:
@@ -156,6 +158,8 @@ class LLMClient():
             completion = client.chat.completions.create(**kwargs)
 
             translation_task.translation = completion.choices[0].message.content
+            if self.print_llm_usage and hasattr(completion, 'usage') and completion.usage:
+                print(f'{INFO}[Usage] {completion.usage}')
             if self.use_json_result:
                 translation_task.translation = _parse_json_completion(translation_task.translation)
         except Exception as e:
@@ -229,6 +233,8 @@ class LLMClient():
         try:
             response = client.models.generate_content(model=self.model, contents=messages, config=config)
             translation_task.translation = response.text
+            if self.print_llm_usage and hasattr(response, 'usage_metadata') and response.usage_metadata:
+                print(f'{INFO}[Usage] {response.usage_metadata}')
             if self.use_json_result:
                 translation_task.translation = _parse_json_completion(translation_task.translation)
         except Exception as e:
