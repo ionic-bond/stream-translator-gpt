@@ -394,12 +394,12 @@ def cli():
     parser.add_argument('--temperature',
                         type=float,
                         default=None,
-                        help='Override the temperature parameter for LLM translation.')
-    parser.add_argument('--top_p', type=float, default=None, help='Override the top_p parameter for LLM translation.')
+                        help='Specify the temperature parameter for LLM translation.')
+    parser.add_argument('--top_p', type=float, default=None, help='Specify the top_p parameter for LLM translation.')
     parser.add_argument('--top_k',
                         type=int,
                         default=None,
-                        help='Override the top_k parameter for LLM translation (Affects Gemini translation only).')
+                        help='Specify the top_k parameter for LLM translation (Affects Gemini translation only).')
     parser.add_argument(
         '--prompt_cache_key',
         type=str,
@@ -411,15 +411,15 @@ def cli():
         '--reasoning_effort',
         type=str,
         default=None,
-        help='Override the reasoning_effort parameter for LLM translation (Affects GPT translation only).')
+        help='Specify the reasoning_effort parameter for LLM translation (Affects GPT translation only).')
     parser.add_argument('--verbosity',
                         type=str,
                         default=None,
-                        help='Override the verbosity parameter for LLM translation (Affects GPT translation only).')
+                        help='Specify the verbosity parameter for LLM translation (Affects GPT translation only).')
     parser.add_argument('--service_tier',
                         type=str,
                         default=None,
-                        help='Override the service_tier parameter for LLM translation (Affects GPT translation only).')
+                        help='Specify the service_tier parameter for LLM translation (Affects GPT translation only).')
     parser.add_argument('--print_llm_usage', action='store_true', help='Print LLM usage info after each translation call.')
     parser.add_argument(
         '--processing_proxy',
