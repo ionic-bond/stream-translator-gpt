@@ -125,7 +125,7 @@ class LLMClient():
                 "model": self.model,
                 "messages": messages,
             }
-                
+
             if self.use_json_result:
                 kwargs["response_format"] = {"type": "json_object"}
 
