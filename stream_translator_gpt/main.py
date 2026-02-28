@@ -28,7 +28,7 @@ def main(url, openai_api_key, google_api_key, openai_base_url, google_base_url, 
          use_openai_transcription_api, openai_transcription_model, transcription_filters, disable_transcription_context,
          transcription_initial_prompt, gpt_model, gemini_model, translation_prompt, translation_history_size,
          translation_timeout, use_json_result, retry_if_translation_fails, temperature, top_p, top_k, prompt_cache_key,
-         reasoning_effort, verbosity, service_tier, print_llm_usage, processing_proxy, output_timestamps,
+         reasoning_effort, verbosity, service_tier, debug_mode, processing_proxy, output_timestamps,
          hide_transcribe_result, output_file_path, cqhttp_url, cqhttp_token, discord_webhook_url, telegram_token,
          telegram_chat_id, output_proxy):
     if openai_base_url:
@@ -115,7 +115,7 @@ def main(url, openai_api_key, google_api_key, openai_base_url, google_base_url, 
                     temperature=temperature,
                     top_p=top_p,
                     top_k=top_k,
-                    print_llm_usage=print_llm_usage,
+                    debug_mode=debug_mode,
                 )
             else:
                 llm_client = LLMClient(
@@ -131,20 +131,13 @@ def main(url, openai_api_key, google_api_key, openai_base_url, google_base_url, 
                     reasoning_effort=reasoning_effort,
                     verbosity=verbosity,
                     service_tier=service_tier,
-                    print_llm_usage=print_llm_usage,
+                    debug_mode=debug_mode,
                 )
-            if translation_history_size == 0:
-                return ParallelTranslator(
-                    llm_client=llm_client,
-                    timeout=translation_timeout,
-                    retry_if_translation_fails=retry_if_translation_fails,
-                )
-            else:
-                return SerialTranslator(
-                    llm_client=llm_client,
-                    timeout=translation_timeout,
-                    retry_if_translation_fails=retry_if_translation_fails,
-                )
+            return ParallelTranslator(
+                llm_client=llm_client,
+                timeout=translation_timeout,
+                retry_if_translation_fails=retry_if_translation_fails,
+            )
 
         translator_future = executor.submit(init_translator)
         exporter_future = executor.submit(
@@ -378,7 +371,7 @@ def cli():
         type=int,
         default=0,
         help=
-        'The number of previous messages sent when calling the GPT / Gemini API. If the history size is 0, the translation will be run parallelly. If the history size > 0, the translation will be run serially.'
+        'The number of previous transcripts sent as context when calling the LLM API. It is recommended to disable context (set to 0) for weaker models.'
     )
     parser.add_argument(
         '--translation_timeout',
@@ -420,9 +413,9 @@ def cli():
                         type=str,
                         default=None,
                         help='Specify the service_tier parameter for LLM translation (Affects GPT translation only).')
-    parser.add_argument('--print_llm_usage',
+    parser.add_argument('--debug_mode',
                         action='store_true',
-                        help='Print LLM usage info after each translation call.')
+                        help='Enable debug mode. Print messages sent to LLM and usage info after each translation call.')
     parser.add_argument(
         '--processing_proxy',
         type=str,

@@ -27,6 +27,7 @@ class TranslationTask:
     def __init__(self, audio: np.array, time_range: tuple[float, float]):
         self.audio = audio
         self.transcript = None
+        self.context_transcripts = None
         self.translation = None
         self.time_range = time_range
         self.start_time = None
