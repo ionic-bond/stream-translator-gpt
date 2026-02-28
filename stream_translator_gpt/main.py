@@ -413,9 +413,10 @@ def cli():
                         type=str,
                         default=None,
                         help='Specify the service_tier parameter for LLM translation (Affects GPT translation only).')
-    parser.add_argument('--debug_mode',
-                        action='store_true',
-                        help='Enable debug mode. Print messages sent to LLM and usage info after each translation call.')
+    parser.add_argument(
+        '--debug_mode',
+        action='store_true',
+        help='Enable debug mode. Print messages sent to LLM and usage info after each translation call.')
     parser.add_argument(
         '--processing_proxy',
         type=str,
