@@ -4,7 +4,7 @@
     "delete": "Delete",
     "name": "New Preset Name",
     "save": "Save",
-    "overall": "Overall",
+    "overall": "Other",
     "openai_api_key": "OpenAI API Key",
     "openai_api_key_ph": "OpenAI API key if using GPT translation / Whisper API. If you have multiple keys, you can separate them with \",\" and each key will be used in turn.",
     "google_api_key": "Google API Key",
@@ -91,5 +91,7 @@
     "none_option": "None",
     "restart_confirmation": "Changing language requires a restart. Do you want to close the program now?",
     "program_exited": "Program exited. You can close this tab now.",
-    "delete_confirmation": "Are you sure you want to delete this preset?"
+    "delete_confirmation": "Are you sure you want to delete this preset?",
+    "extra_cli_args": "Extra Arguments",
+    "extra_cli_args_ph": "CLI arguments not available in the UI. They will be appended to the command as-is."
 }

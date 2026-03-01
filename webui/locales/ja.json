@@ -4,7 +4,7 @@
     "delete": "削除",
     "name": "新しいプリセット名",
     "save": "保存",
-    "overall": "全般",
+    "overall": "その他",
     "openai_api_key": "OpenAI API キー",
     "openai_api_key_ph": "GPT翻訳/Whisper APIを使用する場合に必要です。複数のキーがある場合は「,」で区切って入力すると、順番に使用されます。",
     "google_api_key": "Google API キー",
@@ -91,5 +91,7 @@
     "none_option": "なし",
     "restart_confirmation": "言語を変更するには再起動が必要です。今すぐプログラムを終了しますか？",
     "program_exited": "プログラムは終了しました。このタブを閉じることができます。",
-    "delete_confirmation": "このプリセットを削除してもよろしいですか？"
+    "delete_confirmation": "このプリセットを削除してもよろしいですか？",
+    "extra_cli_args": "追加引数",
+    "extra_cli_args_ph": "UI にない CLI 引数。コマンドにそのまま追加されます。"
 }

@@ -4,7 +4,7 @@
     "delete": "删除",
     "name": "新预设名称",
     "save": "保存",
-    "overall": "通用",
+    "overall": "其他",
     "openai_api_key": "OpenAI API Key",
     "openai_api_key_ph": "使用 GPT 翻译或 Whisper API 时需要。如果有多个 Key，可以用 \",\" 分隔，将轮询使用。",
     "google_api_key": "Google API Key",
@@ -91,5 +91,7 @@
     "none_option": "无",
     "restart_confirmation": "更改语言需要重启。您是否要立即关闭程序？",
     "program_exited": "程序已退出。您现在可以关闭此标签页。",
-    "delete_confirmation": "确定要删除此预设吗？"
+    "delete_confirmation": "确定要删除此预设吗？",
+    "extra_cli_args": "额外参数",
+    "extra_cli_args_ph": "WebUI 中没有的 CLI 参数，将原样追加到命令中。"
 }

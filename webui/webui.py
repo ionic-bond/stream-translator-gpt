@@ -1,6 +1,7 @@
 # This file is written by Gemini
 import argparse
 import re
+import shlex
 import atexit
 import json
 import os
@@ -89,7 +90,7 @@ INPUT_KEYS = [
     "history_size", "translation_timeout", "processing_proxy", "use_json_result", "retry_if_translation_fails",
     "show_timestamps", "hide_transcription", "output_file", "output_proxy", "cqhttp_url", "cqhttp_token",
     "discord_hook", "telegram_token", "telegram_chat_id", "processing_proxy_trans", "openai_key_trans",
-    "openai_base_url_trans"
+    "openai_base_url_trans", "extra_cli_args"
 ]
 
 
@@ -268,7 +269,8 @@ def build_translator_command(
         cqhttp_token,
         discord_hook,
         telegram_token,
-        telegram_chat_id):
+        telegram_chat_id,
+        extra_cli_args=None):
     cmd = [sys.executable, "-u", "-m", "stream_translator_gpt"]
 
     def add_arg(flag, value, default_key=None):
@@ -422,6 +424,14 @@ def build_translator_command(
     if overall_proxy:
         cmd.extend(["--proxy", overall_proxy])
 
+    # --- Extra CLI Args ---
+    if extra_cli_args and extra_cli_args.strip():
+        try:
+            extra_args = shlex.split(extra_cli_args.strip())
+            cmd.extend(extra_args)
+        except ValueError as e:
+            return None, f"Error parsing extra CLI arguments: {e}\n"
+
     return cmd, None
 
 
@@ -494,7 +504,8 @@ def run_translator(
         cqhttp_token,
         discord_hook,
         telegram_token,
-        telegram_chat_id):
+        telegram_chat_id,
+        extra_cli_args):
     global process, is_running
 
     if is_running:
@@ -566,7 +577,8 @@ def run_translator(
                                           cqhttp_token=cqhttp_token,
                                           discord_hook=discord_hook,
                                           telegram_token=telegram_token,
-                                          telegram_chat_id=telegram_chat_id)
+                                          telegram_chat_id=telegram_chat_id,
+                                          extra_cli_args=extra_cli_args)
 
     if error:
         yield error
@@ -644,10 +656,6 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
         f"<h1>Stream Translator GPT WebUI <small style='font-weight: normal; color: gray;'>{__version__}</small></h1>")
 
     with gr.Tabs():
-        with gr.Tab(i18n.get("overall")):
-
-            overall_proxy = gr.Textbox(label=i18n.get("overall_proxy"), placeholder=i18n.get("overall_proxy_ph"))
-
         with gr.Tab(i18n.get("input")):
             input_type = gr.Radio(choices=[(i18n.get("url_option"), "URL"), (i18n.get("device_option"), "Device"),
                                            (i18n.get("file_option"), "File")],
@@ -857,6 +865,14 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
             with gr.Group():
                 output_proxy = gr.Textbox(label=i18n.get("output_proxy"), placeholder=i18n.get("output_proxy_ph"))
 
+        with gr.Tab(i18n.get("overall")):
+
+            extra_cli_args = gr.Textbox(label=i18n.get("extra_cli_args"),
+                                        placeholder=i18n.get("extra_cli_args_ph"),
+                                        lines=2)
+
+            overall_proxy = gr.Textbox(label=i18n.get("overall_proxy"), placeholder=i18n.get("overall_proxy_ph"))
+
     with gr.Row():
         with gr.Column(scale=1):
             gr.Markdown("<br>")
@@ -978,7 +994,7 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                         translation_provider, gpt_model, gemini_model, history_size, translation_timeout,
                         openai_base_url, google_base_url, processing_proxy, use_json_result, retry_if_translation_fails,
                         show_timestamps, hide_transcription, output_file, output_proxy, cqhttp_url, cqhttp_token,
-                        discord_hook, telegram_token, telegram_chat_id
+                        discord_hook, telegram_token, telegram_chat_id, extra_cli_args
                     ],
                     outputs=output_box,
                     concurrency_limit=1,
