@@ -276,7 +276,7 @@ class ParallelTranslator(LoopWorkerBase):
         for task in self.processing_queue:
             if task.translation_failed and not _is_task_timeout(task, self.timeout):
                 task.retry_count = getattr(task, 'retry_count', 0) + 1
-                backoff = min(2 ** task.retry_count, 30)
+                backoff = min(2**task.retry_count, 30)
                 self._trigger(task)
                 print(f'Translation failed, retrying in {backoff}s: {task.transcript}')
                 time.sleep(backoff)
@@ -346,7 +346,7 @@ class SerialTranslator(LoopWorkerBase):
                             print(f'Translation failed: {current_task.transcript}')
                             if self.retry_if_translation_fails:
                                 current_task.retry_count = getattr(current_task, 'retry_count', 0) + 1
-                                backoff = min(2 ** current_task.retry_count, 30)
+                                backoff = min(2**current_task.retry_count, 30)
                                 self._trigger(current_task)
                                 time.sleep(backoff)
                                 continue
