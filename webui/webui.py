@@ -1,20 +1,18 @@
 # This file is written by Gemini
 import argparse
-import re
-import shlex
 import atexit
 import json
 import os
+import re
+import shlex
 import signal
 import subprocess
 import sys
-
-import gradio as gr
-import platformdirs
 import time
 import threading
 
-import sys
+import gradio as gr
+import platformdirs
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from stream_translator_gpt import __version__
@@ -89,8 +87,7 @@ INPUT_KEYS = [
     "transcription_initial_prompt", "translation_prompt", "translation_provider", "gpt_model", "gemini_model",
     "history_size", "translation_timeout", "processing_proxy", "use_json_result", "retry_if_translation_fails",
     "show_timestamps", "hide_transcription", "output_file", "output_proxy", "cqhttp_url", "cqhttp_token",
-    "discord_hook", "telegram_token", "telegram_chat_id", "processing_proxy_trans", "openai_key_trans",
-    "openai_base_url_trans", "extra_cli_args"
+    "discord_hook", "telegram_token", "telegram_chat_id", "extra_cli_args"
 ]
 
 

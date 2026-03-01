@@ -1,10 +1,8 @@
 import json
-import os
 import queue
+import re
 import threading
 import time
-
-import re
 from collections import deque
 from datetime import datetime, timedelta, timezone
 
@@ -129,8 +127,8 @@ class LLMClient():
         from openai import OpenAI
         import httpx
 
-        ApiKeyPool.use_openai_api()
-        client = OpenAI(http_client=httpx.Client(proxy=self.proxy, verify=False))
+        api_key = ApiKeyPool.get_openai_api_key()
+        client = OpenAI(api_key=api_key, http_client=httpx.Client(proxy=self.proxy, verify=False))
 
         system_prompt, user_content = self._build_messages(translation_task)
         if self.debug_mode:
@@ -156,8 +154,6 @@ class LLMClient():
                     kwargs["top_p"] = 0.9
                 if version >= 5.0:
                     kwargs["reasoning_effort"] = "none" if version >= 5.1 else "minimal"
-                elif not self.use_json_result:
-                    kwargs["stop"] = ['\n']
 
             if self.prompt_cache_key is not None:
                 kwargs["prompt_cache_key"] = self.prompt_cache_key
@@ -190,7 +186,7 @@ class LLMClient():
         from google import genai
         from google.genai import types
 
-        ApiKeyPool.use_google_api()
+        api_key = ApiKeyPool.get_google_api_key()
 
         http_options = {}
         if self.proxy:
@@ -201,7 +197,7 @@ class LLMClient():
         if self.google_base_url:
             http_options['base_url'] = self.google_base_url
 
-        client = genai.Client(api_key=os.environ.get("GOOGLE_API_KEY"), http_options=http_options)
+        client = genai.Client(api_key=api_key, http_options=http_options)
 
         system_prompt, user_content = self._build_messages(translation_task)
         if self.debug_mode:
@@ -214,7 +210,6 @@ class LLMClient():
             temperature=0.7,
             top_p=0.9,
             top_k=50,
-            stop_sequences=None if self.use_json_result else ['\n'],
             system_instruction=system_prompt,
             thinking_config=types.ThinkingConfig(thinking_budget=0),
             response_mime_type='application/json' if self.use_json_result else 'text/plain',
@@ -280,9 +275,11 @@ class ParallelTranslator(LoopWorkerBase):
     def _retrigger_failed_tasks(self):
         for task in self.processing_queue:
             if task.translation_failed and not _is_task_timeout(task, self.timeout):
+                task.retry_count = getattr(task, 'retry_count', 0) + 1
+                backoff = min(2 ** task.retry_count, 30)
                 self._trigger(task)
-                print(f'Translation failed: {task.transcript}')
-                time.sleep(1)
+                print(f'Translation failed, retrying in {backoff}s: {task.transcript}')
+                time.sleep(backoff)
 
     def _get_results(self):
         results = []
@@ -348,8 +345,10 @@ class SerialTranslator(LoopWorkerBase):
                         else:
                             print(f'Translation failed: {current_task.transcript}')
                             if self.retry_if_translation_fails:
+                                current_task.retry_count = getattr(current_task, 'retry_count', 0) + 1
+                                backoff = min(2 ** current_task.retry_count, 30)
                                 self._trigger(current_task)
-                                time.sleep(1)
+                                time.sleep(backoff)
                                 continue
                     output_queue.put(current_task)
                     current_task = None

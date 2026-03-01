@@ -61,24 +61,24 @@ class ApiKeyPool():
     def init(cls, openai_api_key, google_api_key):
         cls.openai_api_key_list = [key.strip() for key in openai_api_key.split(',')] if openai_api_key else None
         cls.openai_api_key_index = 0
-        cls.use_openai_api()
         cls.google_api_key_list = [key.strip() for key in google_api_key.split(',')] if google_api_key else None
         cls.google_api_key_index = 0
-        cls.use_google_api()
 
     @classmethod
-    def use_openai_api(cls):
+    def get_openai_api_key(cls):
         if not cls.openai_api_key_list:
-            return
-        os.environ['OPENAI_API_KEY'] = cls.openai_api_key_list[cls.openai_api_key_index]
+            return None
+        key = cls.openai_api_key_list[cls.openai_api_key_index]
         cls.openai_api_key_index = (cls.openai_api_key_index + 1) % len(cls.openai_api_key_list)
+        return key
 
     @classmethod
-    def use_google_api(cls):
+    def get_google_api_key(cls):
         if not cls.google_api_key_list:
-            return
-        os.environ['GOOGLE_API_KEY'] = cls.google_api_key_list[cls.google_api_key_index]
+            return None
+        key = cls.google_api_key_list[cls.google_api_key_index]
         cls.google_api_key_index = (cls.google_api_key_index + 1) % len(cls.google_api_key_list)
+        return key
 
 
 def is_url(address):

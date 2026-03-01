@@ -512,7 +512,7 @@ def cli():
         if args['model'] == 'large.en':
             print(
                 f'{ERROR}English model does not have large model, please choose from {{tiny.en, small.en, medium.en}}')
-            sys.exit(0)
+            sys.exit(1)
         if args['language'] != 'English' and args['language'] != 'en':
             if args['language'] == 'auto':
                 print(f'{WARNING}Using .en model, setting language from auto to English')
@@ -521,7 +521,7 @@ def cli():
                 print(
                     f'{ERROR}English model cannot be used to detect non english language, please choose a non .en model'
                 )
-                sys.exit(0)
+                sys.exit(1)
 
     transcription_encoder_flag_num = 0
     transcription_decoder_flag_num = 0

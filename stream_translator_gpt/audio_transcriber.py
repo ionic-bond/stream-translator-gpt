@@ -212,7 +212,7 @@ class RemoteOpenaiTranscriber(AudioTranscriber):
         if initial_prompt:
             call_args['prompt'] = initial_prompt
 
-        ApiKeyPool.use_openai_api()
-        client = OpenAI(http_client=httpx.Client(proxy=self.proxy))
+        api_key = ApiKeyPool.get_openai_api_key()
+        client = OpenAI(api_key=api_key, http_client=httpx.Client(proxy=self.proxy, verify=False))
         result = client.audio.transcriptions.create(**call_args).text
         return result, None
