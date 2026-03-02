@@ -2,6 +2,7 @@ import argparse
 import os
 import platform
 import queue
+import shutil
 import signal
 import sys
 import time
@@ -459,6 +460,13 @@ def cli():
     args = parser.parse_args().__dict__
 
     url = args.pop('URL')
+
+    if url.lower() != 'device' and not shutil.which('ffmpeg'):
+        if platform.system() == 'Windows':
+            print(f'{ERROR}ffmpeg not found. Please install it with: winget install ffmpeg')
+        else:
+            print(f'{ERROR}ffmpeg not found. Please install it with: sudo apt install ffmpeg')
+        sys.exit(1)
 
     if args['proxy']:
         os.environ['http_proxy'] = args['proxy']

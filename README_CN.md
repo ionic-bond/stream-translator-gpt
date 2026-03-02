@@ -75,16 +75,18 @@ flowchart LR
 **Linux 或 Windows:**
 
 1. Python >= 3.8 (推荐 >= 3.10)
-2. [**在您的系统上安装 CUDA**](https://developer.nvidia.com/cuda-downloads)。
-3. 如果您想使用 **Faster-Whisper**，[**请将 cuDNN 安装到您的 CUDA 目录**](https://developer.nvidia.com/cudnn-downloads)。
-4. [**为您的 Python 安装 PyTorch (CUDA 版本)**](https://pytorch.org/get-started/locally/)。
-81. 如果您想使用 **Gemini API** 进行翻译，[**请创建一个 Google API 密钥**](https://aistudio.google.com/app/apikey)。
-82. 如果您想使用 **OpenAI Transcription API** 进行语音转文字或使用 **GPT API** 进行翻译，[**请创建一个 OpenAI API 密钥**](https://platform.openai.com/api-keys)。
+2. **安装 FFmpeg**（如果您的系统已安装 FFmpeg 可跳过此步）：
+   - Windows: `winget install ffmpeg`
+   - Linux (Debian/Ubuntu): `sudo apt install ffmpeg`
+3. [**在您的系统上安装 CUDA**](https://developer.nvidia.com/cuda-downloads)。
+4. 如果您想使用 **Faster-Whisper**，[**请将 cuDNN 安装到您的 CUDA 目录**](https://developer.nvidia.com/cudnn-downloads)。
+5. [**为您的 Python 安装 PyTorch (CUDA 版本)**](https://pytorch.org/get-started/locally/)。
+6. 如果您想使用 **Gemini API** 进行翻译，[**请创建一个 Google API 密钥**](https://aistudio.google.com/app/apikey)。
+7. 如果您想使用 **OpenAI Transcription API** 进行语音转文字或使用 **GPT API** 进行翻译，[**请创建一个 OpenAI API 密钥**](https://platform.openai.com/api-keys)。
 
 **如果您在 Windows 上，您还需要：**
 
-1. [**安装 ffmpeg 并将其添加到您的环境变量。**](https://www.thewindowsclub.com/how-to-install-ffmpeg-on-windows-10#:~:text=Click%20New%20and%20type%20the,Click%20OK%20to%20apply%20changes.)
-2. 安装 [**yt-dlp**](https://github.com/yt-dlp/yt-dlp) 并将其添加到您的环境变量。
+1. 安装 [**yt-dlp**](https://github.com/yt-dlp/yt-dlp) 并将其添加到您的环境变量。
 
 
 ## WebUI
