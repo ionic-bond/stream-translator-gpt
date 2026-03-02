@@ -72,10 +72,8 @@ Finally, the results can be printed to the terminal, saved to a file, or sent to
 
 ## Prerequisites
 
-**Linux or Windows:**
-
-1. Python >= 3.8 (Recommend >= 3.10)
-2. **Install FFmpeg** (skip if already installed):
+1. **Python** >= 3.8 (Recommend >= 3.10)
+2. **FFmpeg** (skip if already installed):
    - Windows: `winget install ffmpeg`
    - Linux (Debian/Ubuntu): `sudo apt install ffmpeg`
 3. [**Install CUDA on your system**](https://developer.nvidia.com/cuda-downloads).

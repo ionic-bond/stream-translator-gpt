@@ -72,10 +72,8 @@ flowchart LR
 
 ## 准备工作
 
-**Linux 或 Windows:**
-
-1. Python >= 3.8 (推荐 >= 3.10)
-2. **安装 FFmpeg**（如果您的系统已安装 FFmpeg 可跳过此步）：
+1. **Python** >= 3.8 (推荐 >= 3.10)
+2. **FFmpeg**（如果您的系统已安装 FFmpeg 可跳过此步）：
    - Windows: `winget install ffmpeg`
    - Linux (Debian/Ubuntu): `sudo apt install ffmpeg`
 3. [**在您的系统上安装 CUDA**](https://developer.nvidia.com/cuda-downloads)。
