@@ -24,11 +24,6 @@ Try it on Colab:
 6. [**Create a Google API key**](https://aistudio.google.com/app/apikey) if you want to use **Gemini API** for translation.
 7. [**Create a OpenAI API key**](https://platform.openai.com/api-keys) if you want to use **OpenAI Transcription API** for transcription or **GPT API** for translation.
 
-**If you are in Windows, you also need to:**
-
-1. Install [**yt-dlp**](https://github.com/yt-dlp/yt-dlp) and add it to your PATH.
-
-
 ## WebUI
 
 ```

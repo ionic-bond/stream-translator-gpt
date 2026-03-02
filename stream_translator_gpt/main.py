@@ -508,7 +508,7 @@ def cli():
         exit(0)
 
     if args['list_format']:
-        cmd = ['yt-dlp', url, '-F']
+        cmd = [sys.executable, '-m', 'yt_dlp', url, '-F']
         if args['cookies']:
             cmd.extend(['--cookies', args['cookies']])
         if args['input_proxy']:

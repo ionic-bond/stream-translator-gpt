@@ -39,7 +39,7 @@ def _transport(ytdlp_proc, ffmpeg_proc):
 
 
 def _open_stream(url: str, format: str, cookies: str, proxy: str, cwd: str):
-    cmd = ['yt-dlp', url, '-f', format, '-o', '-', '-q']
+    cmd = [sys.executable, '-m', 'yt_dlp', url, '-f', format, '-o', '-', '-q']
     if cookies:
         cmd.extend(['--cookies', cookies])
     if proxy:

@@ -84,11 +84,6 @@ flowchart LR
 6. 如果您想使用 **Gemini API** 进行翻译，[**请创建一个 Google API 密钥**](https://aistudio.google.com/app/apikey)。
 7. 如果您想使用 **OpenAI Transcription API** 进行语音转文字或使用 **GPT API** 进行翻译，[**请创建一个 OpenAI API 密钥**](https://platform.openai.com/api-keys)。
 
-**如果您在 Windows 上，您还需要：**
-
-1. 安装 [**yt-dlp**](https://github.com/yt-dlp/yt-dlp) 并将其添加到您的环境变量。
-
-
 ## WebUI
 
 ```
