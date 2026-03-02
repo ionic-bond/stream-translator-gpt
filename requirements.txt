@@ -1,6 +1,6 @@
 numpy
 scipy
-yt-dlp>=2025.11.12
+yt-dlp[default]>=2026.2.21
 ffmpeg-python>=0.2.0,<0.3
 pyaudiowpatch>=0.2.12,<0.3; sys_platform == "win32"
 openai-whisper==20250625
