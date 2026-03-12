@@ -55,7 +55,7 @@ class AudioTranscriber(LoopWorkerBase):
                 output_queue.put(None)
                 break
 
-            dynamic_context = previous_text if not self.disable_transcription_context else ""
+            dynamic_context = filters.symbol_filter(previous_text) if not self.disable_transcription_context else ""
 
             if self.constant_prompt:
                 limit = 500 - len(self.constant_prompt) - 1
