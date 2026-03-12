@@ -210,8 +210,8 @@ Colab上的命令 [![Open In Colab](https://colab.research.google.com/assets/col
 | `--transcription_initial_prompt`        |                                | 通用的转录固定提示词/术语表。格式："提示词1, 提示词2, ..."。此文本将始终包含在传递给模型的提示词中。                                                                      |
 | `--disable_transcription_context`       |                                | 设置此标志以禁用转录中的上下文（上一句）传递。                                                                                                                            |
 | **翻译选项**                            |
-| `--gpt_model`                           | gpt-5-nano                     | OpenAI 的 GPT 模型名称，gpt-5 / gpt-5-mini / gpt-5-nano                                                                                                                   |
-| `--gemini_model`                        | gemini-2.5-flash-lite          | Google 的 Gemini 模型名称，gemini-2.0-flash / gemini-2.5-flash / gemini-2.5-flash-lite                                                                                    |
+| `--gpt_model`                           | gpt-5-nano                     | OpenAI 的 GPT 模型名称，gpt-5-nano / gpt-5-mini / gpt-5 / gpt-5.1 / gpt-5.2 / gpt-5.4                                                                                    |
+| `--gemini_model`                        | gemini-3.1-flash-lite-preview  | Google 的 Gemini 模型名称，gemini-3.1-flash-lite-preview / gemini-3-flash-preview                                                                                         |
 | `--translation_prompt`                  |                                | 如果使用，将通过 GPT / Gemini API (根据填写的 API 密钥决定) 将结果文本翻译成目标语言。示例："Translate from Japanese to Chinese"                                          |
 | `--translation_history_size`            | 0                              | 调用 LLM API 时作为上下文发送的先前转录数量。建议对较弱的模型禁用上下文（设置为 0）。                                                                                     |
 | `--translation_timeout`                 | 10                             | 如果 GPT / Gemini 当一句话翻译超过此秒数，这句话将被放弃。                                                                                                                |

@@ -793,8 +793,7 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                                                      placeholder=i18n.get("gpt_base_url_ph"))
 
                     gpt_model = gr.Dropdown([
-                        "gpt-4o", "gpt-4o-mini", "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-5", "gpt-5-mini",
-                        "gpt-5-nano", "gpt-5.1", "gpt-5.2"
+                        "gpt-5-nano", "gpt-5-mini", "gpt-5", "gpt-5.1", "gpt-5.2", "gpt-5.4"
                     ],
                                             label=i18n.get("gpt_model"),
                                             value=get_default("gpt_model"),
@@ -808,8 +807,7 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                                                      placeholder=i18n.get("gemini_base_url_ph"))
 
                     gemini_model = gr.Dropdown([
-                        "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-flash-lite-preview-09-2025",
-                        "gemini-3-flash-preview"
+                        "gemini-3.1-flash-lite-preview", "gemini-3-flash-preview"
                     ],
                                                label=i18n.get("gemini_model"),
                                                value=get_default("gemini_model"),

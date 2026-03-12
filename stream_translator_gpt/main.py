@@ -355,11 +355,11 @@ def cli():
     parser.add_argument('--gpt_model',
                         type=str,
                         default='gpt-5-nano',
-                        help='OpenAI\'s GPT model name, gpt-5 / gpt-5-mini / gpt-5-nano')
+                        help='OpenAI\'s GPT model name, gpt-5-nano / gpt-5-mini / gpt-5 / gpt-5.1 / gpt-5.2 / gpt-5.4')
     parser.add_argument('--gemini_model',
                         type=str,
-                        default='gemini-2.5-flash-lite',
-                        help='Google\'s Gemini model name, gemini-2.0-flash / gemini-2.5-flash / gemini-2.5-flash-lite')
+                        default='gemini-3.1-flash-lite-preview',
+                        help='Google\'s Gemini model name, gemini-3.1-flash-lite-preview / gemini-3-flash-preview')
     parser.add_argument(
         '--translation_prompt',
         type=str,
