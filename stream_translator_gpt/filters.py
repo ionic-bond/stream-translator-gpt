@@ -14,7 +14,9 @@ def symbol_filter(text: str):
     text = emoji_filter(text)
 
     # Remove symbols that trigger hallucination loops (music notes, CJK quotes/brackets, etc.)
-    return re.sub(r'[♪♫♬♩\u2600-\u26FF\u2700-\u27BF\U0001D100-\U0001D1FF「」『』【】〈〉《》〔〕〖〗〘〙〚〛｢｣\u3008-\u3011\u3014-\u301B]', '', text)
+    return re.sub(
+        r'[♪♫♬♩\u2600-\u26FF\u2700-\u27BF\U0001D100-\U0001D1FF「」『』【】〈〉《》〔〕〖〗〘〙〚〛｢｣\u3008-\u3011\u3014-\u301B]', '',
+        text)
 
 
 def japanese_stream_filter(text: str):
