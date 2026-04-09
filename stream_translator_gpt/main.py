@@ -88,9 +88,10 @@ def main(url, openai_api_key, google_api_key, openai_base_url, google_base_url, 
                 return SimulStreaming(model=model,
                                       language=language,
                                       use_faster_whisper=use_faster_whisper,
+                                      proxy=processing_proxy,
                                       **common_args)
             elif use_faster_whisper:
-                return FasterWhisper(model=model, language=language, **common_args)
+                return FasterWhisper(model=model, language=language, proxy=processing_proxy, **common_args)
             elif use_openai_transcription_api:
                 return RemoteOpenaiTranscriber(model=openai_transcription_model,
                                                language=language,

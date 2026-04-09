@@ -119,12 +119,24 @@ class OpenaiWhisper(AudioTranscriber):
         return text, tokens if tokens else None
 
 
+def _apply_hf_proxy(proxy: str):
+    try:
+        import huggingface_hub
+        session = huggingface_hub.utils.get_session()
+        session.proxies = {'http': proxy, 'https': proxy}
+        session.verify = False
+    except Exception:
+        pass
+
+
 class FasterWhisper(AudioTranscriber):
 
-    def __init__(self, model: str, language: str, **kwargs) -> None:
+    def __init__(self, model: str, language: str, proxy: str, **kwargs) -> None:
         super().__init__(**kwargs)
         from faster_whisper import WhisperModel
 
+        if proxy:
+            _apply_hf_proxy(proxy)
         print(f'{INFO}Loading Faster-Whisper model: {model}')
         self.model = WhisperModel(model, device='auto', compute_type='auto')
         self.language = language
@@ -141,7 +153,7 @@ class FasterWhisper(AudioTranscriber):
 
 class SimulStreaming(AudioTranscriber):
 
-    def __init__(self, model: str, language: str, use_faster_whisper: bool, **kwargs) -> None:
+    def __init__(self, model: str, language: str, use_faster_whisper: bool, proxy: str, **kwargs) -> None:
         super().__init__(**kwargs)
         from .simul_streaming.simulstreaming_whisper import SimulWhisperASR, SimulWhisperOnline
 
@@ -149,6 +161,8 @@ class SimulStreaming(AudioTranscriber):
         if use_faster_whisper:
             print(f'{INFO}Loading Faster-Whisper as encoder for SimulStreaming: {model}')
             from faster_whisper import WhisperModel
+            if proxy:
+                _apply_hf_proxy(proxy)
             fw_encoder = WhisperModel(model, device='auto', compute_type='auto')
 
         print(f'{INFO}Loading SimulStreaming model: {model}')
