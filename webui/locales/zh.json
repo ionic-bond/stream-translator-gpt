@@ -58,7 +58,7 @@
     "gemini_model": "Gemini 模型",
     "gemini_base_url": "Google Base URL",
     "gemini_base_url_ph": "https://generativelanguage.googleapis.com",
-    "history_size": "历史记录大小 (为 0 的时候开启并行翻译模式)",
+    "history_size": "历史记录大小",
     "timeout": "超时 (秒)",
     "use_json_result": "使用 JSON 结果",
     "retry_on_failure": "失败重试",

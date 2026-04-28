@@ -58,7 +58,7 @@
     "gemini_model": "Gemini モデル",
     "gemini_base_url": "Google ベース URL",
     "gemini_base_url_ph": "https://generativelanguage.googleapis.com",
-    "history_size": "履歴サイズ (0で並列)",
+    "history_size": "履歴サイズ",
     "timeout": "タイムアウト (秒)",
     "use_json_result": "JSON 結果を使用",
     "retry_on_failure": "失敗時に再試行",

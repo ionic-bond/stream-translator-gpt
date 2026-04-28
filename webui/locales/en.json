@@ -58,7 +58,7 @@
     "gemini_model": "Gemini Model",
     "gemini_base_url": "Google Base URL",
     "gemini_base_url_ph": "https://generativelanguage.googleapis.com",
-    "history_size": "History Size (0 for parallel)",
+    "history_size": "History Size",
     "timeout": "Timeout (s)",
     "use_json_result": "Use JSON Result",
     "retry_on_failure": "Retry on Failure",
