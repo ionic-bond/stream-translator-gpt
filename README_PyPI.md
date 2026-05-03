@@ -80,6 +80,10 @@ The commands on Colab [![Open In Colab](https://colab.research.google.com/assets
 
     ```stream-translator-gpt {URL} --model large --language ja --translation_prompt "Translate from Japanese to Chinese" --openai_api_key {your_openai_key}```
 
+- Translate to English using **Whisper's native translation** (no API key needed):
+
+    ```stream-translator-gpt {URL} --model large --language ja --use_whisper_translation```
+
 - Using **OpenAI Transcription API** and **Gemini** at the same time:
 
     ```stream-translator-gpt {URL} --language ja --use_openai_transcription_api --openai_api_key {your_openai_key} --translation_prompt "Translate from Japanese to Chinese" --google_api_key {your_google_key}```

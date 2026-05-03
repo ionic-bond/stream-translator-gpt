@@ -140,6 +140,10 @@ Colab上的命令 [![Open In Colab](https://colab.research.google.com/assets/col
 
     ```stream-translator-gpt {网址} --model large --language ja --translation_prompt "翻译以下日语为中文，只输出译文，不要输出原文，在一行内输出" --openai_api_key {您的 OpenAI 密钥}```
 
+- 使用 **Whisper 原生翻译**翻译为英语（无需 API 密钥）:
+
+    ```stream-translator-gpt {网址} --model large --language ja --use_whisper_translation```
+
 - 同时使用 **OpenAI Transcription API** 和 **Gemini**:
 
     ```stream-translator-gpt {网址} --language ja --use_openai_transcription_api --openai_api_key {您的 OpenAI 密钥} --translation_prompt "翻译以下日语为中文，只输出译文，不要输出原文，在一行内输出" --google_api_key {您的 Google 密钥}```
@@ -187,7 +191,9 @@ Colab上的命令 [![Open In Colab](https://colab.research.google.com/assets/col
 | `--format`                              | ba/wa*                         | 码流格式代码，此参数将直接传递给 yt-dlp。您可以通过 `yt-dlp {url} -F` 获取可用格式代码的列表。                                                                            |
 | `--list_format`                         |                                | 打印所有可用格式然后退出。                                                                                                                                                |
 | `--cookies`                             |                                | 用于打开会员专属直播，此参数将直接传递给 yt-dlp。                                                                                                                         |
+| `--cookies_from_browser`                |                                | 从浏览器提取 cookies 并传递给 yt-dlp。例如：chrome、firefox、edge、safari、opera、brave。也可以指定配置文件，如 "chrome:Profile 1"。                                      |
 | `--input_proxy`                         |                                | 为 yt-dlp 使用指定的 HTTP/HTTPS/SOCKS 代理，例如 http://127.0.0.1:7890。                                                                                                  |
+| `--user_agent`                          |                                | 自定义 yt-dlp 的 user agent 字符串，适用于有 user agent 检查的网站。                                                                                                       |
 | `--device_index`                        |                                | 需要录制的设备的索引。如果未设置，将使用系统默认的录音设备。                                                                                                              |
 | `--list_devices`                        |                                | 打印所有音频设备信息然后退出。                                                                                                                                            |
 | `--device_recording_interval`           | 0.5                            | 录制间隔越短，延迟越低，但会增加 CPU 使用率。建议设置在 0.1 和 1.0 之间。                                                                                                 |
@@ -209,6 +215,7 @@ Colab上的命令 [![Open In Colab](https://colab.research.google.com/assets/col
 | `--transcription_filters`               | emoji_filter,repetition_filter | 应用于语音转文字结果的过滤器，用 "," 分隔。我们提供 emoji_filter、repetition_filter 和 japanese_stream_filter。                                                           |
 | `--transcription_initial_prompt`        |                                | 通用的转录固定提示词/术语表。格式："提示词1, 提示词2, ..."。此文本将始终包含在传递给模型的提示词中。                                                                      |
 | `--disable_transcription_context`       |                                | 设置此标志以禁用转录中的上下文（上一句）传递。                                                                                                                            |
+| `--use_whisper_translation`             |                                | 使用 Whisper 的原生翻译功能翻译为英语，而不是 GPT/Gemini。这将完全绕过外部翻译服务。不能与 `--translation_prompt` 同时使用。                                              |
 | **翻译选项**                            |
 | `--gpt_model`                           | gpt-5-nano                     | OpenAI 的 GPT 模型名称，gpt-5-nano / gpt-5-mini / gpt-5 / gpt-5.1 / gpt-5.2 / gpt-5.4                                                                                    |
 | `--gemini_model`                        | gemini-3.1-flash-lite-preview  | Google 的 Gemini 模型名称，gemini-3.1-flash-lite-preview / gemini-3-flash-preview                                                                                         |

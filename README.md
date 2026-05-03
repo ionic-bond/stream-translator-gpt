@@ -140,6 +140,10 @@ The commands on Colab [![Open In Colab](https://colab.research.google.com/assets
 
     ```stream-translator-gpt {URL} --model large --language ja --translation_prompt "Translate from Japanese to Chinese" --openai_api_key {your_openai_key}```
 
+- Translate to English using **Whisper's native translation** (no API key needed):
+
+    ```stream-translator-gpt {URL} --model large --language ja --use_whisper_translation```
+
 - Using **OpenAI Transcription API** and **Gemini** at the same time:
 
     ```stream-translator-gpt {URL} --language ja --use_openai_transcription_api --openai_api_key {your_openai_key} --translation_prompt "Translate from Japanese to Chinese" --google_api_key {your_google_key}```
@@ -187,7 +191,9 @@ The commands on Colab [![Open In Colab](https://colab.research.google.com/assets
 | `--format`                              | ba/wa*                         | Stream format code, this parameter will be passed directly to yt-dlp. You can get the list of available format codes by `yt-dlp {url} -F`                                                                          |
 | `--list_format`                         |                                | Print all available formats then exit.                                                                                                                                                                             |
 | `--cookies`                             |                                | Used to open member-only stream, this parameter will be passed directly to yt-dlp.                                                                                                                                 |
+| `--cookies_from_browser`                |                                | Extract cookies from browser and pass to yt-dlp. Examples: chrome, firefox, edge, safari, opera, brave. Can also specify profile like "chrome:Profile 1".                                                         |
 | `--input_proxy`                         |                                | Use the specified HTTP/HTTPS/SOCKS proxy for yt-dlp, e.g. http://127.0.0.1:7890.                                                                                                                                   |
+| `--user_agent`                          |                                | Custom user agent string for yt-dlp, useful for sites with user agent checks.                                                                                                                                      |
 | `--device_index`                        |                                | The index of the device that needs to be recorded. If not set, the system default recording device will be used.                                                                                                   |
 | `--list_devices`                        |                                | Print all audio devices info then exit.                                                                                                                                                                            |
 | `--device_recording_interval`           | 0.5                            | The shorter the recording interval, the lower the latency, but it will increase CPU usage. It is recommended to set it between 0.1 and 1.0.                                                                        |
@@ -209,6 +215,7 @@ The commands on Colab [![Open In Colab](https://colab.research.google.com/assets
 | `--transcription_filters`               | emoji_filter,repetition_filter | Filters apply to transcription results, separated by ",". We provide emoji_filter, repetition_filter and japanese_stream_filter.                                                                                   |
 | `--transcription_initial_prompt`        |                                | General purpose prompt/glossary for transcription. Format: "Word1, Word2, Word3, ...". This text is always included in the prompt passed to the model.                                                             |
 | `--disable_transcription_context`       |                                | Set this flag to disable context (previous sentence) propagation in transcription.                                                                                                                                 |
+| `--use_whisper_translation`             |                                | Use Whisper's native translation to English instead of GPT/Gemini. This bypasses external translation services entirely. Cannot be used with `--translation_prompt`.                                              |
 | **Translation Options**                 |
 | `--gpt_model`                           | gpt-5-nano                     | OpenAI's GPT model name, gpt-5-nano / gpt-5-mini / gpt-5 / gpt-5.1 / gpt-5.2 / gpt-5.4                                                                                                                           |
 | `--gemini_model`                        | gemini-3.1-flash-lite-preview  | Google's Gemini model name, gemini-3.1-flash-lite-preview / gemini-3-flash-preview                                                                                                                                 |
