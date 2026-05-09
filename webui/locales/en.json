@@ -93,5 +93,7 @@
     "program_exited": "Program exited. You can close this tab now.",
     "delete_confirmation": "Are you sure you want to delete this preset?",
     "extra_cli_args": "Extra Arguments",
-    "extra_cli_args_ph": "CLI arguments not available in the UI. They will be appended to the command as-is."
+    "extra_cli_args_ph": "CLI arguments not available in the UI. They will be appended to the command as-is.",
+    "hf_model_name": "Model Name",
+    "hf_model_name_ph": "e.g. openai/whisper-large-v3-turbo"
 }

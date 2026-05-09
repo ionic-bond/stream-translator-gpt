@@ -81,7 +81,7 @@ os.makedirs(USER_PRESETS_DIR, exist_ok=True)
 INPUT_KEYS = [
     "input_type", "input_url", "device_rec_interval", "audio_source", "input_file", "input_format", "input_cookies",
     "input_proxy", "openai_key", "google_key", "openai_base_url", "google_base_url", "overall_proxy", "model_size",
-    "language", "whisper_backend", "openai_transcription_model", "vad_threshold", "min_audio_len", "max_audio_len",
+    "hf_model_name", "language", "whisper_backend", "openai_transcription_model", "vad_threshold", "min_audio_len", "max_audio_len",
     "target_audio_len", "silence_threshold", "disable_dynamic_vad", "disable_dynamic_silence", "prefix_retention_len",
     "filter_emoji", "filter_repetition", "filter_japanese_stream", "disable_transcription_context",
     "transcription_initial_prompt", "translation_prompt", "translation_provider", "gpt_model", "gemini_model",
@@ -234,6 +234,7 @@ def build_translator_command(
         language,
         whisper_backend,
         openai_transcription_model,
+        hf_model_name,
         vad_threshold,
         min_audio_len,
         max_audio_len,
@@ -357,11 +358,16 @@ def build_translator_command(
     elif whisper_backend == "Faster-Whisper & Simul-Streaming":
         cmd.append("--use_faster_whisper")
         cmd.append("--use_simul_streaming")
+    elif whisper_backend == "HuggingFace ASR":
+        cmd.append("--use_hf_asr")
     elif whisper_backend == "OpenAI Transcription API":
         cmd.append("--use_openai_transcription_api")
         add_arg("--openai_transcription_model", openai_transcription_model, "openai_transcription_model")
 
-    add_arg("--model", model_size, "model_size")
+    if whisper_backend == "HuggingFace ASR":
+        add_arg("--model", hf_model_name)
+    else:
+        add_arg("--model", model_size, "model_size")
     add_arg("--language", language, "language")
     if disable_transcription_context:
         cmd.append("--disable_transcription_context")
@@ -467,6 +473,7 @@ def run_translator(
         language,
         whisper_backend,
         openai_transcription_model,
+        hf_model_name,
         vad_threshold,
         min_audio_len,
         max_audio_len,
@@ -542,6 +549,7 @@ def run_translator(
                                           language=language,
                                           whisper_backend=whisper_backend,
                                           openai_transcription_model=openai_transcription_model,
+                                          hf_model_name=hf_model_name,
                                           vad_threshold=vad_threshold,
                                           min_audio_len=min_audio_len,
                                           max_audio_len=max_audio_len,
@@ -725,6 +733,7 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
             whisper_backend = gr.Radio(choices=[
                 ("Whisper", "Whisper"), ("Faster-Whisper", "Faster-Whisper"), ("Simul-Streaming", "Simul-Streaming"),
                 ("Faster-Whisper & Simul-Streaming", "Faster-Whisper & Simul-Streaming"),
+                ("HuggingFace ASR", "HuggingFace ASR"),
                 (i18n.get("openai_transcription_api_option"), "OpenAI Transcription API")
             ],
                                        label=i18n.get("transcription_type"),
@@ -749,6 +758,10 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                                                          value=get_default("openai_transcription_model"),
                                                          visible=False,
                                                          allow_custom_value=True)
+                hf_model_name = gr.Textbox(label=i18n.get("hf_model_name"),
+                                           placeholder=i18n.get("hf_model_name_ph"),
+                                           visible=False,
+                                           value=get_default("hf_model_name"))
                 language = gr.Dropdown(
                     [
                         "auto", "af", "am", "ar", "as", "az", "ba", "be", "bg", "bn", "bo", "br", "bs", "ca", "cs",
@@ -914,14 +927,16 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
     # Whisper Backend Visibility
     def update_backend_visibility(choice):
         openai_visible = (choice == "OpenAI Transcription API")
+        hf_visible = (choice == "HuggingFace ASR")
         return {
             openai_transcription_model: gr.update(visible=openai_visible),
-            model_size: gr.update(visible=not openai_visible),
-            openai_transcription_group: gr.update(visible=openai_visible)
+            model_size: gr.update(visible=not openai_visible and not hf_visible),
+            openai_transcription_group: gr.update(visible=openai_visible),
+            hf_model_name: gr.update(visible=hf_visible),
         }
 
     whisper_backend.change(update_backend_visibility, whisper_backend,
-                           [openai_transcription_model, model_size, openai_transcription_group])
+                           [openai_transcription_model, model_size, openai_transcription_group, hf_model_name])
 
     # Translation Visibility
     def update_translation_visibility(choice):
@@ -977,8 +992,8 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
     start_btn.click(run_translator,
                     inputs=[
                         input_type, input_url, device_rec_interval, audio_source, input_file, input_format,
-                        input_cookies, input_proxy, openai_key, google_key, overall_proxy, model_size, language,
-                        whisper_backend, openai_transcription_model, vad_threshold, min_audio_len, max_audio_len,
+                        input_cookies, input_proxy, openai_key, google_key, overall_proxy, model_size,
+                        language, whisper_backend, openai_transcription_model, hf_model_name, vad_threshold, min_audio_len, max_audio_len,
                         target_audio_len, silence_threshold, disable_dynamic_vad, disable_dynamic_silence,
                         prefix_retention_len, filter_emoji, filter_repetition, filter_japanese_stream,
                         disable_transcription_context, transcription_initial_prompt, translation_prompt,

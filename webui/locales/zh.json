@@ -93,5 +93,7 @@
     "program_exited": "程序已退出。您现在可以关闭此标签页。",
     "delete_confirmation": "确定要删除此预设吗？",
     "extra_cli_args": "额外参数",
-    "extra_cli_args_ph": "WebUI 中没有的 CLI 参数，将原样追加到命令中。"
+    "extra_cli_args_ph": "WebUI 中没有的 CLI 参数，将原样追加到命令中。",
+    "hf_model_name": "模型名称",
+    "hf_model_name_ph": "例：openai/whisper-large-v3-turbo"
 }

@@ -72,6 +72,12 @@ The commands on Colab [![Open In Colab](https://colab.research.google.com/assets
 
     ```stream-translator-gpt {URL} --language {input_language} --use_openai_transcription_api --openai_api_key {your_openai_key}```
 
+- Transcribe by a **HuggingFace ASR** model (requires `pip install stream-translator-gpt[hf_asr]`):
+
+    ```stream-translator-gpt {URL} --model openai/whisper-large-v3-turbo --language {input_language} --use_hf_asr```
+
+    Only models with `pipeline_tag: automatic-speech-recognition` on Hugging Face Hub are supported.
+
 - Translate to other language by **Gemini**:
 
     ```stream-translator-gpt {URL} --model large --language ja --translation_prompt "Translate from Japanese to Chinese" --google_api_key {your_google_key}```

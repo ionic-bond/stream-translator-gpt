@@ -1,0 +1,2 @@
+-r requirements.txt
+transformers>=4.40.0

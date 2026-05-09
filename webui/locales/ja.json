@@ -93,5 +93,7 @@
     "program_exited": "プログラムは終了しました。このタブを閉じることができます。",
     "delete_confirmation": "このプリセットを削除してもよろしいですか？",
     "extra_cli_args": "追加引数",
-    "extra_cli_args_ph": "UI にない CLI 引数。コマンドにそのまま追加されます。"
+    "extra_cli_args_ph": "UI にない CLI 引数。コマンドにそのまま追加されます。",
+    "hf_model_name": "モデル名",
+    "hf_model_name_ph": "例：openai/whisper-large-v3-turbo"
 }

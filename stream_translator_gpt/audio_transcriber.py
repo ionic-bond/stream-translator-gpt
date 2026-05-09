@@ -230,3 +230,41 @@ class RemoteOpenaiTranscriber(AudioTranscriber):
         client = OpenAI(api_key=api_key, http_client=httpx.Client(proxy=self.proxy, verify=False))
         result = client.audio.transcriptions.create(**call_args).text
         return result, None
+
+
+class HFTranscriber(AudioTranscriber):
+
+    def __init__(self, model: str, language: str, proxy: str, **kwargs) -> None:
+        super().__init__(**kwargs)
+        from transformers import pipeline
+
+        if proxy:
+            _apply_hf_proxy(proxy)
+
+        if not os.path.exists(model):
+            try:
+                from huggingface_hub import model_info
+                info = model_info(model)
+                tag = info.pipeline_tag
+                if tag and tag != 'automatic-speech-recognition':
+                    raise ValueError(
+                        f'Model "{model}" has pipeline_tag="{tag}", not "automatic-speech-recognition". '
+                        f'It is not compatible with --use_hf_asr. '
+                        f'Please choose a model with pipeline_tag="automatic-speech-recognition" on HuggingFace Hub.'
+                    )
+            except ImportError:
+                pass
+
+        print(f'{INFO}Loading HuggingFace ASR model: {model}')
+        self.language = language
+        self.pipe = pipeline('automatic-speech-recognition', model=model, device_map='auto')
+
+    def transcribe(self, audio: np.array, initial_prompt: str = None) -> tuple[str, list | None]:
+        generate_kwargs = {}
+        if self.language:
+            generate_kwargs['language'] = self.language
+        result = self.pipe(
+            {'array': audio, 'sampling_rate': SAMPLE_RATE},
+            generate_kwargs=generate_kwargs or None,
+        )
+        return result['text'], None

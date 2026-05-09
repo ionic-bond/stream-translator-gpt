@@ -16,7 +16,7 @@ if __name__ == '__main__':
 from .common import ApiKeyPool, start_daemon_thread, is_url, WARNING, ERROR, INFO
 from .audio_getter import StreamAudioGetter, LocalFileAudioGetter, DeviceAudioGetter
 from .audio_slicer import AudioSlicer
-from .audio_transcriber import OpenaiWhisper, FasterWhisper, SimulStreaming, RemoteOpenaiTranscriber
+from .audio_transcriber import OpenaiWhisper, FasterWhisper, SimulStreaming, RemoteOpenaiTranscriber, HFTranscriber
 from .llm_translator import LLMClient, ParallelTranslator, SerialTranslator
 from .result_exporter import ResultExporter
 from . import __version__
@@ -25,7 +25,7 @@ from . import __version__
 def main(url, openai_api_key, google_api_key, openai_base_url, google_base_url, proxy, format, cookies, input_proxy,
          device_index, device_recording_interval, mic, min_audio_length, max_audio_length, target_audio_length,
          continuous_no_speech_threshold, disable_dynamic_no_speech_threshold, prefix_retention_length, vad_threshold,
-         disable_dynamic_vad_threshold, model, language, use_faster_whisper, use_simul_streaming,
+         disable_dynamic_vad_threshold, model, language, use_faster_whisper, use_simul_streaming, use_hf_asr,
          use_openai_transcription_api, openai_transcription_model, transcription_filters, disable_transcription_context,
          transcription_initial_prompt, gpt_model, gemini_model, translation_prompt, translation_history_size,
          translation_timeout, use_json_result, retry_if_translation_fails, temperature, top_p, top_k, prompt_cache_key,
@@ -97,6 +97,8 @@ def main(url, openai_api_key, google_api_key, openai_base_url, google_base_url, 
                                                language=language,
                                                proxy=processing_proxy,
                                                **common_args)
+            elif use_hf_asr:
+                return HFTranscriber(model=model, language=language, proxy=processing_proxy, **common_args)
             else:
                 return OpenaiWhisper(model=model, language=language, **common_args)
 
@@ -335,6 +337,10 @@ def cli():
         default='gpt-4o-mini-transcribe',
         help='OpenAI\'s transcription model name, whisper-1 / gpt-4o-mini-transcribe / gpt-4o-transcribe')
     parser.add_argument(
+        '--use_hf_asr',
+        action='store_true',
+        help='Set this flag to use a HuggingFace ASR model (via transformers pipeline) specified by --model.')
+    parser.add_argument(
         '--transcription_filters',
         type=str,
         default='emoji_filter,repetition_filter',
@@ -541,11 +547,14 @@ def cli():
     if args['use_openai_transcription_api']:
         transcription_encoder_flag_num += 1
         transcription_decoder_flag_num += 1
+    if args['use_hf_asr']:
+        transcription_encoder_flag_num += 1
+        transcription_decoder_flag_num += 1
     if transcription_encoder_flag_num > 1:
-        print(f'{ERROR}Cannot use Faster Whisper or OpenAI Transcription API at the same time')
+        print(f'{ERROR}Cannot use Faster Whisper, OpenAI Transcription API or HuggingFace ASR at the same time')
         sys.exit(0)
     if transcription_decoder_flag_num > 1:
-        print(f'{ERROR}Cannot use Simul Streaming or OpenAI Transcription API at the same time')
+        print(f'{ERROR}Cannot use Simul Streaming, OpenAI Transcription API or HuggingFace ASR at the same time')
         sys.exit(0)
 
     if args['use_openai_transcription_api'] and not args['openai_api_key']:
