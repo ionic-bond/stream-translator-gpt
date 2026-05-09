@@ -596,6 +596,13 @@ def cli():
 
     args.pop('list_format', None)
     args.pop('list_devices', None)
+
+    if args['output_file_path']:
+        output_dir = os.path.dirname(os.path.abspath(args['output_file_path']))
+        if not os.path.isdir(output_dir):
+            print(f'{ERROR}Output directory does not exist: {output_dir}')
+            sys.exit(1)
+
     main(url, **args)
 
 
