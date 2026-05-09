@@ -81,13 +81,13 @@ os.makedirs(USER_PRESETS_DIR, exist_ok=True)
 INPUT_KEYS = [
     "input_type", "input_url", "device_rec_interval", "audio_source", "input_file", "input_format", "input_cookies",
     "input_proxy", "openai_key", "google_key", "openai_base_url", "google_base_url", "overall_proxy", "model_size",
-    "hf_model_name", "language", "whisper_backend", "openai_transcription_model", "vad_threshold", "min_audio_len", "max_audio_len",
-    "target_audio_len", "silence_threshold", "disable_dynamic_vad", "disable_dynamic_silence", "prefix_retention_len",
-    "filter_emoji", "filter_repetition", "filter_japanese_stream", "disable_transcription_context",
-    "transcription_initial_prompt", "translation_prompt", "translation_provider", "gpt_model", "gemini_model",
-    "history_size", "translation_timeout", "processing_proxy", "use_json_result", "retry_if_translation_fails",
-    "show_timestamps", "hide_transcription", "output_file", "output_proxy", "cqhttp_url", "cqhttp_token",
-    "discord_hook", "telegram_token", "telegram_chat_id", "extra_cli_args"
+    "hf_model_name", "language", "whisper_backend", "openai_transcription_model", "vad_threshold", "min_audio_len",
+    "max_audio_len", "target_audio_len", "silence_threshold", "disable_dynamic_vad", "disable_dynamic_silence",
+    "prefix_retention_len", "filter_emoji", "filter_repetition", "filter_japanese_stream",
+    "disable_transcription_context", "transcription_initial_prompt", "translation_prompt", "translation_provider",
+    "gpt_model", "gemini_model", "history_size", "translation_timeout", "processing_proxy", "use_json_result",
+    "retry_if_translation_fails", "show_timestamps", "hide_transcription", "output_file", "output_proxy", "cqhttp_url",
+    "cqhttp_token", "discord_hook", "telegram_token", "telegram_chat_id", "extra_cli_args"
 ]
 
 
@@ -992,15 +992,15 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
     start_btn.click(run_translator,
                     inputs=[
                         input_type, input_url, device_rec_interval, audio_source, input_file, input_format,
-                        input_cookies, input_proxy, openai_key, google_key, overall_proxy, model_size,
-                        language, whisper_backend, openai_transcription_model, hf_model_name, vad_threshold, min_audio_len, max_audio_len,
-                        target_audio_len, silence_threshold, disable_dynamic_vad, disable_dynamic_silence,
-                        prefix_retention_len, filter_emoji, filter_repetition, filter_japanese_stream,
-                        disable_transcription_context, transcription_initial_prompt, translation_prompt,
-                        translation_provider, gpt_model, gemini_model, history_size, translation_timeout,
-                        openai_base_url, google_base_url, processing_proxy, use_json_result, retry_if_translation_fails,
-                        show_timestamps, hide_transcription, output_file, output_proxy, cqhttp_url, cqhttp_token,
-                        discord_hook, telegram_token, telegram_chat_id, extra_cli_args
+                        input_cookies, input_proxy, openai_key, google_key, overall_proxy, model_size, language,
+                        whisper_backend, openai_transcription_model, hf_model_name, vad_threshold, min_audio_len,
+                        max_audio_len, target_audio_len, silence_threshold, disable_dynamic_vad,
+                        disable_dynamic_silence, prefix_retention_len, filter_emoji, filter_repetition,
+                        filter_japanese_stream, disable_transcription_context, transcription_initial_prompt,
+                        translation_prompt, translation_provider, gpt_model, gemini_model, history_size,
+                        translation_timeout, openai_base_url, google_base_url, processing_proxy, use_json_result,
+                        retry_if_translation_fails, show_timestamps, hide_transcription, output_file, output_proxy,
+                        cqhttp_url, cqhttp_token, discord_hook, telegram_token, telegram_chat_id, extra_cli_args
                     ],
                     outputs=output_box,
                     concurrency_limit=1,

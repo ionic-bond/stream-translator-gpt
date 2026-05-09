@@ -250,8 +250,7 @@ class HFTranscriber(AudioTranscriber):
                     raise ValueError(
                         f'Model "{model}" has pipeline_tag="{tag}", not "automatic-speech-recognition". '
                         f'It is not compatible with --use_hf_asr. '
-                        f'Please choose a model with pipeline_tag="automatic-speech-recognition" on HuggingFace Hub.'
-                    )
+                        f'Please choose a model with pipeline_tag="automatic-speech-recognition" on HuggingFace Hub.')
             except ImportError:
                 pass
 
@@ -264,7 +263,10 @@ class HFTranscriber(AudioTranscriber):
         if self.language:
             generate_kwargs['language'] = self.language
         result = self.pipe(
-            {'array': audio, 'sampling_rate': SAMPLE_RATE},
+            {
+                'array': audio,
+                'sampling_rate': SAMPLE_RATE
+            },
             generate_kwargs=generate_kwargs or None,
         )
         return result['text'], None
