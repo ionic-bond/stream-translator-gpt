@@ -42,7 +42,17 @@ class LoopWorkerBase(ABC):
 
 
 def start_daemon_thread(func, *args, **kwargs):
-    thread = threading.Thread(target=func, args=args, kwargs=kwargs)
+
+    def wrapper():
+        try:
+            func(*args, **kwargs)
+        except Exception:
+            output_queue = kwargs.get('output_queue', None)
+            if output_queue is not None:
+                output_queue.put(None)
+            raise
+
+    thread = threading.Thread(target=wrapper)
     thread.daemon = True
     thread.start()
     return thread
