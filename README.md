@@ -134,7 +134,7 @@ The commands on Colab [![Open In Colab](https://colab.research.google.com/assets
 
 - Transcribe by a **HuggingFace ASR** model (requires `pip install stream-translator-gpt[hf_asr]`):
 
-    ```stream-translator-gpt {URL} --model openai/whisper-large-v3-turbo --language {input_language} --use_hf_asr```
+    ```stream-translator-gpt {URL} --model {hf_model_name} --use_hf_asr```
 
     Only models with `pipeline_tag: automatic-speech-recognition` on Hugging Face Hub are supported.
 

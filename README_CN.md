@@ -134,7 +134,7 @@ Colab上的命令 [![Open In Colab](https://colab.research.google.com/assets/col
 
 - 使用 **HuggingFace ASR** 模型进行转录（需要先执行 `pip install stream-translator-gpt[hf_asr]`）：
 
-    ```stream-translator-gpt {网址} --model openai/whisper-large-v3-turbo --language {输入语言} --use_hf_asr```
+    ```stream-translator-gpt {网址} --model {hf_model_name} --use_hf_asr```
 
     仅支持在 Hugging Face Hub 上 `pipeline_tag` 为 `automatic-speech-recognition` 的模型。
 

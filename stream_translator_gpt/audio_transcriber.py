@@ -267,6 +267,6 @@ class HFTranscriber(AudioTranscriber):
                 'array': audio,
                 'sampling_rate': SAMPLE_RATE
             },
-            generate_kwargs=generate_kwargs or None,
+            generate_kwargs=generate_kwargs,
         )
         return result['text'], None
