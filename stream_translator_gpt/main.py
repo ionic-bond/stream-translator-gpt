@@ -361,12 +361,12 @@ def cli():
                         help='Set this flag to disable context (previous sentence) propagation in transcription.')
     parser.add_argument('--gpt_model',
                         type=str,
-                        default='gpt-5-nano',
-                        help='OpenAI\'s GPT model name, gpt-5-nano / gpt-5-mini / gpt-5 / gpt-5.1 / gpt-5.2 / gpt-5.4')
+                        default='gpt-5.4-nano',
+                        help='OpenAI\'s GPT model name, gpt-5.4 / gpt-5.4-mini / gpt-5.4-nano / gpt-5.5')
     parser.add_argument('--gemini_model',
                         type=str,
-                        default='gemini-3.1-flash-lite-preview',
-                        help='Google\'s Gemini model name, gemini-3.1-flash-lite-preview / gemini-3-flash-preview')
+                        default='gemini-3.1-flash-lite',
+                        help='Google\'s Gemini model name, gemini-2.5-flash / gemini-2.5-flash-lite / gemini-3-flash-preview / gemini-3.1-flash-lite / gemini-3.5-flash')
     parser.add_argument(
         '--translation_prompt',
         type=str,
