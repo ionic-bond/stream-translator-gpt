@@ -398,32 +398,34 @@ def cli():
     parser.add_argument('--temperature',
                         type=float,
                         default=None,
-                        help='Specify the temperature parameter for LLM translation.')
-    parser.add_argument('--top_p', type=float, default=None, help='Specify the top_p parameter for LLM translation.')
+                        help='GPT/Gemini parameter. Controls output randomness, higher values produce more diverse results.')
+    parser.add_argument('--top_p',
+                        type=float,
+                        default=None,
+                        help='GPT/Gemini parameter. Nucleus sampling threshold, only tokens with cumulative probability above this value are considered.')
     parser.add_argument('--top_k',
                         type=int,
                         default=None,
-                        help='Specify the top_k parameter for LLM translation (Affects Gemini translation only).')
-    parser.add_argument(
-        '--prompt_cache_key',
-        type=str,
-        default=None,
-        help=
-        'If set, will pass prompt_cache_key to the LLM backend for caching optimization (Affects GPT translation only).'
-    )
+                        help='Gemini parameter. Limits token selection to the top K most probable candidates.')
+    parser.add_argument('--prompt_cache_key',
+                        type=str,
+                        default=None,
+                        help='GPT parameter. If set, enables prompt caching optimization on the API side.')
     parser.add_argument(
         '--reasoning_effort',
         type=str,
         default=None,
-        help='Specify the reasoning_effort parameter for LLM translation (Affects GPT translation only).')
-    parser.add_argument('--verbosity',
-                        type=str,
-                        default=None,
-                        help='Specify the verbosity parameter for LLM translation (Affects GPT translation only).')
-    parser.add_argument('--service_tier',
-                        type=str,
-                        default=None,
-                        help='Specify the service_tier parameter for LLM translation (Affects GPT translation only).')
+        help='GPT parameter. Controls reasoning depth for reasoning models. Options: none / minimal / low / medium / high / xhigh.')
+    parser.add_argument(
+        '--verbosity',
+        type=str,
+        default=None,
+        help='GPT parameter. Controls the verbosity of the response. Options: auto / short / concise / detailed.')
+    parser.add_argument(
+        '--service_tier',
+        type=str,
+        default=None,
+        help='GPT parameter. Specifies processing priority tier. Options: auto / default / flex / priority.')
     parser.add_argument(
         '--debug_mode',
         action='store_true',
