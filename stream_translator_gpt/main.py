@@ -395,14 +395,18 @@ def cli():
     parser.add_argument('--retry_if_translation_fails',
                         action='store_true',
                         help='Retry when translation times out/fails. Used to generate subtitles offline.')
-    parser.add_argument('--temperature',
-                        type=float,
-                        default=None,
-                        help='GPT/Gemini parameter. Controls output randomness, higher values produce more diverse results.')
-    parser.add_argument('--top_p',
-                        type=float,
-                        default=None,
-                        help='GPT/Gemini parameter. Nucleus sampling threshold, only tokens with cumulative probability above this value are considered.')
+    parser.add_argument(
+        '--temperature',
+        type=float,
+        default=None,
+        help='GPT/Gemini parameter. Controls output randomness, higher values produce more diverse results.')
+    parser.add_argument(
+        '--top_p',
+        type=float,
+        default=None,
+        help=
+        'GPT/Gemini parameter. Nucleus sampling threshold, only tokens with cumulative probability above this value are considered.'
+    )
     parser.add_argument('--top_k',
                         type=int,
                         default=None,
@@ -415,7 +419,9 @@ def cli():
         '--reasoning_effort',
         type=str,
         default=None,
-        help='GPT parameter. Controls reasoning depth for reasoning models. Options: none / minimal / low / medium / high / xhigh.')
+        help=
+        'GPT parameter. Controls reasoning depth for reasoning models. Options: none / minimal / low / medium / high / xhigh.'
+    )
     parser.add_argument(
         '--verbosity',
         type=str,
