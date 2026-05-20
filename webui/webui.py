@@ -817,7 +817,10 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
                         google_base_url = gr.Textbox(label=i18n.get("gemini_base_url"),
                                                      placeholder=i18n.get("gemini_base_url_ph"))
 
-                    gemini_model = gr.Dropdown(["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3-flash-preview", "gemini-3.1-flash-lite", "gemini-3.5-flash"],
+                    gemini_model = gr.Dropdown([
+                        "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3-flash-preview", "gemini-3.1-flash-lite",
+                        "gemini-3.5-flash"
+                    ],
                                                label=i18n.get("gemini_model"),
                                                value=get_default("gemini_model"),
                                                allow_custom_value=True)

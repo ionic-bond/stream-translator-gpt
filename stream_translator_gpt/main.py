@@ -363,10 +363,13 @@ def cli():
                         type=str,
                         default='gpt-5.4-nano',
                         help='OpenAI\'s GPT model name, gpt-5.4 / gpt-5.4-mini / gpt-5.4-nano / gpt-5.5')
-    parser.add_argument('--gemini_model',
-                        type=str,
-                        default='gemini-3.1-flash-lite',
-                        help='Google\'s Gemini model name, gemini-2.5-flash / gemini-2.5-flash-lite / gemini-3-flash-preview / gemini-3.1-flash-lite / gemini-3.5-flash')
+    parser.add_argument(
+        '--gemini_model',
+        type=str,
+        default='gemini-3.1-flash-lite',
+        help=
+        'Google\'s Gemini model name, gemini-2.5-flash / gemini-2.5-flash-lite / gemini-3-flash-preview / gemini-3.1-flash-lite / gemini-3.5-flash'
+    )
     parser.add_argument(
         '--translation_prompt',
         type=str,
