@@ -273,13 +273,17 @@ class ParallelTranslator(LoopWorkerBase):
         thread.start()
 
     def _retrigger_failed_tasks(self):
+        now = datetime.now(timezone.utc)
         for task in self.processing_queue:
             if task.translation_failed and not _is_task_timeout(task, self.timeout):
+                next_retry_time = getattr(task, 'next_retry_time', None)
+                if next_retry_time is not None and now < next_retry_time:
+                    continue
                 task.retry_count = getattr(task, 'retry_count', 0) + 1
                 backoff = min(2**task.retry_count, 30)
+                task.next_retry_time = now + timedelta(seconds=backoff)
                 self._trigger(task)
-                print(f'Translation failed, retrying in {backoff}s: {task.transcript}')
-                time.sleep(backoff)
+                print(f'Translation failed, retrying (backoff {backoff}s): {task.transcript}')
 
     def _get_results(self):
         results = []
