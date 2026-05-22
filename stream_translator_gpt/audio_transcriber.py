@@ -8,7 +8,7 @@ from scipy.io.wavfile import write as write_audio
 import numpy as np
 
 from . import filters
-from .common import TranslationTask, SAMPLE_RATE, LoopWorkerBase, sec2str, ApiKeyPool, INFO
+from .common import TranslationTask, SAMPLE_RATE, LoopWorkerBase, sec2str, ClientPool, INFO
 from .simul_streaming.simul_whisper.whisper.utils import compression_ratio
 
 
@@ -206,12 +206,8 @@ class RemoteOpenaiTranscriber(AudioTranscriber):
         print(f'{INFO}Using {model} API as transcription engine.')
         self.model = model
         self.language = language
-        self.proxy = proxy
 
     def transcribe(self, audio: np.array, initial_prompt: str = None) -> tuple[str, list | None]:
-        from openai import OpenAI
-        import httpx
-
         # Create an in-memory buffer
         audio_buffer = io.BytesIO()
         audio_buffer.name = 'audio.wav'
@@ -226,8 +222,7 @@ class RemoteOpenaiTranscriber(AudioTranscriber):
         if initial_prompt:
             call_args['prompt'] = initial_prompt
 
-        api_key = ApiKeyPool.get_openai_api_key()
-        client = OpenAI(api_key=api_key, http_client=httpx.Client(proxy=self.proxy, verify=False))
+        client = ClientPool.get_openai_client()
         result = client.audio.transcriptions.create(**call_args).text
         return result, None
 

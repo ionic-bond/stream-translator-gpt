@@ -3,10 +3,11 @@ import queue
 import re
 import threading
 import time
+from abc import abstractmethod
 from collections import deque
 from datetime import datetime, timedelta, timezone
 
-from .common import TranslationTask, LoopWorkerBase, ApiKeyPool, INFO
+from .common import TranslationTask, LoopWorkerBase, ClientPool, INFO
 
 
 # The double quotes in the values of JSON have not been escaped, so manual escaping is necessary.
@@ -50,46 +51,21 @@ def _is_task_timeout(task: TranslationTask, timeout: float) -> bool:
     return datetime.now(timezone.utc) - task.start_time > timedelta(seconds=timeout)
 
 
-class LLMClient():
+class LLMTranslator(LoopWorkerBase):
+    PARALLEL_MAX_NUMBER = 10
 
-    class LLM_TYPE:
-        GPT = 'GPT'
-        GEMINI = 'Gemini'
-
-    def __init__(self,
-                 llm_type: str,
-                 model: str,
-                 prompt: str,
-                 history_size: int,
-                 proxy: str,
-                 use_json_result: bool,
-                 google_base_url: str = None,
-                 prompt_cache_key: str = None,
-                 temperature: float = None,
-                 top_p: float = None,
-                 top_k: int = None,
-                 reasoning_effort: str = None,
-                 verbosity: str = None,
-                 service_tier: str = None,
-                 debug_mode: bool = False) -> None:
-        if llm_type not in (self.LLM_TYPE.GPT, self.LLM_TYPE.GEMINI):
-            raise ValueError(f'Unknow LLM type: {llm_type}')
+    def __init__(self, model: str, prompt: str, history_size: int, use_json_result: bool, timeout: int,
+                 retry_if_translation_fails: bool, debug_mode: bool = False) -> None:
         print(f'{INFO}Using {model} API as translation engine.')
-        self.llm_type = llm_type
         self.model = model
         self.prompt = prompt
         self.history_size = history_size
-        self.proxy = proxy
         self.use_json_result = use_json_result
-        self.google_base_url = google_base_url
-        self.prompt_cache_key = prompt_cache_key
-        self.temperature = temperature
-        self.top_p = top_p
-        self.top_k = top_k
-        self.reasoning_effort = reasoning_effort
-        self.verbosity = verbosity
-        self.service_tier = service_tier
+        self.timeout = timeout
+        self.retry_if_translation_fails = retry_if_translation_fails
         self.debug_mode = debug_mode
+        self.processing_queue = deque()
+        self.recent_transcripts = deque(maxlen=history_size) if history_size else None
 
     def _build_messages(self, translation_task: TranslationTask):
         system_prompt = 'You are a professional translator.'
@@ -122,142 +98,9 @@ class LLMClient():
             return lines[-1]
         return translation
 
-    def _translate_by_gpt(self, translation_task: TranslationTask):
-        # https://platform.openai.com/docs/api-reference/chat/create?lang=python
-        from openai import OpenAI
-        import httpx
-
-        api_key = ApiKeyPool.get_openai_api_key()
-        client = OpenAI(api_key=api_key, http_client=httpx.Client(proxy=self.proxy, verify=False))
-
-        system_prompt, user_content = self._build_messages(translation_task)
-        if self.debug_mode:
-            print(f'{INFO}[System] {system_prompt}')
-            print(f'{INFO}[User] {user_content}')
-        messages = [{'role': 'system', 'content': system_prompt}]
-        messages.append({'role': 'user', 'content': user_content})
-
-        try:
-            kwargs = {
-                "model": self.model,
-                "messages": messages,
-            }
-
-            if self.use_json_result:
-                kwargs["response_format"] = {"type": "json_object"}
-
-            match = re.match(r'^gpt-(\d+(?:\.\d+)?)', self.model)
-            if match:
-                version = float(match.group(1))
-                if version < 5.0 or version >= 5.1:
-                    kwargs["temperature"] = 0.7
-                    kwargs["top_p"] = 0.9
-                if version >= 5.0:
-                    kwargs["reasoning_effort"] = "none" if version >= 5.1 else "minimal"
-
-            if self.prompt_cache_key is not None:
-                kwargs["prompt_cache_key"] = self.prompt_cache_key
-            if self.temperature is not None:
-                kwargs["temperature"] = self.temperature
-            if self.top_p is not None:
-                kwargs["top_p"] = self.top_p
-            if self.reasoning_effort is not None:
-                kwargs["reasoning_effort"] = self.reasoning_effort
-            if self.verbosity is not None:
-                kwargs["verbosity"] = self.verbosity
-            if self.service_tier is not None:
-                kwargs["service_tier"] = self.service_tier
-
-            completion = client.chat.completions.create(**kwargs)
-
-            translation_task.translation = completion.choices[0].message.content
-            if self.debug_mode and hasattr(completion, 'usage') and completion.usage:
-                print(f'{INFO}[Usage] {completion.usage}')
-            if self.use_json_result:
-                translation_task.translation = _parse_json_completion(translation_task.translation)
-            translation_task.translation = self._validate_translation(translation_task.translation)
-        except Exception as e:
-            translation_task.translation_failed = True
-            print(e)
-            return
-
-    def _translate_by_gemini(self, translation_task: TranslationTask):
-        # https://ai.google.dev/tutorials/python_quickstart
-        from google import genai
-        from google.genai import types
-
-        api_key = ApiKeyPool.get_google_api_key()
-
-        http_options = {}
-        if self.proxy:
-            http_options['client_args'] = {'proxy': self.proxy, 'verify': False}
-        else:
-            http_options['client_args'] = {'verify': False}
-
-        if self.google_base_url:
-            http_options['base_url'] = self.google_base_url
-
-        client = genai.Client(api_key=api_key, http_options=http_options)
-
-        system_prompt, user_content = self._build_messages(translation_task)
-        if self.debug_mode:
-            print(f'{INFO}[System] {system_prompt}')
-            print(f'{INFO}[User] {user_content}')
-        messages = [{'role': 'user', 'parts': [{'text': user_content}]}]
-
-        config = types.GenerateContentConfig(
-            candidate_count=1,
-            temperature=0.7,
-            top_p=0.9,
-            top_k=50,
-            system_instruction=system_prompt,
-            thinking_config=types.ThinkingConfig(thinking_budget=0),
-            response_mime_type='application/json' if self.use_json_result else 'text/plain',
-            safety_settings=[
-                types.SafetySetting(category='HARM_CATEGORY_HARASSMENT', threshold='BLOCK_NONE'),
-                types.SafetySetting(category='HARM_CATEGORY_HATE_SPEECH', threshold='BLOCK_NONE'),
-                types.SafetySetting(category='HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold='BLOCK_NONE'),
-                types.SafetySetting(category='HARM_CATEGORY_DANGEROUS_CONTENT', threshold='BLOCK_NONE')
-            ])
-
-        if self.temperature is not None:
-            config.temperature = self.temperature
-        if self.top_p is not None:
-            config.top_p = self.top_p
-        if self.top_k is not None:
-            config.top_k = self.top_k
-
-        try:
-            response = client.models.generate_content(model=self.model, contents=messages, config=config)
-            translation_task.translation = response.text
-            if self.debug_mode and hasattr(response, 'usage_metadata') and response.usage_metadata:
-                print(f'{INFO}[Usage] {response.usage_metadata}')
-            if self.use_json_result:
-                translation_task.translation = _parse_json_completion(translation_task.translation)
-            translation_task.translation = self._validate_translation(translation_task.translation)
-        except Exception as e:
-            translation_task.translation_failed = True
-            print(e)
-            return
-
+    @abstractmethod
     def translate(self, translation_task: TranslationTask):
-        if self.llm_type == self.LLM_TYPE.GPT:
-            self._translate_by_gpt(translation_task)
-        elif self.llm_type == self.LLM_TYPE.GEMINI:
-            self._translate_by_gemini(translation_task)
-        else:
-            raise ValueError(f'Unknow LLM type: {self.llm_type}')
-
-
-class ParallelTranslator(LoopWorkerBase):
-    PARALLEL_MAX_NUMBER = 10
-
-    def __init__(self, llm_client: LLMClient, timeout: int, retry_if_translation_fails: bool):
-        self.llm_client = llm_client
-        self.timeout = timeout
-        self.retry_if_translation_fails = retry_if_translation_fails
-        self.processing_queue = deque()
-        self.recent_transcripts = deque(maxlen=llm_client.history_size) if llm_client.history_size else None
+        pass
 
     def _prepare_context(self, task: TranslationTask):
         if self.recent_transcripts is not None:
@@ -268,7 +111,7 @@ class ParallelTranslator(LoopWorkerBase):
         if not translation_task.start_time:
             translation_task.start_time = datetime.now(timezone.utc)
         translation_task.translation_failed = False
-        thread = threading.Thread(target=self.llm_client.translate, args=(translation_task,))
+        thread = threading.Thread(target=self.translate, args=(translation_task,))
         thread.daemon = True
         thread.start()
 
@@ -322,45 +165,123 @@ class ParallelTranslator(LoopWorkerBase):
             time.sleep(0.1)
 
 
-class SerialTranslator(LoopWorkerBase):
+class GPTTranslator(LLMTranslator):
 
-    def __init__(self, llm_client: LLMClient, timeout: int, retry_if_translation_fails: bool):
-        self.llm_client = llm_client
-        self.timeout = timeout
-        self.retry_if_translation_fails = retry_if_translation_fails
+    def __init__(self, prompt_cache_key: str = None, temperature: float = None, top_p: float = None,
+                 reasoning_effort: str = None, verbosity: str = None, service_tier: str = None, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.prompt_cache_key = prompt_cache_key
+        self.temperature = temperature
+        self.top_p = top_p
+        self.reasoning_effort = reasoning_effort
+        self.verbosity = verbosity
+        self.service_tier = service_tier
 
-    def _trigger(self, translation_task: TranslationTask):
-        if not translation_task.start_time:
-            translation_task.start_time = datetime.now(timezone.utc)
-        translation_task.translation_failed = False
-        thread = threading.Thread(target=self.llm_client.translate, args=(translation_task,))
-        thread.daemon = True
-        thread.start()
+    def translate(self, translation_task: TranslationTask):
+        client = ClientPool.get_openai_client()
 
-    def loop(self, input_queue: queue.SimpleQueue[TranslationTask], output_queue: queue.SimpleQueue[TranslationTask]):
-        current_task = None
-        while True:
-            if current_task:
-                if (current_task.translation or current_task.translation_failed or
-                        _is_task_timeout(current_task, self.timeout)):
-                    if not current_task.translation:
-                        if _is_task_timeout(current_task, self.timeout):
-                            print(f'Translation timeout: {current_task.transcript}')
-                        else:
-                            print(f'Translation failed: {current_task.transcript}')
-                            if self.retry_if_translation_fails:
-                                current_task.retry_count = getattr(current_task, 'retry_count', 0) + 1
-                                backoff = min(2**current_task.retry_count, 30)
-                                self._trigger(current_task)
-                                time.sleep(backoff)
-                                continue
-                    output_queue.put(current_task)
-                    current_task = None
+        system_prompt, user_content = self._build_messages(translation_task)
+        if self.debug_mode:
+            print(f'{INFO}[System] {system_prompt}')
+            print(f'{INFO}[User] {user_content}')
+        messages = [{'role': 'system', 'content': system_prompt}]
+        messages.append({'role': 'user', 'content': user_content})
 
-            if current_task is None and not input_queue.empty():
-                current_task = input_queue.get()
-                if current_task is None:
-                    output_queue.put(None)
-                    break
-                self._trigger(current_task)
-            time.sleep(0.1)
+        try:
+            kwargs = {
+                "model": self.model,
+                "messages": messages,
+            }
+
+            if self.use_json_result:
+                kwargs["response_format"] = {"type": "json_object"}
+
+            match = re.match(r'^gpt-(\d+(?:\.\d+)?)', self.model)
+            if match:
+                version = float(match.group(1))
+                if version < 5.0 or version >= 5.1:
+                    kwargs["temperature"] = 0.7
+                    kwargs["top_p"] = 0.9
+                if version >= 5.0:
+                    kwargs["reasoning_effort"] = "none" if version >= 5.1 else "minimal"
+
+            if self.prompt_cache_key is not None:
+                kwargs["prompt_cache_key"] = self.prompt_cache_key
+            if self.temperature is not None:
+                kwargs["temperature"] = self.temperature
+            if self.top_p is not None:
+                kwargs["top_p"] = self.top_p
+            if self.reasoning_effort is not None:
+                kwargs["reasoning_effort"] = self.reasoning_effort
+            if self.verbosity is not None:
+                kwargs["verbosity"] = self.verbosity
+            if self.service_tier is not None:
+                kwargs["service_tier"] = self.service_tier
+
+            completion = client.chat.completions.create(**kwargs)
+
+            translation_task.translation = completion.choices[0].message.content
+            if self.debug_mode and hasattr(completion, 'usage') and completion.usage:
+                print(f'{INFO}[Usage] {completion.usage}')
+            if self.use_json_result:
+                translation_task.translation = _parse_json_completion(translation_task.translation)
+            translation_task.translation = self._validate_translation(translation_task.translation)
+        except Exception as e:
+            translation_task.translation_failed = True
+            print(e)
+            return
+
+
+class GeminiTranslator(LLMTranslator):
+
+    def __init__(self, temperature: float = None, top_p: float = None, top_k: int = None, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.temperature = temperature
+        self.top_p = top_p
+        self.top_k = top_k
+
+    def translate(self, translation_task: TranslationTask):
+        from google.genai import types
+
+        client = ClientPool.get_google_client()
+
+        system_prompt, user_content = self._build_messages(translation_task)
+        if self.debug_mode:
+            print(f'{INFO}[System] {system_prompt}')
+            print(f'{INFO}[User] {user_content}')
+        messages = [{'role': 'user', 'parts': [{'text': user_content}]}]
+
+        config = types.GenerateContentConfig(
+            candidate_count=1,
+            temperature=0.7,
+            top_p=0.9,
+            top_k=50,
+            system_instruction=system_prompt,
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
+            response_mime_type='application/json' if self.use_json_result else 'text/plain',
+            safety_settings=[
+                types.SafetySetting(category='HARM_CATEGORY_HARASSMENT', threshold='BLOCK_NONE'),
+                types.SafetySetting(category='HARM_CATEGORY_HATE_SPEECH', threshold='BLOCK_NONE'),
+                types.SafetySetting(category='HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold='BLOCK_NONE'),
+                types.SafetySetting(category='HARM_CATEGORY_DANGEROUS_CONTENT', threshold='BLOCK_NONE')
+            ])
+
+        if self.temperature is not None:
+            config.temperature = self.temperature
+        if self.top_p is not None:
+            config.top_p = self.top_p
+        if self.top_k is not None:
+            config.top_k = self.top_k
+
+        try:
+            response = client.models.generate_content(model=self.model, contents=messages, config=config)
+            translation_task.translation = response.text
+            if self.debug_mode and hasattr(response, 'usage_metadata') and response.usage_metadata:
+                print(f'{INFO}[Usage] {response.usage_metadata}')
+            if self.use_json_result:
+                translation_task.translation = _parse_json_completion(translation_task.translation)
+            translation_task.translation = self._validate_translation(translation_task.translation)
+        except Exception as e:
+            translation_task.translation_failed = True
+            print(e)
+            return

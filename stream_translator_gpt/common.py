@@ -65,30 +65,49 @@ def sec2str(second: float):
     return result
 
 
-class ApiKeyPool():
+class ClientPool:
 
     @classmethod
-    def init(cls, openai_api_key, google_api_key):
-        cls.openai_api_key_list = [key.strip() for key in openai_api_key.split(',')] if openai_api_key else None
-        cls.openai_api_key_index = 0
-        cls.google_api_key_list = [key.strip() for key in google_api_key.split(',')] if google_api_key else None
-        cls.google_api_key_index = 0
+    def init(cls, openai_api_key, google_api_key, proxy=None, google_base_url=None):
+        cls._openai_clients = []
+        cls._openai_index = 0
+        if openai_api_key:
+            from openai import OpenAI
+            import httpx
+            for key in openai_api_key.split(','):
+                key = key.strip()
+                client = OpenAI(api_key=key, http_client=httpx.Client(proxy=proxy, verify=False))
+                cls._openai_clients.append(client)
+
+        cls._google_clients = []
+        cls._google_index = 0
+        if google_api_key:
+            from google import genai
+            http_options = {'client_args': {'verify': False}}
+            if proxy:
+                http_options['client_args']['proxy'] = proxy
+            if google_base_url:
+                http_options['base_url'] = google_base_url
+            for key in google_api_key.split(','):
+                key = key.strip()
+                client = genai.Client(api_key=key, http_options=http_options)
+                cls._google_clients.append(client)
 
     @classmethod
-    def get_openai_api_key(cls):
-        if not cls.openai_api_key_list:
+    def get_openai_client(cls):
+        if not cls._openai_clients:
             return None
-        key = cls.openai_api_key_list[cls.openai_api_key_index]
-        cls.openai_api_key_index = (cls.openai_api_key_index + 1) % len(cls.openai_api_key_list)
-        return key
+        client = cls._openai_clients[cls._openai_index]
+        cls._openai_index = (cls._openai_index + 1) % len(cls._openai_clients)
+        return client
 
     @classmethod
-    def get_google_api_key(cls):
-        if not cls.google_api_key_list:
+    def get_google_client(cls):
+        if not cls._google_clients:
             return None
-        key = cls.google_api_key_list[cls.google_api_key_index]
-        cls.google_api_key_index = (cls.google_api_key_index + 1) % len(cls.google_api_key_list)
-        return key
+        client = cls._google_clients[cls._google_index]
+        cls._google_index = (cls._google_index + 1) % len(cls._google_clients)
+        return client
 
 
 def is_url(address):

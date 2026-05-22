@@ -13,11 +13,11 @@ if __name__ == '__main__':
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     __package__ = "stream_translator_gpt"
 
-from .common import ApiKeyPool, start_daemon_thread, is_url, WARNING, ERROR, INFO
+from .common import ClientPool, start_daemon_thread, is_url, WARNING, ERROR, INFO
 from .audio_getter import StreamAudioGetter, LocalFileAudioGetter, DeviceAudioGetter
 from .audio_slicer import AudioSlicer
 from .audio_transcriber import OpenaiWhisper, FasterWhisper, SimulStreaming, RemoteOpenaiTranscriber, HFTranscriber
-from .llm_translator import LLMClient, ParallelTranslator, SerialTranslator
+from .llm_translator import GPTTranslator, GeminiTranslator
 from .result_exporter import ResultExporter
 from . import __version__
 
@@ -35,7 +35,8 @@ def main(url, openai_api_key, google_api_key, openai_base_url, google_base_url, 
     if openai_base_url:
         os.environ['OPENAI_BASE_URL'] = openai_base_url
 
-    ApiKeyPool.init(openai_api_key=openai_api_key, google_api_key=google_api_key)
+    ClientPool.init(openai_api_key=openai_api_key, google_api_key=google_api_key,
+                    proxy=processing_proxy, google_base_url=google_base_url)
 
     # Init queues
     getter_to_slicer_queue = queue.SimpleQueue()
@@ -107,41 +108,33 @@ def main(url, openai_api_key, google_api_key, openai_base_url, google_base_url, 
         def init_translator():
             if not translation_prompt:
                 return None
+            common_args = {
+                'prompt': translation_prompt,
+                'history_size': translation_history_size,
+                'use_json_result': use_json_result,
+                'timeout': translation_timeout,
+                'retry_if_translation_fails': retry_if_translation_fails,
+                'debug_mode': debug_mode,
+            }
             if google_api_key:
-                llm_client = LLMClient(
-                    llm_type=LLMClient.LLM_TYPE.GEMINI,
+                return GeminiTranslator(
                     model=gemini_model,
-                    prompt=translation_prompt,
-                    history_size=translation_history_size,
-                    proxy=processing_proxy,
-                    use_json_result=use_json_result,
-                    google_base_url=google_base_url,
                     temperature=temperature,
                     top_p=top_p,
                     top_k=top_k,
-                    debug_mode=debug_mode,
+                    **common_args,
                 )
             else:
-                llm_client = LLMClient(
-                    llm_type=LLMClient.LLM_TYPE.GPT,
+                return GPTTranslator(
                     model=gpt_model,
-                    prompt=translation_prompt,
-                    history_size=translation_history_size,
-                    proxy=processing_proxy,
-                    use_json_result=use_json_result,
                     prompt_cache_key=prompt_cache_key,
                     temperature=temperature,
                     top_p=top_p,
                     reasoning_effort=reasoning_effort,
                     verbosity=verbosity,
                     service_tier=service_tier,
-                    debug_mode=debug_mode,
+                    **common_args,
                 )
-            return ParallelTranslator(
-                llm_client=llm_client,
-                timeout=translation_timeout,
-                retry_if_translation_fails=retry_if_translation_fails,
-            )
 
         translator_future = executor.submit(init_translator)
         exporter_future = executor.submit(
