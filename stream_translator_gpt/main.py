@@ -563,18 +563,18 @@ def cli():
         transcription_decoder_flag_num += 1
     if transcription_encoder_flag_num > 1:
         print(f'{ERROR}Cannot use Faster Whisper, OpenAI Transcription API or HuggingFace ASR at the same time')
-        sys.exit(0)
+        sys.exit(1)
     if transcription_decoder_flag_num > 1:
         print(f'{ERROR}Cannot use Simul Streaming, OpenAI Transcription API or HuggingFace ASR at the same time')
-        sys.exit(0)
+        sys.exit(1)
 
     if args['use_openai_transcription_api'] and not args['openai_api_key']:
         print(f'{ERROR}Please fill in the OpenAI API key when enabling OpenAI Transcription API')
-        sys.exit(0)
+        sys.exit(1)
 
     if args['translation_prompt'] and not (args['openai_api_key'] or args['google_api_key']):
         print(f'{ERROR}Please fill in the OpenAI / Google API key when enabling LLM translation')
-        sys.exit(0)
+        sys.exit(1)
 
     if args['gpt_base_url'] is not None:
         print(
