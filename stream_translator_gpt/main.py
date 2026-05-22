@@ -35,8 +35,10 @@ def main(url, openai_api_key, google_api_key, openai_base_url, google_base_url, 
     if openai_base_url:
         os.environ['OPENAI_BASE_URL'] = openai_base_url
 
-    ClientPool.init(openai_api_key=openai_api_key, google_api_key=google_api_key,
-                    proxy=processing_proxy, google_base_url=google_base_url)
+    ClientPool.init(openai_api_key=openai_api_key,
+                    google_api_key=google_api_key,
+                    proxy=processing_proxy,
+                    google_base_url=google_base_url)
 
     # Init queues
     getter_to_slicer_queue = queue.SimpleQueue()

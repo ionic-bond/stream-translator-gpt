@@ -54,8 +54,14 @@ def _is_task_timeout(task: TranslationTask, timeout: float) -> bool:
 class LLMTranslator(LoopWorkerBase):
     PARALLEL_MAX_NUMBER = 10
 
-    def __init__(self, model: str, prompt: str, history_size: int, use_json_result: bool, timeout: int,
-                 retry_if_translation_fails: bool, debug_mode: bool = False) -> None:
+    def __init__(self,
+                 model: str,
+                 prompt: str,
+                 history_size: int,
+                 use_json_result: bool,
+                 timeout: int,
+                 retry_if_translation_fails: bool,
+                 debug_mode: bool = False) -> None:
         print(f'{INFO}Using {model} API as translation engine.')
         self.model = model
         self.prompt = prompt
@@ -167,8 +173,14 @@ class LLMTranslator(LoopWorkerBase):
 
 class GPTTranslator(LLMTranslator):
 
-    def __init__(self, prompt_cache_key: str = None, temperature: float = None, top_p: float = None,
-                 reasoning_effort: str = None, verbosity: str = None, service_tier: str = None, **kwargs) -> None:
+    def __init__(self,
+                 prompt_cache_key: str = None,
+                 temperature: float = None,
+                 top_p: float = None,
+                 reasoning_effort: str = None,
+                 verbosity: str = None,
+                 service_tier: str = None,
+                 **kwargs) -> None:
         super().__init__(**kwargs)
         self.prompt_cache_key = prompt_cache_key
         self.temperature = temperature
