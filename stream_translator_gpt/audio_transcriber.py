@@ -76,11 +76,11 @@ class AudioTranscriber(LoopWorkerBase):
 
             # Repetition detection: reset context if compression ratio too high OR token diversity too low
             is_repetitive = False
-            if len(text) > 10:
+            if text:
                 zlib_ratio = compression_ratio(text)
                 unique_ratio = len(set(tokens)) / len(tokens) if tokens else 1.0
 
-                if zlib_ratio > 2.0 or unique_ratio < 0.4:
+                if zlib_ratio > 1.5 or unique_ratio < 0.6:
                     self.reset_context()
                     is_repetitive = True
 
