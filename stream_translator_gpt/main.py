@@ -299,7 +299,7 @@ def cli():
     parser.add_argument(
         '--model',
         type=str,
-        default='small',
+        default='turbo',
         help=
         'Select Whisper/Faster-Whisper/Simul Streaming model size. See https://github.com/openai/whisper#available-models-and-languages for available models.'
     )

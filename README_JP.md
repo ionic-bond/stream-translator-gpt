@@ -114,19 +114,19 @@ Colab 上のコマンド [![Open In Colab](https://colab.research.google.com/ass
 
 - ライブストリームの文字起こし（デフォルトで **Whisper** を使用）：
 
-    ```stream-translator-gpt {URL} --model large --language {入力言語}```
+    ```stream-translator-gpt {URL} --language {入力言語}```
 
 - **Faster-Whisper** で文字起こし：
 
-    ```stream-translator-gpt {URL} --model large --language {入力言語} --use_faster_whisper```
+    ```stream-translator-gpt {URL} --language {入力言語} --use_faster_whisper```
 
 - **SimulStreaming** で文字起こし：
 
-    ```stream-translator-gpt {URL} --model large --language {入力言語} --use_simul_streaming```
+    ```stream-translator-gpt {URL} --language {入力言語} --use_simul_streaming```
 
 - **Faster-Whisper** をエンコーダーとする **SimulStreaming** で文字起こし：
 
-    ```stream-translator-gpt {URL} --model large --language {入力言語} --use_simul_streaming --use_faster_whisper```
+    ```stream-translator-gpt {URL} --language {入力言語} --use_simul_streaming --use_faster_whisper```
 
 - **OpenAI Transcription API** で文字起こし：
 
@@ -140,11 +140,11 @@ Colab 上のコマンド [![Open In Colab](https://colab.research.google.com/ass
 
 - **Gemini** で他の言語に翻訳：
 
-    ```stream-translator-gpt {URL} --model large --language ja --translation_prompt "Translate from Japanese to English" --google_api_key {your_google_key}```
+    ```stream-translator-gpt {URL} --language ja --translation_prompt "Translate from Japanese to English" --google_api_key {your_google_key}```
 
 - **GPT** で他の言語に翻訳：
 
-    ```stream-translator-gpt {URL} --model large --language ja --translation_prompt "Translate from Japanese to English" --openai_api_key {your_openai_key}```
+    ```stream-translator-gpt {URL} --language ja --translation_prompt "Translate from Japanese to English" --openai_api_key {your_openai_key}```
 
 - **OpenAI Transcription API** と **Gemini** を同時に使用：
 
@@ -152,31 +152,31 @@ Colab 上のコマンド [![Open In Colab](https://colab.research.google.com/ass
 
 - ローカル動画/音声ファイルを入力として使用：
 
-    ```stream-translator-gpt /path/to/file --model large --language {入力言語}```
+    ```stream-translator-gpt /path/to/file --language {入力言語}```
 
 - システム音声を録音して入力：
 
-    ```stream-translator-gpt device --model large --language {入力言語}```
+    ```stream-translator-gpt device --language {入力言語}```
 
 - マイクを録音して入力：
 
-    ```stream-translator-gpt device --model large --language {入力言語} --mic```
+    ```stream-translator-gpt device --language {入力言語} --mic```
 
 - 結果を Discord に送信：
 
-    ```stream-translator-gpt {URL} --model large --language {入力言語} --discord_webhook_url {your_discord_webhook_url}```
+    ```stream-translator-gpt {URL} --language {入力言語} --discord_webhook_url {your_discord_webhook_url}```
 
 - 結果を Telegram に送信：
 
-    ```stream-translator-gpt {URL} --model large --language {入力言語} --telegram_token {your_telegram_token} --telegram_chat_id {your_telegram_chat_id}```
+    ```stream-translator-gpt {URL} --language {入力言語} --telegram_token {your_telegram_token} --telegram_chat_id {your_telegram_chat_id}```
 
 - 結果を Cqhttp に送信：
 
-    ```stream-translator-gpt {URL} --model large --language {入力言語} --cqhttp_url {your_cqhttp_url} --cqhttp_token {your_cqhttp_token}```
+    ```stream-translator-gpt {URL} --language {入力言語} --cqhttp_url {your_cqhttp_url} --cqhttp_token {your_cqhttp_token}```
 
 - 結果を .srt 字幕ファイルに保存：
 
-    ```stream-translator-gpt {URL} --model large --language ja --translation_prompt "Translate from Japanese to English" --google_api_key {your_google_key} --hide_transcribe_result --retry_if_translation_fails --output_timestamps --output_file_path ./result.srt```
+    ```stream-translator-gpt {URL} --language ja --translation_prompt "Translate from Japanese to English" --google_api_key {your_google_key} --hide_transcribe_result --retry_if_translation_fails --output_timestamps --output_file_path ./result.srt```
 
 ### すべてのオプション
 

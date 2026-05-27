@@ -748,7 +748,7 @@ with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
             with gr.Row():
                 model_size = gr.Dropdown([
                     "tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large",
-                    "large-v1", "large-v2", "large-v3", "large-v3-turbo"
+                    "large-v1", "large-v2", "large-v3", "turbo"
                 ],
                                          label=i18n.get("model_size"),
                                          value=get_default("model_size"),

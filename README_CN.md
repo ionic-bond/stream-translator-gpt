@@ -114,19 +114,19 @@ Colab上的命令 [![Open In Colab](https://colab.research.google.com/assets/col
 
 - 转录直播流 (默认使用 **Whisper**):
 
-    ```stream-translator-gpt {网址} --model large --language {输入语言}```
+    ```stream-translator-gpt {网址} --language {输入语言}```
 
 - 使用 **Faster-Whisper** 进行转录:
 
-    ```stream-translator-gpt {网址} --model large --language {输入语言} --use_faster_whisper```
+    ```stream-translator-gpt {网址} --language {输入语言} --use_faster_whisper```
 
 - 使用 **SimulStreaming** 进行转录:
 
-    ```stream-translator-gpt {网址} --model large --language {输入语言} --use_simul_streaming```
+    ```stream-translator-gpt {网址} --language {输入语言} --use_simul_streaming```
 
 - 使用以 **Faster-Whisper** 作为编码器的 **SimulStreaming** 进行转录:
 
-    ```stream-translator-gpt {网址} --model large --language {输入语言} --use_simul_streaming --use_faster_whisper```
+    ```stream-translator-gpt {网址} --language {输入语言} --use_simul_streaming --use_faster_whisper```
 
 - 使用 **OpenAI Transcription API** 进行转录:
 
@@ -140,11 +140,11 @@ Colab上的命令 [![Open In Colab](https://colab.research.google.com/assets/col
 
 - 使用 **Gemini** 翻译成其他语言:
 
-    ```stream-translator-gpt {网址} --model large --language ja --translation_prompt "翻译以下日语为中文，只输出译文，不要输出原文，在一行内输出" --google_api_key {您的 Google 密钥}```
+    ```stream-translator-gpt {网址} --language ja --translation_prompt "翻译以下日语为中文，只输出译文，不要输出原文，在一行内输出" --google_api_key {您的 Google 密钥}```
 
 - 使用 **GPT** 翻译成其他语言:
 
-    ```stream-translator-gpt {网址} --model large --language ja --translation_prompt "翻译以下日语为中文，只输出译文，不要输出原文，在一行内输出" --openai_api_key {您的 OpenAI 密钥}```
+    ```stream-translator-gpt {网址} --language ja --translation_prompt "翻译以下日语为中文，只输出译文，不要输出原文，在一行内输出" --openai_api_key {您的 OpenAI 密钥}```
 
 - 同时使用 **OpenAI Transcription API** 和 **Gemini**:
 
@@ -152,31 +152,31 @@ Colab上的命令 [![Open In Colab](https://colab.research.google.com/assets/col
 
 - 使用本地视频/音频文件作为输入:
 
-    ```stream-translator-gpt {文件路径} --model large --language {输入语言}```
+    ```stream-translator-gpt {文件路径} --language {输入语言}```
 
 - 录制系统声音作为输入:
 
-    ```stream-translator-gpt device --model large --language {输入语言}```
+    ```stream-translator-gpt device --language {输入语言}```
 
 - 录制麦克风作为输入:
 
-    ```stream-translator-gpt device --model large --language {输入语言} --mic```
+    ```stream-translator-gpt device --language {输入语言} --mic```
 
 - 发送结果到 Discord:
 
-    ```stream-translator-gpt {网址} --model large --language {输入语言} --discord_webhook_url {您的_discord_webhook_网址}```
+    ```stream-translator-gpt {网址} --language {输入语言} --discord_webhook_url {您的_discord_webhook_网址}```
 
 - 发送结果到 Telegram:
 
-    ```stream-translator-gpt {网址} --model large --language {输入语言} --telegram_token {您的 Telegram 令牌} --telegram_chat_id {您的 Telegram 聊天 id}```
+    ```stream-translator-gpt {网址} --language {输入语言} --telegram_token {您的 Telegram 令牌} --telegram_chat_id {您的 Telegram 聊天 id}```
 
 - 发送结果到 Cqhttp:
 
-    ```stream-translator-gpt {网址} --model large --language {输入语言} --cqhttp_url {您的 cqhttp 地址} --cqhttp_token {您的 cqhttp 令牌}```
+    ```stream-translator-gpt {网址} --language {输入语言} --cqhttp_url {您的 cqhttp 地址} --cqhttp_token {您的 cqhttp 令牌}```
 
 - 保存结果到 .srt 字幕文件:
 
-    ```stream-translator-gpt {网址} --model large --language ja --translation_prompt "翻译以下日语为中文，只输出译文，不要输出原文，在一行内输出" --google_api_key {您的 Google 密钥} --hide_transcribe_result --retry_if_translation_fails --output_timestamps --output_file_path ./result.srt```
+    ```stream-translator-gpt {网址} --language ja --translation_prompt "翻译以下日语为中文，只输出译文，不要输出原文，在一行内输出" --google_api_key {您的 Google 密钥} --hide_transcribe_result --retry_if_translation_fails --output_timestamps --output_file_path ./result.srt```
 
 ### 所有选项
 
