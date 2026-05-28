@@ -22,33 +22,21 @@ Try it on Colab:
 6. [**Create a Google API key**](https://aistudio.google.com/app/apikey) if you want to use **Gemini API** for translation.
 7. [**Create a OpenAI API key**](https://platform.openai.com/api-keys) if you want to use **OpenAI Transcription API** for transcription or **GPT API** for translation.
 
-## WebUI
+## Installation
+
+### WebUI
 
 ```
 pip install stream-translator-gpt[webui] -U
-stream-translator-gpt-webui
 ```
 
-## Command Line
-
-**Install release version from PyPI:**
+### Command Line
 
 ```
 pip install stream-translator-gpt -U
-stream-translator-gpt
 ```
 
-or
-
-**Clone master version code from Github:**
-
-```
-git clone https://github.com/ionic-bond/stream-translator-gpt.git
-pip install -r ./stream-translator-gpt/requirements.txt -U
-python3 ./stream-translator-gpt/stream_translator_gpt/main.py
-```
-
-### Usage
+## Usage
 
 The commands on Colab [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/stream_translator.ipynb) are the recommended usage, below are some other commonly used options.
 

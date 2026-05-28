@@ -39,6 +39,7 @@ flowchart LR
         cb("`**Faster-Whisper**`")
         cc("`**Simul Streaming**`")
         cd("`**OpenAI Transcription API**`")
+        ce("`**HuggingFace ASR**`")
     end
     subgraph gd["`**翻译**`"]
         direction LR
@@ -64,7 +65,7 @@ flowchart LR
 
 基于 [**Silero-VAD**](https://github.com/snakers4/silero-vad) 的动态阈值音频切片。
 
-在本地使用 [**Whisper**](https://github.com/openai/whisper) / [**Faster-Whisper**](https://github.com/SYSTRAN/faster-whisper) /  [**Simul Streaming**](https://github.com/ufal/SimulStreaming) 或远程调用 [**OpenAI Transcription API**](https://platform.openai.com/docs/guides/speech-to-text) 进行转录。
+在本地使用 [**Whisper**](https://github.com/openai/whisper) / [**Faster-Whisper**](https://github.com/SYSTRAN/faster-whisper) / [**Simul Streaming**](https://github.com/ufal/SimulStreaming) / [**HuggingFace ASR**](https://huggingface.co/models?pipeline_tag=automatic-speech-recognition) 或远程调用 [**OpenAI Transcription API**](https://platform.openai.com/docs/guides/speech-to-text) 进行转录。
 
 使用 OpenAI 的 [**GPT API**](https://platform.openai.com/docs/overview) / Google 的 [**Gemini API**](https://ai.google.dev/gemini-api/docs) 进行翻译。
 
@@ -82,33 +83,21 @@ flowchart LR
 6. 如果您想使用 **Gemini API** 进行翻译，[**请创建一个 Google API 密钥**](https://aistudio.google.com/app/apikey)。
 7. 如果您想使用 **OpenAI Transcription API** 进行语音转文字或使用 **GPT API** 进行翻译，[**请创建一个 OpenAI API 密钥**](https://platform.openai.com/api-keys)。
 
-## WebUI
+## 安装
+
+### WebUI
 
 ```
 pip install stream-translator-gpt[webui] -U
-stream-translator-gpt-webui
 ```
 
-## 命令行
-
-**从 PyPI 安装稳定版本:**
+### 命令行
 
 ```
 pip install stream-translator-gpt -U
-stream-translator-gpt
 ```
 
-或者
-
-**从 Github 下载开发版本代码:**
-
-```
-git clone https://github.com/ionic-bond/stream-translator-gpt.git
-pip install -r ./stream-translator-gpt/requirements.txt -U
-python3 ./stream-translator-gpt/stream_translator_gpt/main.py
-```
-
-### 使用方法
+## 使用方法
 
 Colab上的命令 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/stream_translator.ipynb) 即为推荐的使用方式，以下是一些其他常用选项。
 

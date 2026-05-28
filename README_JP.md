@@ -39,6 +39,7 @@ flowchart LR
         cb("`**Faster-Whisper**`")
         cc("`**Simul Streaming**`")
         cd("`**OpenAI Transcription API**`")
+        ce("`**HuggingFace ASR**`")
     end
     subgraph gd["`**翻訳**`"]
         direction LR
@@ -64,7 +65,7 @@ flowchart LR
 
 [**Silero-VAD**](https://github.com/snakers4/silero-vad) に基づく動的しきい値による音声スライシングを行います。
 
-ローカルで [**Whisper**](https://github.com/openai/whisper) / [**Faster-Whisper**](https://github.com/SYSTRAN/faster-whisper) / [**Simul Streaming**](https://github.com/ufal/SimulStreaming) を使用するか、リモートで [**OpenAI Transcription API**](https://platform.openai.com/docs/guides/speech-to-text) を呼び出して文字起こしを行います。
+ローカルで [**Whisper**](https://github.com/openai/whisper) / [**Faster-Whisper**](https://github.com/SYSTRAN/faster-whisper) / [**Simul Streaming**](https://github.com/ufal/SimulStreaming) / [**HuggingFace ASR**](https://huggingface.co/models?pipeline_tag=automatic-speech-recognition) を使用するか、リモートで [**OpenAI Transcription API**](https://platform.openai.com/docs/guides/speech-to-text) を呼び出して文字起こしを行います。
 
 OpenAI の [**GPT API**](https://platform.openai.com/docs/overview) / Google の [**Gemini API**](https://ai.google.dev/gemini-api/docs) を使用して翻訳を行います。
 
@@ -82,33 +83,21 @@ OpenAI の [**GPT API**](https://platform.openai.com/docs/overview) / Google の
 6. **Gemini API** で翻訳する場合は、[**Google API キーを作成**](https://aistudio.google.com/app/apikey)してください。
 7. **OpenAI Transcription API** で文字起こし、または **GPT API** で翻訳する場合は、[**OpenAI API キーを作成**](https://platform.openai.com/api-keys)してください。
 
-## WebUI
+## インストール
+
+### WebUI
 
 ```
 pip install stream-translator-gpt[webui] -U
-stream-translator-gpt-webui
 ```
 
-## コマンドライン
-
-**PyPI からリリース版をインストール：**
+### コマンドライン
 
 ```
 pip install stream-translator-gpt -U
-stream-translator-gpt
 ```
 
-または
-
-**Github からマスター版コードをクローン：**
-
-```
-git clone https://github.com/ionic-bond/stream-translator-gpt.git
-pip install -r ./stream-translator-gpt/requirements.txt -U
-python3 ./stream-translator-gpt/stream_translator_gpt/main.py
-```
-
-### 使い方
+## 使い方
 
 Colab 上のコマンド [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/stream_translator.ipynb) が推奨される使い方です。以下はその他のよく使われるオプションです。
 

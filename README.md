@@ -39,6 +39,7 @@ flowchart LR
         cb("`**Faster-Whisper**`")
         cc("`**Simul Streaming**`")
         cd("`**OpenAI Transcription API**`")
+        ce("`**HuggingFace ASR**`")
     end
     subgraph gd["`**Translation**`"]
         direction LR
@@ -64,7 +65,7 @@ Uses [**yt-dlp**](https://github.com/yt-dlp/yt-dlp) to extract audio data from l
 
 Dynamic threshold audio slicing based on [**Silero-VAD**](https://github.com/snakers4/silero-vad).
 
-Use [**Whisper**](https://github.com/openai/whisper) / [**Faster-Whisper**](https://github.com/SYSTRAN/faster-whisper) /  [**Simul Streaming**](https://github.com/ufal/SimulStreaming) locally or call [**OpenAI Transcription API**](https://platform.openai.com/docs/guides/speech-to-text) remotely for transcription.
+Use [**Whisper**](https://github.com/openai/whisper) / [**Faster-Whisper**](https://github.com/SYSTRAN/faster-whisper) / [**Simul Streaming**](https://github.com/ufal/SimulStreaming) / [**HuggingFace ASR**](https://huggingface.co/models?pipeline_tag=automatic-speech-recognition) locally or call [**OpenAI Transcription API**](https://platform.openai.com/docs/guides/speech-to-text) remotely for transcription.
 
 Use OpenAI's [**GPT API**](https://platform.openai.com/docs/overview) / Google's [**Gemini API**](https://ai.google.dev/gemini-api/docs) for translation.
 
@@ -82,33 +83,21 @@ Finally, the results can be printed to the terminal, saved to a file, or sent to
 6. [**Create a Google API key**](https://aistudio.google.com/app/apikey) if you want to use **Gemini API** for translation.
 7. [**Create a OpenAI API key**](https://platform.openai.com/api-keys) if you want to use **OpenAI Transcription API** for transcription or **GPT API** for translation.
 
-## WebUI
+## Installation
+
+### WebUI
 
 ```
 pip install stream-translator-gpt[webui] -U
-stream-translator-gpt-webui
 ```
 
-## Command Line
-
-**Install release version from PyPI:**
+### Command Line
 
 ```
 pip install stream-translator-gpt -U
-stream-translator-gpt
 ```
 
-or
-
-**Clone master version code from Github:**
-
-```
-git clone https://github.com/ionic-bond/stream-translator-gpt.git
-pip install -r ./stream-translator-gpt/requirements.txt -U
-python3 ./stream-translator-gpt/stream_translator_gpt/main.py
-```
-
-### Usage
+## Usage
 
 The commands on Colab [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/stream_translator.ipynb) are the recommended usage, below are some other commonly used options.
 
