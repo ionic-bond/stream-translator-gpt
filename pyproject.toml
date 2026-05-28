@@ -10,7 +10,7 @@ authors = [
 ]
 description = "Command line tool to transcribe & translate audio from livestreams in real time"
 readme = "README_PyPI.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 keywords = [
     "translator",
     "translation",
@@ -30,8 +30,6 @@ classifiers = [
     "Environment :: Console",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",

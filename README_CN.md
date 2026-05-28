@@ -72,7 +72,7 @@ flowchart LR
 
 ## 准备工作
 
-1. **Python** >= 3.8 (推荐 >= 3.10)
+1. **Python** >= 3.10
 2. **FFmpeg**（如果您的系统已安装 FFmpeg 可跳过此步）：
    - Windows: `winget install ffmpeg`
    - Linux (Debian/Ubuntu): `sudo apt install ffmpeg`

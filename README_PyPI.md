@@ -12,7 +12,7 @@ Try it on Colab:
 
 ## Prerequisites
 
-1. **Python** >= 3.8 (Recommend >= 3.10)
+1. **Python** >= 3.10
 2. **FFmpeg** (skip if already installed):
    - Windows: `winget install ffmpeg`
    - Linux (Debian/Ubuntu): `sudo apt install ffmpeg`

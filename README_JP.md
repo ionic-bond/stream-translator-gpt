@@ -72,7 +72,7 @@ OpenAI の [**GPT API**](https://platform.openai.com/docs/overview) / Google の
 
 ## 前提条件
 
-1. **Python** >= 3.8（推奨 >= 3.10）
+1. **Python** >= 3.10
 2. **FFmpeg**（既にインストール済みの場合はスキップ）：
    - Windows: `winget install ffmpeg`
    - Linux (Debian/Ubuntu): `sudo apt install ffmpeg`
