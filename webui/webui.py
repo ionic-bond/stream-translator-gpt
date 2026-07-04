@@ -656,7 +656,7 @@ def run_list_formats(url, cookies, input_proxy):
 
 # --- UI Setup ---
 
-with gr.Blocks(title="Stream Translator GPT WebUI") as demo:
+with gr.Blocks() as demo:
     gr.Markdown(
         f"<h1>Stream Translator GPT WebUI <small style='font-weight: normal; color: gray;'>{__version__}</small></h1>")
 
