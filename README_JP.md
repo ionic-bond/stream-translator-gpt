@@ -207,7 +207,7 @@ Colab 上のコマンド [![Open In Colab](https://colab.research.google.com/ass
 | `--transcription_initial_prompt`        |                                | 文字起こし用の汎用プロンプト/用語集。形式：「用語1, 用語2, ...」。このテキストは常にモデルに渡されるプロンプトに含まれます。                                          |
 | `--disable_transcription_context`       |                                | 文字起こしにおけるコンテキスト（前の文）の伝播を無効にします。                                                                                                        |
 | **翻訳オプション**                      |
-| `--gpt_model`                           | gpt-5.4-nano                   | OpenAI の GPT モデル名。gpt-5.4 / gpt-5.4-mini / gpt-5.4-nano / gpt-5.5                                                                                               |
+| `--gpt_model`                           | gpt-5.4-nano                   | OpenAI の GPT モデル名。gpt-5.4 / gpt-5.4-mini / gpt-5.4-nano / gpt-5.5 / gpt-5.6-luna                                                                            |
 | `--gemini_model`                        | gemini-3.5-flash-lite          | Google の Gemini モデル名。gemini-3-flash-preview / gemini-3.1-flash-lite / gemini-3.5-flash / gemini-3.5-flash-lite / gemini-3.6-flash |
 | `--translation_prompt`                  |                                | 設定すると、GPT / Gemini API（入力された API キーに応じて決定）で結果テキストを対象言語に翻訳します。例：「Translate from Japanese to English」                       |
 | `--translation_history_size`            | 0                              | LLM API 呼び出し時にコンテキストとして送信する以前の文字起こし数。弱いモデルではコンテキストを無効にする（0 に設定）ことを推奨します。                                |

@@ -360,7 +360,7 @@ def cli():
     parser.add_argument('--gpt_model',
                         type=str,
                         default='gpt-5.4-nano',
-                        help='OpenAI\'s GPT model name, gpt-5.4 / gpt-5.4-mini / gpt-5.4-nano / gpt-5.5')
+                        help='OpenAI\'s GPT model name, gpt-5.4 / gpt-5.4-mini / gpt-5.4-nano / gpt-5.5 / gpt-5.6-luna')
     parser.add_argument(
         '--gemini_model',
         type=str,
