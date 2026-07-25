@@ -364,9 +364,9 @@ def cli():
     parser.add_argument(
         '--gemini_model',
         type=str,
-        default='gemini-3.1-flash-lite',
+        default='gemini-3.5-flash-lite',
         help=
-        'Google\'s Gemini model name, gemini-2.5-flash / gemini-2.5-flash-lite / gemini-3-flash-preview / gemini-3.1-flash-lite / gemini-3.5-flash'
+        'Google\'s Gemini model name, gemini-3-flash-preview / gemini-3.1-flash-lite / gemini-3.5-flash / gemini-3.5-flash-lite / gemini-3.6-flash'
     )
     parser.add_argument(
         '--translation_prompt',

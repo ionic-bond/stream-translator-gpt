@@ -252,6 +252,22 @@ class GeminiTranslator(LLMTranslator):
         self.top_p = top_p
         self.top_k = top_k
 
+    def _get_thinking_config(self, types):
+        """Return the lowest supported thinking setting for the selected Gemini model."""
+        model = self.model.lower().removeprefix('models/')
+
+        if model.startswith('gemini-2.5-'):
+            if '-pro' in model:
+                return types.ThinkingConfig(thinking_budget=128)
+            return types.ThinkingConfig(thinking_budget=0)
+
+        major_version_match = re.match(r'gemini-(\d+)', model)
+        if major_version_match and int(major_version_match.group(1)) >= 3:
+            thinking_level = 'low' if '-pro' in model else 'minimal'
+            return types.ThinkingConfig(thinking_level=thinking_level)
+
+        return None
+
     def translate(self, translation_task: TranslationTask):
         from google.genai import types
 
@@ -263,27 +279,26 @@ class GeminiTranslator(LLMTranslator):
             print(f'{INFO}[User] {user_content}')
         messages = [{'role': 'user', 'parts': [{'text': user_content}]}]
 
-        config = types.GenerateContentConfig(
-            candidate_count=1,
-            temperature=0.7,
-            top_p=0.9,
-            top_k=50,
-            system_instruction=system_prompt,
-            thinking_config=types.ThinkingConfig(thinking_budget=0),
-            response_mime_type='application/json' if self.use_json_result else 'text/plain',
-            safety_settings=[
+        config_kwargs = {
+            'system_instruction': system_prompt,
+            'response_mime_type': 'application/json' if self.use_json_result else 'text/plain',
+            'safety_settings': [
                 types.SafetySetting(category='HARM_CATEGORY_HARASSMENT', threshold='BLOCK_NONE'),
                 types.SafetySetting(category='HARM_CATEGORY_HATE_SPEECH', threshold='BLOCK_NONE'),
                 types.SafetySetting(category='HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold='BLOCK_NONE'),
                 types.SafetySetting(category='HARM_CATEGORY_DANGEROUS_CONTENT', threshold='BLOCK_NONE')
-            ])
-
+            ]
+        }
         if self.temperature is not None:
-            config.temperature = self.temperature
+            config_kwargs['temperature'] = self.temperature
         if self.top_p is not None:
-            config.top_p = self.top_p
+            config_kwargs['top_p'] = self.top_p
         if self.top_k is not None:
-            config.top_k = self.top_k
+            config_kwargs['top_k'] = self.top_k
+        thinking_config = self._get_thinking_config(types)
+        if thinking_config is not None:
+            config_kwargs['thinking_config'] = thinking_config
+        config = types.GenerateContentConfig(**config_kwargs)
 
         try:
             response = client.models.generate_content(model=self.model, contents=messages, config=config)
