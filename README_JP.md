@@ -203,7 +203,7 @@ Colab 上のコマンド [![Open In Colab](https://colab.research.google.com/ass
 | `--use_openai_transcription_api`        |                                | ローカルの Whisper の代わりに OpenAI transcription API を使用します。                                                                                                 |
 | `--use_hf_asr`                          |                                | HuggingFace ASR モデルを使用します。`--model` でモデル ID を指定します。事前に `pip install stream-translator-gpt[hf_asr]` が必要です。                               |
 | `--transcription_filters`               | emoji_filter,repetition_filter | 文字起こし結果に適用されるフィルター（「,」区切り）。emoji_filter、repetition_filter が利用可能です。                                         |
-| `--disable_language_based_filter`       |                                | このフラグを設定して、ASR言語に基づく対応する言語フィルター（japanese_filterなど）の自動有効化を無効にします。                        |
+| `--disable_language_based_filter`       |                                | このフラグを設定して、ASR言語に基づく言語フィルターの自動有効化を無効にします。現在、英語・中国語・日本語の言語フィルターを提供しています。 |
 | `--transcription_initial_prompt`        |                                | 文字起こし用の汎用プロンプト/用語集。形式：「用語1, 用語2, ...」。このテキストは常にモデルに渡されるプロンプトに含まれます。                                          |
 | `--disable_transcription_context`       |                                | 文字起こしにおけるコンテキスト（前の文）の伝播を無効にします。                                                                                                        |
 | **翻訳オプション**                      |

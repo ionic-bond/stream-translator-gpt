@@ -203,7 +203,7 @@ Colab上的命令 [![Open In Colab](https://colab.research.google.com/assets/col
 | `--use_openai_transcription_api`        |                                | 设置此标志以使用 OpenAI transcription API，而不是原始的本地 Whisper。                                                                                                     |
 | `--use_hf_asr`                          |                                | 设置此标志以使用 HuggingFace ASR 模型。通过 `--model` 指定模型 ID。需要先执行 `pip install stream-translator-gpt[hf_asr]`。                                               |
 | `--transcription_filters`               | emoji_filter,repetition_filter | 应用于语音转文字结果的过滤器，用 "," 分隔。提供 emoji_filter 和 repetition_filter。                                                        |
-| `--disable_language_based_filter`        |                                | 设置此标志以禁用根据 ASR 语言自动挂载对应语言的过滤器（如日语的 japanese_filter）。                                                       |
+| `--disable_language_based_filter`        |                                | 设置此标志以禁用根据 ASR 语言自动挂载的语言过滤器。目前我们提供英文、中文和日文语言的过滤器。       |
 | `--transcription_initial_prompt`        |                                | 通用的转录固定提示词/术语表。格式："提示词1, 提示词2, ..."。此文本将始终包含在传递给模型的提示词中。                                                                      |
 | `--disable_transcription_context`       |                                | 设置此标志以禁用转录中的上下文（上一句）传递。                                                                                                                            |
 | **翻译选项**                            |
