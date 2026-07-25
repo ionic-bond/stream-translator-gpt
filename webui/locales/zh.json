@@ -43,6 +43,7 @@
     "openai_transcription_model": "OpenAI Transcription 模型",
     "language": "语言",
     "filters": "过滤器",
+    "language_based_filter": "按语言过滤器",
     "transcription_initial_prompt": "固定提示词 / 术语表",
     "transcription_initial_prompt_ph": "提示词1, 提示词2, 提示词3, ...",
     "disable_transcription_context": "禁用上下文传递",

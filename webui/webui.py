@@ -83,7 +83,7 @@ INPUT_KEYS = [
     "input_proxy", "openai_key", "google_key", "openai_base_url", "google_base_url", "overall_proxy", "model_size",
     "hf_model_name", "language", "whisper_backend", "openai_transcription_model", "vad_threshold", "min_audio_len",
     "max_audio_len", "target_audio_len", "silence_threshold", "disable_dynamic_vad", "disable_dynamic_silence",
-    "prefix_retention_len", "filter_emoji", "filter_repetition", "filter_japanese_stream",
+    "prefix_retention_len", "filter_emoji", "filter_repetition", "filter_language_based",
     "disable_transcription_context", "transcription_initial_prompt", "translation_prompt", "translation_provider",
     "gpt_model", "gemini_model", "history_size", "translation_timeout", "processing_proxy", "use_json_result",
     "retry_if_translation_fails", "show_timestamps", "hide_transcription", "output_file", "output_proxy", "cqhttp_url",
@@ -245,7 +245,7 @@ def build_translator_command(
         prefix_retention_len,
         filter_emoji,
         filter_repetition,
-        filter_japanese_stream,
+        filter_language_based,
         disable_transcription_context,
         transcription_initial_prompt,
         translation_prompt,
@@ -377,11 +377,12 @@ def build_translator_command(
         transcription_filters.append("emoji_filter")
     if filter_repetition:
         transcription_filters.append("repetition_filter")
-    if filter_japanese_stream:
-        transcription_filters.append("japanese_stream_filter")
 
     if transcription_filters:
         add_arg("--transcription_filters", ",".join(transcription_filters), "transcription_filters")
+
+    if not filter_language_based:
+        cmd.append("--disable_language_based_filter")
 
     add_arg("--transcription_initial_prompt", transcription_initial_prompt, "transcription_initial_prompt")
 
@@ -484,7 +485,7 @@ def run_translator(
         prefix_retention_len,
         filter_emoji,
         filter_repetition,
-        filter_japanese_stream,
+        filter_language_based,
         disable_transcription_context,
         transcription_initial_prompt,
         # Translation
@@ -560,7 +561,7 @@ def run_translator(
                                           prefix_retention_len=prefix_retention_len,
                                           filter_emoji=filter_emoji,
                                           filter_repetition=filter_repetition,
-                                          filter_japanese_stream=filter_japanese_stream,
+                                          filter_language_based=filter_language_based,
                                           disable_transcription_context=disable_transcription_context,
                                           transcription_initial_prompt=transcription_initial_prompt,
                                           translation_prompt=translation_prompt,
@@ -785,8 +786,8 @@ with gr.Blocks() as demo:
             with gr.Accordion(i18n.get("filters"), open=False):
                 filter_emoji = gr.Checkbox(label="Emoji Filter", value=get_default("filter_emoji"))
                 filter_repetition = gr.Checkbox(label="Repetition Filter", value=get_default("filter_repetition"))
-                filter_japanese_stream = gr.Checkbox(label="Japanese Stream Filter",
-                                                     value=get_default("filter_japanese_stream"))
+                filter_language_based = gr.Checkbox(label=i18n.get("language_based_filter"),
+                                              value=get_default("filter_language_based"))
 
             processing_proxy_trans = gr.Textbox(label=i18n.get("processing_proxy"),
                                                 placeholder=i18n.get("processing_proxy_ph"))
@@ -999,7 +1000,7 @@ with gr.Blocks() as demo:
                         whisper_backend, openai_transcription_model, hf_model_name, vad_threshold, min_audio_len,
                         max_audio_len, target_audio_len, silence_threshold, disable_dynamic_vad,
                         disable_dynamic_silence, prefix_retention_len, filter_emoji, filter_repetition,
-                        filter_japanese_stream, disable_transcription_context, transcription_initial_prompt,
+                        filter_language_based, disable_transcription_context, transcription_initial_prompt,
                         translation_prompt, translation_provider, gpt_model, gemini_model, history_size,
                         translation_timeout, openai_base_url, google_base_url, processing_proxy, use_json_result,
                         retry_if_translation_fails, show_timestamps, hide_transcription, output_file, output_proxy,

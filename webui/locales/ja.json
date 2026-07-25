@@ -43,6 +43,7 @@
     "openai_transcription_model": "OpenAI 文字起こしモデル",
     "language": "言語",
     "filters": "フィルター",
+    "language_based_filter": "言語ベースフィルター",
     "transcription_initial_prompt": "文字起こし固定プロンプト / 用語集",
     "transcription_initial_prompt_ph": "Word1, Word2, Word3, ...",
     "disable_transcription_context": "コンテキスト伝播を無効化 (前の文を参照しない)",

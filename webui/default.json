@@ -24,7 +24,7 @@
     "prefix_retention_len": 0.5,
     "filter_emoji": true,
     "filter_repetition": true,
-    "filter_japanese_stream": false,
+    "filter_language_based": true,
     "disable_transcription_context": false,
     "transcription_initial_prompt": "",
     "transcription_filters": "emoji_filter,repetition_filter",

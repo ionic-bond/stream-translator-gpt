@@ -43,6 +43,7 @@
     "openai_transcription_model": "OpenAI Transcription Model",
     "language": "Language",
     "filters": "Filters",
+    "language_based_filter": "Language-Based Filter",
     "transcription_initial_prompt": "Transcription Initial Prompt / Glossary",
     "transcription_initial_prompt_ph": "Word1, Word2, Word3, ...",
     "disable_transcription_context": "Disable Context Propagation",

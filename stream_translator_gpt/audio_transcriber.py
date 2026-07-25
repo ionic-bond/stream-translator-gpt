@@ -8,25 +8,17 @@ from scipy.io.wavfile import write as write_audio
 import numpy as np
 
 from . import filters
-from .common import TranslationTask, SAMPLE_RATE, LoopWorkerBase, sec2str, ClientPool, INFO
+from .common import TranslationTask, SAMPLE_RATE, LoopWorkerBase, sec2str, ClientPool, INFO, WARNING
 from .simul_streaming.simul_whisper.whisper.utils import compression_ratio
-
-
-def _filter_text(text: str, transcription_filters: str):
-    filter_name_list = transcription_filters.split(',')
-    for filter_name in filter_name_list:
-        filter = getattr(filters, filter_name)
-        if not filter:
-            raise Exception('Unknown filter: %s' % filter_name)
-        text = filter(text)
-    return text
 
 
 class AudioTranscriber(LoopWorkerBase):
 
-    def __init__(self, transcription_filters: str, print_result: bool, output_timestamps: bool,
-                 disable_transcription_context: bool, transcription_initial_prompt: str):
+    def __init__(self, language: str, transcription_filters: str, enable_language_based_filter: bool, print_result: bool,
+                 output_timestamps: bool, disable_transcription_context: bool, transcription_initial_prompt: str):
+        self.language = language
         self.transcription_filters = transcription_filters
+        self.enable_language_based_filter = enable_language_based_filter
         self.print_result = print_result
         self.output_timestamps = output_timestamps
         self.disable_transcription_context = disable_transcription_context
@@ -37,6 +29,8 @@ class AudioTranscriber(LoopWorkerBase):
         if self.constant_prompt and not self.constant_prompt.strip().endswith(','):
             self.constant_prompt += ','
 
+        self.filter_chain = self._build_filter_chain()
+
     @abstractmethod
     def transcribe(self, audio: np.array, initial_prompt: str = None) -> tuple[str, list | None]:
         """Returns (text, tokens). tokens can be None if not available."""
@@ -45,6 +39,32 @@ class AudioTranscriber(LoopWorkerBase):
     def reset_context(self):
         """Override in subclass to reset model context when repetition is detected."""
         pass
+
+    def _build_filter_chain(self) -> list:
+        chain = []
+        if self.transcription_filters:
+            for filter_name in self.transcription_filters.split(','):
+                filter_name = filter_name.strip()
+                if not filter_name:
+                    continue
+                filter_func = getattr(filters, filter_name, None)
+                if not filter_func:
+                    print(f'{WARNING}Unknown filter "{filter_name}", skipping.')
+                    continue
+                if filter_func not in chain:
+                    chain.append(filter_func)
+
+        if self.enable_language_based_filter:
+            for lf in filters.get_language_filters(self.language):
+                if lf not in chain:
+                    chain.append(lf)
+
+        return chain
+
+    def filter_text(self, text: str) -> str:
+        for f in self.filter_chain:
+            text = f(text)
+        return text
 
     def loop(self, input_queue: queue.SimpleQueue[TranslationTask], output_queue: queue.SimpleQueue[TranslationTask]):
         previous_text = ""
@@ -84,7 +104,7 @@ class AudioTranscriber(LoopWorkerBase):
                     self.reset_context()
                     is_repetitive = True
 
-            task.transcript = _filter_text(text, self.transcription_filters).strip()
+            task.transcript = self.filter_text(text).strip()
             if not task.transcript:
                 continue
             previous_text = "" if is_repetitive else task.transcript
@@ -100,12 +120,11 @@ class AudioTranscriber(LoopWorkerBase):
 class OpenaiWhisper(AudioTranscriber):
 
     def __init__(self, model: str, language: str, **kwargs) -> None:
-        super().__init__(**kwargs)
+        super().__init__(language=language, **kwargs)
         import whisper
 
         print(f'{INFO}Loading Whisper model: {model}')
         self.model = whisper.load_model(model)
-        self.language = language
 
     def transcribe(self, audio: np.array, initial_prompt: str = None) -> tuple[str, list | None]:
         result = self.model.transcribe(audio,
@@ -132,14 +151,13 @@ def _apply_hf_proxy(proxy: str):
 class FasterWhisper(AudioTranscriber):
 
     def __init__(self, model: str, language: str, proxy: str, **kwargs) -> None:
-        super().__init__(**kwargs)
+        super().__init__(language=language, **kwargs)
         from faster_whisper import WhisperModel
 
         if proxy:
             _apply_hf_proxy(proxy)
         print(f'{INFO}Loading Faster-Whisper model: {model}')
         self.model = WhisperModel(model, device='auto', compute_type='auto')
-        self.language = language
 
     def transcribe(self, audio: np.array, initial_prompt: str = None) -> tuple[str, list | None]:
         segments, info = self.model.transcribe(audio, language=self.language, initial_prompt=initial_prompt)
@@ -154,7 +172,7 @@ class FasterWhisper(AudioTranscriber):
 class SimulStreaming(AudioTranscriber):
 
     def __init__(self, model: str, language: str, use_faster_whisper: bool, proxy: str, **kwargs) -> None:
-        super().__init__(**kwargs)
+        super().__init__(language=language, **kwargs)
         from .simul_streaming.simulstreaming_whisper import SimulWhisperASR, SimulWhisperOnline
 
         fw_encoder = None
@@ -202,10 +220,9 @@ class RemoteOpenaiTranscriber(AudioTranscriber):
     # https://platform.openai.com/docs/api-reference/audio/createTranscription?lang=python
 
     def __init__(self, model: str, language: str, proxy: str, **kwargs) -> None:
-        super().__init__(**kwargs)
+        super().__init__(language=language, **kwargs)
         print(f'{INFO}Using {model} API as transcription engine.')
         self.model = model
-        self.language = language
 
     def transcribe(self, audio: np.array, initial_prompt: str = None) -> tuple[str, list | None]:
         # Create an in-memory buffer
@@ -230,7 +247,7 @@ class RemoteOpenaiTranscriber(AudioTranscriber):
 class HFTranscriber(AudioTranscriber):
 
     def __init__(self, model: str, language: str, proxy: str, **kwargs) -> None:
-        super().__init__(**kwargs)
+        super().__init__(language=language, **kwargs)
         from transformers import pipeline
 
         if proxy:
@@ -250,7 +267,6 @@ class HFTranscriber(AudioTranscriber):
                 pass
 
         print(f'{INFO}Loading HuggingFace ASR model: {model}')
-        self.language = language
         self.pipe = pipeline('automatic-speech-recognition', model=model, device_map='auto')
 
     def transcribe(self, audio: np.array, initial_prompt: str = None) -> tuple[str, list | None]:
