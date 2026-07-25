@@ -1,6 +1,5 @@
 import re
 
-
 # Common Whisper silence/noise hallucinations, mostly derived from video outro
 # subtitles present in the training data.
 HALLUCINATION_KEYWORDS = [

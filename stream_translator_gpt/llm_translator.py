@@ -280,8 +280,10 @@ class GeminiTranslator(LLMTranslator):
         messages = [{'role': 'user', 'parts': [{'text': user_content}]}]
 
         config_kwargs = {
-            'system_instruction': system_prompt,
-            'response_mime_type': 'application/json' if self.use_json_result else 'text/plain',
+            'system_instruction':
+                system_prompt,
+            'response_mime_type':
+                'application/json' if self.use_json_result else 'text/plain',
             'safety_settings': [
                 types.SafetySetting(category='HARM_CATEGORY_HARASSMENT', threshold='BLOCK_NONE'),
                 types.SafetySetting(category='HARM_CATEGORY_HATE_SPEECH', threshold='BLOCK_NONE'),

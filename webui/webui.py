@@ -819,8 +819,8 @@ with gr.Blocks() as demo:
                                                      placeholder=i18n.get("gemini_base_url_ph"))
 
                     gemini_model = gr.Dropdown([
-                        "gemini-3-flash-preview", "gemini-3.1-flash-lite",
-                        "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.6-flash"
+                        "gemini-3-flash-preview", "gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-3.5-flash-lite",
+                        "gemini-3.6-flash"
                     ],
                                                label=i18n.get("gemini_model"),
                                                value=get_default("gemini_model"),

@@ -344,7 +344,9 @@ def cli():
     parser.add_argument(
         '--disable_language_based_filter',
         action='store_true',
-        help='Set this flag to disable language-based filters (e.g. english_filter, chinese_filter, japanese_filter) based on ASR language.')
+        help=
+        'Set this flag to disable language-based filters (e.g. english_filter, chinese_filter, japanese_filter) based on ASR language.'
+    )
     parser.add_argument('--whisper_filters',
                         type=str,
                         default=None,
