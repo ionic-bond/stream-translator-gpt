@@ -787,7 +787,7 @@ with gr.Blocks() as demo:
                 filter_emoji = gr.Checkbox(label="Emoji Filter", value=get_default("filter_emoji"))
                 filter_repetition = gr.Checkbox(label="Repetition Filter", value=get_default("filter_repetition"))
                 filter_language_based = gr.Checkbox(label=i18n.get("language_based_filter"),
-                                              value=get_default("filter_language_based"))
+                                                    value=get_default("filter_language_based"))
 
             processing_proxy_trans = gr.Textbox(label=i18n.get("processing_proxy"),
                                                 placeholder=i18n.get("processing_proxy_ph"))

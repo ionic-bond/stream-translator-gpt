@@ -14,8 +14,9 @@ from .simul_streaming.simul_whisper.whisper.utils import compression_ratio
 
 class AudioTranscriber(LoopWorkerBase):
 
-    def __init__(self, language: str, transcription_filters: str, enable_language_based_filter: bool, print_result: bool,
-                 output_timestamps: bool, disable_transcription_context: bool, transcription_initial_prompt: str):
+    def __init__(self, language: str, transcription_filters: str, enable_language_based_filter: bool,
+                 print_result: bool, output_timestamps: bool, disable_transcription_context: bool,
+                 transcription_initial_prompt: str):
         self.language = language
         self.transcription_filters = transcription_filters
         self.enable_language_based_filter = enable_language_based_filter
