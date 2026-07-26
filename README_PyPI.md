@@ -1,107 +1,88 @@
 # stream-translator-gpt
 
-stream-translator-gpt is a command-line tool for real-time transcription and translation of live streams. We have now added an easier-to-use WebUI entry point.
+Real-time transcription and translation for live streams, local media files, and device audio. Available as a command-line tool and a Gradio WebUI.
 
-Try it on Colab: 
+Full documentation: [GitHub](https://github.com/ionic-bond/stream-translator-gpt)
 
-|                                                                                     WebUI                                                                                     |                                                                                       Command Line                                                                                        |
+## Quick Start on Colab (Recommended)
+
+The easiest way to use this tool — no local environment to set up, and Colab's performance is more than enough for stable everyday use. All you need is your own API key, depending on which services you use:
+
+- [Create a Google API key](https://aistudio.google.com/app/apikey) for **Gemini API** translation — recommended, since the Gemini Flash-Lite model has a free quota of 15 requests per minute / 500 per day
+- [Create an OpenAI API key](https://platform.openai.com/api-keys) for **OpenAI Transcription API** transcription or **GPT API** translation (any OpenAI-compatible API can also be used)
+
+| Command Line | WebUI |
 | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/webui.ipynb) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/stream_translator.ipynb) |
+| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/stream_translator.ipynb) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/webui.ipynb) |
 
 (Due to frequent scraping and theft of API keys, we are unable to provide a trial API key. You need to fill in your own API key.)
 
-## Prerequisites
+## Local Installation (Advanced)
+
+Running locally requires some experience with Python environments (especially on Windows). If in doubt, use Colab instead.
 
 1. **Python** >= 3.10
 2. **FFmpeg** (skip if already installed):
    - Windows: `winget install ffmpeg`
    - Linux (Debian/Ubuntu): `sudo apt install ffmpeg`
-3. [**Install CUDA on your system**](https://developer.nvidia.com/cuda-downloads).
-4. [**Install cuDNN to your CUDA dir**](https://developer.nvidia.com/cudnn-downloads) if you want to use **Faster-Whisper**.
-5. [**Install PyTorch (with CUDA) to your Python**](https://pytorch.org/get-started/locally/).
-6. [**Create a Google API key**](https://aistudio.google.com/app/apikey) if you want to use **Gemini API** for translation.
-7. [**Create a OpenAI API key**](https://platform.openai.com/api-keys) if you want to use **OpenAI Transcription API** for transcription or **GPT API** for translation.
+3. For **local transcription** (Whisper / Faster-Whisper / SimulStreaming / HuggingFace ASR) — not needed if you only use the OpenAI Transcription API:
+   - [Install CUDA on your system](https://developer.nvidia.com/cuda-downloads)
+   - [Install PyTorch (with CUDA) to your Python](https://pytorch.org/get-started/locally/)
+   - [Install cuDNN to your CUDA dir](https://developer.nvidia.com/cudnn-downloads) if you want to use **Faster-Whisper**
 
-## Installation
-
-### WebUI
-
-```
-pip install stream-translator-gpt[webui] -U
-```
-
-### Command Line
+Then install the package:
 
 ```
 pip install stream-translator-gpt -U
 ```
 
+Or with the WebUI included:
+
+```
+pip install stream-translator-gpt[webui] -U
+```
+
 ## Usage
 
-The commands on Colab [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/stream_translator.ipynb) are the recommended usage, below are some other commonly used options.
+### WebUI
 
-- Transcribe live streaming (default use **Whisper**):
+```
+stream-translator-gpt-webui
+```
 
-    ```stream-translator-gpt {URL} --language {input_language}```
+Then open the printed local URL in your browser.
 
-- Transcribe by **Faster-Whisper**:
+### Command line
 
-    ```stream-translator-gpt {URL} --language {input_language} --use-faster-whisper```
+```
+stream-translator-gpt URL [OPTIONS]
+```
 
-- Transcribe by **SimulStreaming**:
+**Transcription backends** (default is local **Whisper**):
 
-    ```stream-translator-gpt {URL} --language {input_language} --use-simul-streaming```
+- ```stream-translator-gpt {URL} --language {input_language}```
+- **Faster-Whisper**: ```stream-translator-gpt {URL} --language {input_language} --use-faster-whisper```
+- **SimulStreaming**: ```stream-translator-gpt {URL} --language {input_language} --use-simul-streaming```
+- **SimulStreaming** with **Faster-Whisper** as the encoder: ```stream-translator-gpt {URL} --language {input_language} --use-simul-streaming --use-faster-whisper```
+- **OpenAI Transcription API**: ```stream-translator-gpt {URL} --language {input_language} --use-openai-transcription-api --openai-api-key {your_openai_key}```
+- **HuggingFace ASR** model (requires `pip install stream-translator-gpt[hf_asr]`): ```stream-translator-gpt {URL} --model {hf_model_name} --use-hf-asr```
 
-- Transcribe by **SimulStreaming** with **Faster-Whisper** as the encoder:
+**Translation** (enabled by setting `--translation-prompt`; the provider is chosen by which API key you fill in):
 
-    ```stream-translator-gpt {URL} --language {input_language} --use-simul-streaming --use-faster-whisper```
+- By **Gemini**: ```stream-translator-gpt {URL} --language {input_language} --translation-prompt "Translate from {input_language} to {output_language}" --google-api-key {your_google_key}```
+- By **GPT**: ```stream-translator-gpt {URL} --language {input_language} --translation-prompt "Translate from {input_language} to {output_language}" --openai-api-key {your_openai_key}```
 
-- Transcribe by **OpenAI Transcription API**:
+**Input sources** (besides stream URLs):
 
-    ```stream-translator-gpt {URL} --language {input_language} --use-openai-transcription-api --openai-api-key {your_openai_key}```
+- Local video/audio file: ```stream-translator-gpt /path/to/file --language {input_language}```
+- System audio (loopback): ```stream-translator-gpt device --language {input_language}```
+- Microphone: ```stream-translator-gpt device --mic --language {input_language}```
 
-- Transcribe by a **HuggingFace ASR** model (requires `pip install stream-translator-gpt[hf_asr]`):
+**Output destinations** (besides the terminal):
 
-    ```stream-translator-gpt {URL} --model {hf_model_name} --use-hf-asr```
+- Discord: ```stream-translator-gpt {URL} --language {input_language} --discord-webhook-url {your_discord_webhook_url}```
+- Telegram: ```stream-translator-gpt {URL} --language {input_language} --telegram-token {your_telegram_token} --telegram-chat-id {your_telegram_chat_id}```
+- Cqhttp: ```stream-translator-gpt {URL} --language {input_language} --cqhttp-url {your_cqhttp_url} --cqhttp-token {your_cqhttp_token}```
+- .srt subtitle file (offline generation): ```stream-translator-gpt {URL} --language {input_language} --translation-prompt "Translate from {input_language} to {output_language}" --google-api-key {your_google_key} --no-show-transcribe-result --retry-if-translation-fails --output-timestamps --output-file-path ./result.srt```
 
-    Only models with `pipeline_tag: automatic-speech-recognition` on Hugging Face Hub are supported.
-
-- Translate to other language by **Gemini**:
-
-    ```stream-translator-gpt {URL} --language ja --translation-prompt "Translate from Japanese to Chinese" --google-api-key {your_google_key}```
-
-- Translate to other language by **GPT**:
-
-    ```stream-translator-gpt {URL} --language ja --translation-prompt "Translate from Japanese to Chinese" --openai-api-key {your_openai_key}```
-
-- Using **OpenAI Transcription API** and **Gemini** at the same time:
-
-    ```stream-translator-gpt {URL} --language ja --use-openai-transcription-api --openai-api-key {your_openai_key} --translation-prompt "Translate from Japanese to Chinese" --google-api-key {your_google_key}```
-
-- Local video/audio file as input:
-
-    ```stream-translator-gpt /path/to/file --language {input_language}```
-
-- Record system audio as input:
-
-    ```stream-translator-gpt device --language {input_language}```
-
-- Record microphone as input:
-
-    ```stream-translator-gpt device --language {input_language} --mic```
-
-- Sending result to Discord:
-
-    ```stream-translator-gpt {URL} --language {input_language} --discord-webhook-url {your_discord_webhook_url}```
-
-- Sending result to Telegram:
-
-    ```stream-translator-gpt {URL} --language {input_language} --telegram-token {your_telegram_token} --telegram-chat-id {your_telegram_chat_id}```
-
-- Sending result to Cqhttp:
-
-    ```stream-translator-gpt {URL} --language {input_language} --cqhttp-url {your_cqhttp_url} --cqhttp-token {your_cqhttp_token}```
-
-- Saving result to a .srt subtitle file:
-
-    ```stream-translator-gpt {URL} --language ja --translation-prompt "Translate from Japanese to Chinese" --google-api-key {your_google_key} --no-show-transcribe-result --retry-if-translation-fails --output-timestamps --output-file-path ./result.srt```
+See the [GitHub README](https://github.com/ionic-bond/stream-translator-gpt) for the full option reference.

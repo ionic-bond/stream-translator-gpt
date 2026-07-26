@@ -110,7 +110,7 @@ class Config:
     """Dynamically adjust the VAD threshold based on --vad-threshold. Disable with --no-dynamic-vad-threshold."""
 
     model: str = 'turbo'
-    """Select Whisper/Faster-Whisper/Simul Streaming model size. See
+    """Select Whisper/Faster-Whisper/SimulStreaming model size. See
     https://github.com/openai/whisper#available-models-and-languages for available models."""
 
     language: str | None = 'auto'
@@ -126,7 +126,7 @@ class Config:
     the encoder will be used."""
 
     use_openai_transcription_api: bool = False
-    """Use OpenAI transcription API instead of the original local Whipser."""
+    """Use OpenAI Transcription API instead of the original local Whisper."""
 
     openai_transcription_model: str = 'gpt-4o-mini-transcribe'
     """OpenAI's transcription model name, whisper-1 / gpt-4o-mini-transcribe / gpt-4o-transcribe."""
@@ -156,7 +156,7 @@ class Config:
 
     translation_prompt: str | None = None
     """If set, will translate result text to target language via GPT / Gemini API. Example: "Translate from Japanese
-    to Chinese"."""
+    to Chinese". Adding context (who the streamer is, what the stream is about) improves translation quality."""
 
     translation_history_size: int = 0
     """The number of previous transcripts sent as context when calling the LLM API. It is recommended to disable
@@ -506,7 +506,7 @@ def _validate_and_normalize(config: Config):
         print(f'{ERROR}Cannot use Faster Whisper, OpenAI Transcription API or HuggingFace ASR at the same time')
         sys.exit(1)
     if transcription_decoder_flag_num > 1:
-        print(f'{ERROR}Cannot use Simul Streaming, OpenAI Transcription API or HuggingFace ASR at the same time')
+        print(f'{ERROR}Cannot use SimulStreaming, OpenAI Transcription API or HuggingFace ASR at the same time')
         sys.exit(1)
 
     if config.use_openai_transcription_api and not config.openai_api_key:
