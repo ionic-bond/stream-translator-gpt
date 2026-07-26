@@ -22,23 +22,26 @@ from .result_exporter import ResultExporter
 from . import __version__
 
 
-def main(url, openai_api_key, google_api_key, openai_base_url, google_base_url, proxy, format, cookies, input_proxy,
-         device_index, device_recording_interval, mic, min_audio_length, max_audio_length, target_audio_length,
-         continuous_no_speech_threshold, disable_dynamic_no_speech_threshold, prefix_retention_length, vad_threshold,
-         disable_dynamic_vad_threshold, model, language, use_faster_whisper, use_simul_streaming, use_hf_asr,
-         use_openai_transcription_api, openai_transcription_model, transcription_filters, disable_language_based_filter,
-         disable_transcription_context, transcription_initial_prompt, gpt_model, gemini_model, translation_prompt,
-         translation_history_size, translation_timeout, use_json_result, retry_if_translation_fails, temperature, top_p,
-         top_k, prompt_cache_key, reasoning_effort, verbosity, service_tier, debug_mode, processing_proxy,
-         output_timestamps, hide_transcribe_result, output_file_path, cqhttp_url, cqhttp_token, discord_webhook_url,
-         telegram_token, telegram_chat_id, output_proxy):
+def main(url, openai_api_key, google_api_key, openai_base_url, google_base_url, no_verify_ssl, proxy, format, cookies,
+         input_proxy, device_index, device_recording_interval, mic, min_audio_length, max_audio_length,
+         target_audio_length, continuous_no_speech_threshold, disable_dynamic_no_speech_threshold,
+         prefix_retention_length, vad_threshold, disable_dynamic_vad_threshold, model, language, use_faster_whisper,
+         use_simul_streaming, use_hf_asr, use_openai_transcription_api, openai_transcription_model,
+         transcription_filters, disable_language_based_filter, disable_transcription_context,
+         transcription_initial_prompt, gpt_model, gemini_model, translation_prompt, translation_history_size,
+         translation_timeout, use_json_result, retry_if_translation_fails, temperature, top_p, top_k, prompt_cache_key,
+         reasoning_effort, verbosity, service_tier, debug_mode, processing_proxy, output_timestamps,
+         hide_transcribe_result, output_file_path, cqhttp_url, cqhttp_token, discord_webhook_url, telegram_token,
+         telegram_chat_id, output_proxy):
     if openai_base_url:
         os.environ['OPENAI_BASE_URL'] = openai_base_url
 
     ClientPool.init(openai_api_key=openai_api_key,
                     google_api_key=google_api_key,
                     proxy=processing_proxy,
-                    google_base_url=google_base_url)
+                    openai_base_url=openai_base_url,
+                    google_base_url=google_base_url,
+                    no_verify_ssl=no_verify_ssl)
 
     # Init queues
     getter_to_slicer_queue = queue.SimpleQueue()
@@ -223,6 +226,12 @@ def cli():
                         type=str,
                         default=None,
                         help='Customize the API endpoint of Google (Affects Gemini translation).')
+    parser.add_argument(
+        '--no_verify_ssl',
+        action='store_true',
+        help=
+        'Disable TLS certificate verification for OpenAI / Google API and HuggingFace downloads. Use this when your API endpoint or proxy has a self-signed or invalid certificate. If the base URL host is a bare IP, verification is disabled automatically.'
+    )
     parser.add_argument('--gpt_base_url', type=str, default=None, help='(Deprecated) Use --openai_base_url instead.')
     parser.add_argument('--gemini_base_url', type=str, default=None, help='(Deprecated) Use --google_base_url instead.')
     parser.add_argument('--proxy',

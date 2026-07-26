@@ -176,6 +176,7 @@ Colab 上のコマンド [![Open In Colab](https://colab.research.google.com/ass
 | `--google_api_key`                      |                                | Gemini 翻訳を使用する場合に必要な Google API キー。複数のキーがある場合は「,」で区切ると、各キーが順番に使用されます。                                                |
 | `--openai_base_url`                     |                                | OpenAI の API エンドポイントをカスタマイズ（GPT 翻訳と OpenAI 文字起こしに影響）。                                                                                    |
 | `--google_base_url`                     |                                | Google の API エンドポイントをカスタマイズ（Gemini 翻訳に影響）。                                                                                                     |
+| `--no_verify_ssl`                       |                                | OpenAI / Google API と HuggingFace ダウンロードの TLS 証明書検証を無効にします。API エンドポイントやプロキシが自己署名証明書や無効な証明書を使用している場合に使用します。Base URL のホストが IP アドレスの場合、証明書検証は自動的に無効になります。 |
 | `--proxy`                               |                                | 個別に設定されていないすべての --*_proxy の値を設定します。http_proxy 等の環境変数も設定します。                                                                      |
 | **入力オプション**                      |                                |                                                                                                                                                                       |
 | `URL`                                   |                                | ストリームの URL。ローカルファイルパスを入力すると、そのファイルが入力として使用されます。「device」と入力すると、PC デバイスから入力を取得します。                   |

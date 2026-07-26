@@ -1,3 +1,4 @@
+import ipaddress
 import os
 import re
 import threading
@@ -65,25 +66,54 @@ def sec2str(second: float):
     return result
 
 
+def is_ip_host(url: str):
+    if not url:
+        return False
+    try:
+        ipaddress.ip_address(urlparse(url).hostname)
+        return True
+    except (ValueError, TypeError):
+        return False
+
+
 class ClientPool:
+    no_verify_ssl = False
 
     @classmethod
-    def init(cls, openai_api_key, google_api_key, proxy=None, google_base_url=None):
+    def _should_verify_ssl(cls, base_url):
+        if cls.no_verify_ssl:
+            return False
+        if is_ip_host(base_url):
+            print(f'{WARNING}Base URL "{base_url}" uses a bare IP, disabling TLS certificate verification for it.')
+            return False
+        return True
+
+    @classmethod
+    def init(cls,
+             openai_api_key,
+             google_api_key,
+             proxy=None,
+             openai_base_url=None,
+             google_base_url=None,
+             no_verify_ssl=False):
+        cls.no_verify_ssl = no_verify_ssl
+
         cls._openai_clients = []
         cls._openai_index = 0
         if openai_api_key:
             from openai import OpenAI
             import httpx
+            verify = cls._should_verify_ssl(openai_base_url)
             for key in openai_api_key.split(','):
                 key = key.strip()
-                client = OpenAI(api_key=key, http_client=httpx.Client(proxy=proxy, verify=False))
+                client = OpenAI(api_key=key, http_client=httpx.Client(proxy=proxy, verify=verify))
                 cls._openai_clients.append(client)
 
         cls._google_clients = []
         cls._google_index = 0
         if google_api_key:
             from google import genai
-            http_options = {'client_args': {'verify': False}}
+            http_options = {'client_args': {'verify': cls._should_verify_ssl(google_base_url)}}
             if proxy:
                 http_options['client_args']['proxy'] = proxy
             if google_base_url:

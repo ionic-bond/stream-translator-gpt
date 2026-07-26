@@ -144,7 +144,7 @@ def _apply_hf_proxy(proxy: str):
         import huggingface_hub
         session = huggingface_hub.utils.get_session()
         session.proxies = {'http': proxy, 'https': proxy}
-        session.verify = False
+        session.verify = not ClientPool.no_verify_ssl
     except Exception:
         pass
 
