@@ -157,6 +157,8 @@ class LLMTranslator(LoopWorkerBase):
                         finished_tasks = self._get_results()
                         for task in finished_tasks:
                             output_queue.put(task)
+                        if self.retry_if_translation_fails:
+                            self._retrigger_failed_tasks()
                         time.sleep(0.1)
                     output_queue.put(None)
                     break
