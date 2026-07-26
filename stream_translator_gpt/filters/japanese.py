@@ -3,8 +3,13 @@ import re
 HALLUCINATION_KEYWORDS = [
     '字幕作成',
     'この動画の字幕',
-    'by ',
     'チャンネル登録',
+]
+
+# Subtitle credit hallucinations like "字幕 by ○○". Standalone word only, so that
+# romaji words containing "by" (e.g. "Baby") are not filtered.
+HALLUCINATION_PATTERNS = [
+    re.compile(r'(?<![A-Za-z])by(?![A-Za-z])'),
 ]
 
 HALLUCINATION_SENTENCES = {
@@ -36,11 +41,16 @@ HALLUCINATION_SENTENCES = {
 
 
 def japanese_filter(text: str):
-    text = re.sub(r'【.+】', '', text)
+    text = re.sub(r'【.+?】', '', text)
     clean_text = text.strip(" 。、！？.!?!~\t\n\r\u3000")
 
     for kw in HALLUCINATION_KEYWORDS:
         if kw in text:
+            print('filter', text)
+            return ''
+
+    for pattern in HALLUCINATION_PATTERNS:
+        if pattern.search(text):
             print('filter', text)
             return ''
 
