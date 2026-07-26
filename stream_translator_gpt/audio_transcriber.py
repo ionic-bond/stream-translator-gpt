@@ -14,15 +14,14 @@ from .simul_streaming.simul_whisper.whisper.utils import compression_ratio
 
 class AudioTranscriber(LoopWorkerBase):
 
-    def __init__(self, language: str, transcription_filters: str, enable_language_based_filter: bool,
-                 print_result: bool, output_timestamps: bool, disable_transcription_context: bool,
-                 transcription_initial_prompt: str):
+    def __init__(self, language: str, transcription_filters: str, language_based_filter: bool, print_result: bool,
+                 output_timestamps: bool, transcription_context: bool, transcription_initial_prompt: str):
         self.language = language
         self.transcription_filters = transcription_filters
-        self.enable_language_based_filter = enable_language_based_filter
+        self.language_based_filter = language_based_filter
         self.print_result = print_result
         self.output_timestamps = output_timestamps
-        self.disable_transcription_context = disable_transcription_context
+        self.transcription_context = transcription_context
         self.transcription_initial_prompt = transcription_initial_prompt
 
         self.constant_prompt = re.sub(r',\s*', ', ',
@@ -55,7 +54,7 @@ class AudioTranscriber(LoopWorkerBase):
                 if filter_func not in chain:
                     chain.append(filter_func)
 
-        if self.enable_language_based_filter:
+        if self.language_based_filter:
             for lf in filters.get_language_filters(self.language):
                 if lf not in chain:
                     chain.append(lf)
@@ -76,7 +75,7 @@ class AudioTranscriber(LoopWorkerBase):
                 output_queue.put(None)
                 break
 
-            dynamic_context = filters.symbol_filter(previous_text) if not self.disable_transcription_context else ""
+            dynamic_context = filters.symbol_filter(previous_text) if self.transcription_context else ""
 
             if self.constant_prompt:
                 limit = 500 - len(self.constant_prompt) - 1
@@ -144,7 +143,7 @@ def _apply_hf_proxy(proxy: str):
         import huggingface_hub
         session = huggingface_hub.utils.get_session()
         session.proxies = {'http': proxy, 'https': proxy}
-        session.verify = not ClientPool.no_verify_ssl
+        session.verify = ClientPool.verify_ssl
     except Exception:
         pass
 

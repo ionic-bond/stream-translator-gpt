@@ -10,7 +10,7 @@
     "openai_key": "",
     "google_key": "",
     "overall_proxy": "",
-    "model_size": "small",
+    "model_size": "turbo",
     "language": "auto",
     "whisper_backend": "Whisper",
     "openai_transcription_model": "gpt-4o-mini-transcribe",

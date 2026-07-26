@@ -107,37 +107,37 @@ Colab 上のコマンド [![Open In Colab](https://colab.research.google.com/ass
 
 - **Faster-Whisper** で文字起こし：
 
-    ```stream-translator-gpt {URL} --language {入力言語} --use_faster_whisper```
+    ```stream-translator-gpt {URL} --language {入力言語} --use-faster-whisper```
 
 - **SimulStreaming** で文字起こし：
 
-    ```stream-translator-gpt {URL} --language {入力言語} --use_simul_streaming```
+    ```stream-translator-gpt {URL} --language {入力言語} --use-simul-streaming```
 
 - **Faster-Whisper** をエンコーダーとする **SimulStreaming** で文字起こし：
 
-    ```stream-translator-gpt {URL} --language {入力言語} --use_simul_streaming --use_faster_whisper```
+    ```stream-translator-gpt {URL} --language {入力言語} --use-simul-streaming --use-faster-whisper```
 
 - **OpenAI Transcription API** で文字起こし：
 
-    ```stream-translator-gpt {URL} --language {入力言語} --use_openai_transcription_api --openai_api_key {your_openai_key}```
+    ```stream-translator-gpt {URL} --language {入力言語} --use-openai-transcription-api --openai-api-key {your_openai_key}```
 
 - **HuggingFace ASR** モデルで文字起こし（事前に `pip install stream-translator-gpt[hf_asr]` が必要）：
 
-    ```stream-translator-gpt {URL} --model {hf_model_name} --use_hf_asr```
+    ```stream-translator-gpt {URL} --model {hf_model_name} --use-hf-asr```
 
     Hugging Face Hub で `pipeline_tag` が `automatic-speech-recognition` のモデルのみサポートされています。
 
 - **Gemini** で他の言語に翻訳：
 
-    ```stream-translator-gpt {URL} --language ja --translation_prompt "Translate from Japanese to English" --google_api_key {your_google_key}```
+    ```stream-translator-gpt {URL} --language ja --translation-prompt "Translate from Japanese to English" --google-api-key {your_google_key}```
 
 - **GPT** で他の言語に翻訳：
 
-    ```stream-translator-gpt {URL} --language ja --translation_prompt "Translate from Japanese to English" --openai_api_key {your_openai_key}```
+    ```stream-translator-gpt {URL} --language ja --translation-prompt "Translate from Japanese to English" --openai-api-key {your_openai_key}```
 
 - **OpenAI Transcription API** と **Gemini** を同時に使用：
 
-    ```stream-translator-gpt {URL} --language ja --use_openai_transcription_api --openai_api_key {your_openai_key} --translation_prompt "Translate from Japanese to English" --google_api_key {your_google_key}```
+    ```stream-translator-gpt {URL} --language ja --use-openai-transcription-api --openai-api-key {your_openai_key} --translation-prompt "Translate from Japanese to English" --google-api-key {your_google_key}```
 
 - ローカル動画/音声ファイルを入力として使用：
 
@@ -153,87 +153,93 @@ Colab 上のコマンド [![Open In Colab](https://colab.research.google.com/ass
 
 - 結果を Discord に送信：
 
-    ```stream-translator-gpt {URL} --language {入力言語} --discord_webhook_url {your_discord_webhook_url}```
+    ```stream-translator-gpt {URL} --language {入力言語} --discord-webhook-url {your_discord_webhook_url}```
 
 - 結果を Telegram に送信：
 
-    ```stream-translator-gpt {URL} --language {入力言語} --telegram_token {your_telegram_token} --telegram_chat_id {your_telegram_chat_id}```
+    ```stream-translator-gpt {URL} --language {入力言語} --telegram-token {your_telegram_token} --telegram-chat-id {your_telegram_chat_id}```
 
 - 結果を Cqhttp に送信：
 
-    ```stream-translator-gpt {URL} --language {入力言語} --cqhttp_url {your_cqhttp_url} --cqhttp_token {your_cqhttp_token}```
+    ```stream-translator-gpt {URL} --language {入力言語} --cqhttp-url {your_cqhttp_url} --cqhttp-token {your_cqhttp_token}```
 
 - 結果を .srt 字幕ファイルに保存：
 
-    ```stream-translator-gpt {URL} --language ja --translation_prompt "Translate from Japanese to English" --google_api_key {your_google_key} --hide_transcribe_result --retry_if_translation_fails --output_timestamps --output_file_path ./result.srt```
+    ```stream-translator-gpt {URL} --language ja --translation-prompt "Translate from Japanese to English" --google-api-key {your_google_key} --no-show-transcribe-result --retry-if-translation-fails --output-timestamps --output-file-path ./result.srt```
 
 ### すべてのオプション
 
+```stream-translator-gpt URL [OPTIONS]```
+
+> [!NOTE]
+> すべてのオプションはハイフンとアンダースコアのどちらでも指定できます（`--openai-api-key` = `--openai_api_key`）。
+> すべてのブールオプションには、無効化用の `--no-*` 形式があります（例：デフォルトで有効な `--dynamic-vad-threshold` は `--no-dynamic-vad-threshold` で無効化できます）。
+
 | オプション                              | デフォルト値                   | 説明                                                                                                                                                                  |
 | :-------------------------------------- | :----------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **全般オプション**                      |
-| `--openai_api_key`                      |                                | GPT 翻訳 / Whisper API を使用する場合に必要な OpenAI API キー。複数のキーがある場合は「,」で区切ると、各キーが順番に使用されます。                                    |
-| `--google_api_key`                      |                                | Gemini 翻訳を使用する場合に必要な Google API キー。複数のキーがある場合は「,」で区切ると、各キーが順番に使用されます。                                                |
-| `--openai_base_url`                     |                                | OpenAI の API エンドポイントをカスタマイズ（GPT 翻訳と OpenAI 文字起こしに影響）。                                                                                    |
-| `--google_base_url`                     |                                | Google の API エンドポイントをカスタマイズ（Gemini 翻訳に影響）。                                                                                                     |
-| `--no_verify_ssl`                       |                                | OpenAI / Google API と HuggingFace ダウンロードの TLS 証明書検証を無効にします。API エンドポイントやプロキシが自己署名証明書や無効な証明書を使用している場合に使用します。Base URL のホストが IP アドレスの場合、証明書検証は自動的に無効になります。 |
-| `--proxy`                               |                                | 個別に設定されていないすべての --*_proxy の値を設定します。http_proxy 等の環境変数も設定します。                                                                      |
-| **入力オプション**                      |                                |                                                                                                                                                                       |
 | `URL`                                   |                                | ストリームの URL。ローカルファイルパスを入力すると、そのファイルが入力として使用されます。「device」と入力すると、PC デバイスから入力を取得します。                   |
+| **全般オプション**                      |
+| `--openai-api-key`                      |                                | GPT 翻訳 / Whisper API を使用する場合に必要な OpenAI API キー。複数のキーがある場合は「,」で区切ると、各キーが順番に使用されます。                                    |
+| `--google-api-key`                      |                                | Gemini 翻訳を使用する場合に必要な Google API キー。複数のキーがある場合は「,」で区切ると、各キーが順番に使用されます。                                                |
+| `--openai-base-url`                     |                                | OpenAI の API エンドポイントをカスタマイズ（GPT 翻訳と OpenAI 文字起こしに影響）。                                                                                    |
+| `--google-base-url`                     |                                | Google の API エンドポイントをカスタマイズ（Gemini 翻訳に影響）。                                                                                                     |
+| `--no-verify-ssl`                       |                                | OpenAI / Google API と HuggingFace ダウンロードの TLS 証明書検証を無効にします。API エンドポイントやプロキシが自己署名証明書や無効な証明書を使用している場合に使用します。Base URL のホストが IP アドレスの場合、証明書検証は自動的に無効になります。 |
+| `--proxy`                               |                                | 個別に設定されていないすべての --*-proxy の値を設定します。http_proxy 等の環境変数も設定します。                                                                      |
+| **入力オプション**                      |                                |                                                                                                                                                                       |
 | `--format`                              | ba/wa*                         | ストリーム形式コード。このパラメータは yt-dlp に直接渡されます。`yt-dlp {url} -F` で利用可能な形式コードの一覧を取得できます。                                        |
-| `--list_format`                         |                                | 利用可能なすべての形式を表示して終了します。                                                                                                                          |
+| `--list-format`                         |                                | 利用可能なすべての形式を表示して終了します。                                                                                                                          |
 | `--cookies`                             |                                | メンバー限定ストリームを開くために使用します。このパラメータは yt-dlp に直接渡されます。                                                                              |
-| `--input_proxy`                         |                                | yt-dlp 用の HTTP/HTTPS/SOCKS プロキシを指定します（例：http://127.0.0.1:7890）。                                                                                      |
-| `--device_index`                        |                                | 録音するデバイスのインデックス。未設定の場合、システムデフォルトの録音デバイスが使用されます。                                                                        |
-| `--list_devices`                        |                                | すべてのオーディオデバイス情報を表示して終了します。                                                                                                                  |
-| `--device_recording_interval`           | 0.5                            | 録音間隔が短いほど遅延は低くなりますが、CPU 使用率が上がります。0.1〜1.0 の間に設定することを推奨します。                                                             |
+| `--input-proxy`                         |                                | yt-dlp 用の HTTP/HTTPS/SOCKS プロキシを指定します（例：http://127.0.0.1:7890）。                                                                                      |
+| `--device-index`                        |                                | 録音するデバイスのインデックス。未設定の場合、システムデフォルトの録音デバイスが使用されます。                                                                        |
+| `--list-devices`                        |                                | すべてのオーディオデバイス情報を表示して終了します。                                                                                                                  |
+| `--device-recording-interval`           | 0.5                            | 録音間隔が短いほど遅延は低くなりますが、CPU 使用率が上がります。0.1〜1.0 の間に設定することを推奨します。                                                             |
 | **音声スライシングオプション**          |                                |                                                                                                                                                                       |
-| `--min_audio_length`                    | 0.5                            | 最小スライス音声長（秒）。                                                                                                                                            |
-| `--max_audio_length`                    | 30.0                           | 最大スライス音声長（秒）。                                                                                                                                            |
-| `--target_audio_length`                 | 5.0                            | 動的無音しきい値が有効な場合（デフォルトで有効）、プログラムはこの長さにできるだけ近づけて音声をスライスします。                                                      |
-| `--continuous_no_speech_threshold`      | 1.0                            | この秒数の間に音声がない場合にスライスします。動的無音しきい値が有効な場合（デフォルトで有効）、実際のしきい値はこの値に基づいて動的に調整されます。                  |
-| `--disable_dynamic_no_speech_threshold` |                                | このフラグを設定して動的無音しきい値を無効にします。                                                                                                                  |
-| `--prefix_retention_length`             | 0.5                            | スライス時に保持するプレフィックス音声の長さ。                                                                                                                        |
-| `--vad_threshold`                       | 0.35                           | 範囲 0〜1。この値が高いほど、音声判定が厳しくなります。動的 VAD しきい値が有効な場合（デフォルトで有効）、入力音声の VAD 結果に基づいてしきい値が動的に調整されます。 |
-| `--disable_dynamic_vad_threshold`       |                                | このフラグを設定して動的 VAD しきい値を無効にします。                                                                                                                 |
+| `--min-audio-length`                    | 0.5                            | 最小スライス音声長（秒）。                                                                                                                                            |
+| `--max-audio-length`                    | 30.0                           | 最大スライス音声長（秒）。                                                                                                                                            |
+| `--target-audio-length`                 | 5.0                            | 動的無音しきい値が有効な場合（デフォルトで有効）、プログラムはこの長さにできるだけ近づけて音声をスライスします。                                                      |
+| `--continuous-no-speech-threshold`      | 1.0                            | この秒数の間に音声がない場合にスライスします。動的無音しきい値が有効な場合（デフォルトで有効）、実際のしきい値はこの値に基づいて動的に調整されます。                  |
+| `--no-dynamic-no-speech-threshold` |                                | 動的無音しきい値を無効にします（デフォルトで有効）。                                                                                                                  |
+| `--prefix-retention-length`             | 0.5                            | スライス時に保持するプレフィックス音声の長さ。                                                                                                                        |
+| `--vad-threshold`                       | 0.35                           | 範囲 0〜1。この値が高いほど、音声判定が厳しくなります。動的 VAD しきい値が有効な場合（デフォルトで有効）、入力音声の VAD 結果に基づいてしきい値が動的に調整されます。 |
+| `--no-dynamic-vad-threshold`       |                                | 動的 VAD しきい値を無効にします（デフォルトで有効）。                                                                                                                 |
 | **文字起こしオプション**                |                                |                                                                                                                                                                       |
-| `--model`                               | small                          | Whisper/Faster-Whisper/Simul Streaming モデルサイズを選択。利用可能なモデルは[こちら](https://github.com/openai/whisper#available-models-and-languages)を参照。       |
+| `--model`                               | turbo                          | Whisper/Faster-Whisper/Simul Streaming モデルサイズを選択。利用可能なモデルは[こちら](https://github.com/openai/whisper#available-models-and-languages)を参照。       |
 | `--language`                            | auto                           | ストリームで話されている言語。利用可能な言語は[こちら](https://github.com/openai/whisper#available-models-and-languages)を参照。                                      |
-| `--use_faster_whisper`                  |                                | Whisper の代わりに Faster-Whisper を使用します。--use_simul_streaming と併用すると、Faster-Whisper をエンコーダーとする SimulStreaming が使用されます。               |
-| `--use_simul_streaming`                 |                                | Whisper の代わりに SimulStreaming を使用します。--use_faster_whisper と併用すると、Faster-Whisper をエンコーダーとする SimulStreaming が使用されます。                |
-| `--use_openai_transcription_api`        |                                | ローカルの Whisper の代わりに OpenAI transcription API を使用します。                                                                                                 |
-| `--use_hf_asr`                          |                                | HuggingFace ASR モデルを使用します。`--model` でモデル ID を指定します。事前に `pip install stream-translator-gpt[hf_asr]` が必要です。                               |
-| `--transcription_filters`               | emoji_filter,repetition_filter | 文字起こし結果に適用されるフィルター（「,」区切り）。emoji_filter、repetition_filter が利用可能です。                                         |
-| `--disable_language_based_filter`       |                                | このフラグを設定して、ASR言語に基づく言語フィルターの自動有効化を無効にします。現在、英語・中国語・日本語の言語フィルターを提供しています。 |
-| `--transcription_initial_prompt`        |                                | 文字起こし用の汎用プロンプト/用語集。形式：「用語1, 用語2, ...」。このテキストは常にモデルに渡されるプロンプトに含まれます。                                          |
-| `--disable_transcription_context`       |                                | 文字起こしにおけるコンテキスト（前の文）の伝播を無効にします。                                                                                                        |
+| `--use-faster-whisper`                  |                                | Whisper の代わりに Faster-Whisper を使用します。--use-simul-streaming と併用すると、Faster-Whisper をエンコーダーとする SimulStreaming が使用されます。               |
+| `--use-simul-streaming`                 |                                | Whisper の代わりに SimulStreaming を使用します。--use-faster-whisper と併用すると、Faster-Whisper をエンコーダーとする SimulStreaming が使用されます。                |
+| `--use-openai-transcription-api`        |                                | ローカルの Whisper の代わりに OpenAI transcription API を使用します。                                                                                                 |
+| `--use-hf-asr`                          |                                | HuggingFace ASR モデルを使用します。`--model` でモデル ID を指定します。事前に `pip install stream-translator-gpt[hf_asr]` が必要です。                               |
+| `--transcription-filters`               | emoji_filter,repetition_filter | 文字起こし結果に適用されるフィルター（「,」区切り）。emoji_filter、repetition_filter が利用可能です。                                         |
+| `--no-language-based-filter`       |                                | ASR言語に基づく言語フィルターの自動有効化を無効にします（デフォルトで有効）。現在、英語・中国語・日本語の言語フィルターを提供しています。 |
+| `--transcription-initial-prompt`        |                                | 文字起こし用の汎用プロンプト/用語集。形式：「用語1, 用語2, ...」。このテキストは常にモデルに渡されるプロンプトに含まれます。                                          |
+| `--no-transcription-context`       |                                | 文字起こしにおけるコンテキスト（前の文）の伝播を無効にします（デフォルトで有効）。                                                                                                        |
 | **翻訳オプション**                      |
-| `--gpt_model`                           | gpt-5.4-nano                   | OpenAI の GPT モデル名。gpt-5.4 / gpt-5.4-mini / gpt-5.4-nano / gpt-5.5 / gpt-5.6-luna                                                                            |
-| `--gemini_model`                        | gemini-3.5-flash-lite          | Google の Gemini モデル名。gemini-3-flash-preview / gemini-3.1-flash-lite / gemini-3.5-flash / gemini-3.5-flash-lite / gemini-3.6-flash |
-| `--translation_prompt`                  |                                | 設定すると、GPT / Gemini API（入力された API キーに応じて決定）で結果テキストを対象言語に翻訳します。例：「Translate from Japanese to English」                       |
-| `--translation_history_size`            | 0                              | LLM API 呼び出し時にコンテキストとして送信する以前の文字起こし数。弱いモデルではコンテキストを無効にする（0 に設定）ことを推奨します。                                |
-| `--translation_timeout`                 | 10                             | GPT / Gemini の翻訳がこの秒数を超えた場合、その翻訳は破棄されます。                                                                                                   |
-| `--use_json_result`                     |                                | 一部のローカルデプロイモデル向けに、LLM 翻訳で JSON 結果を使用します。                                                                                                |
-| `--retry_if_translation_fails`          |                                | 翻訳がタイムアウト/失敗した場合にリトライします。オフラインで字幕を生成する際に使用します。                                                                           |
+| `--gpt-model`                           | gpt-5.4-nano                   | OpenAI の GPT モデル名。gpt-5.4 / gpt-5.4-mini / gpt-5.4-nano / gpt-5.5 / gpt-5.6-luna                                                                            |
+| `--gemini-model`                        | gemini-3.5-flash-lite          | Google の Gemini モデル名。gemini-3-flash-preview / gemini-3.1-flash-lite / gemini-3.5-flash / gemini-3.5-flash-lite / gemini-3.6-flash |
+| `--translation-prompt`                  |                                | 設定すると、GPT / Gemini API（入力された API キーに応じて決定）で結果テキストを対象言語に翻訳します。例：「Translate from Japanese to English」                       |
+| `--translation-history-size`            | 0                              | LLM API 呼び出し時にコンテキストとして送信する以前の文字起こし数。弱いモデルではコンテキストを無効にする（0 に設定）ことを推奨します。                                |
+| `--translation-timeout`                 | 10                             | GPT / Gemini の翻訳がこの秒数を超えた場合、その翻訳は破棄されます。                                                                                                   |
+| `--use-json-result`                     |                                | 一部のローカルデプロイモデル向けに、LLM 翻訳で JSON 結果を使用します。                                                                                                |
+| `--retry-if-translation-fails`          |                                | 翻訳がタイムアウト/失敗した場合にリトライします。オフラインで字幕を生成する際に使用します。                                                                           |
 | `--temperature`                         |                                | GPT/Gemini パラメータ。出力のランダム性を制御し、値が高いほど多様な結果が生成されます。                                                                               |
-| `--top_p`                               |                                | GPT/Gemini パラメータ。核サンプリングのしきい値。累積確率がこの値を超えるトークンのみが考慮されます。                                                                 |
-| `--top_k`                               |                                | Gemini パラメータ。トークンの選択を確率が最も高い上位 K 個の候補に制限します。                                                                                        |
-| `--prompt_cache_key`                    |                                | GPT パラメータ。設定すると、API 側のプロンプトキャッシュ最適化が有効になります。                                                                                      |
-| `--reasoning_effort`                    |                                | GPT パラメータ。推論モデルの推論深度を制御します。オプション：none / minimal / low / medium / high / xhigh。                                                          |
+| `--top-p`                               |                                | GPT/Gemini パラメータ。核サンプリングのしきい値。累積確率がこの値を超えるトークンのみが考慮されます。                                                                 |
+| `--top-k`                               |                                | Gemini パラメータ。トークンの選択を確率が最も高い上位 K 個の候補に制限します。                                                                                        |
+| `--prompt-cache-key`                    |                                | GPT パラメータ。設定すると、API 側のプロンプトキャッシュ最適化が有効になります。                                                                                      |
+| `--reasoning-effort`                    |                                | GPT パラメータ。推論モデルの推論深度を制御します。オプション：none / minimal / low / medium / high / xhigh。                                                          |
 | `--verbosity`                           |                                | GPT パラメータ。レスポンスの詳細度を制御します。オプション：auto / short / concise / detailed。                                                                       |
-| `--service_tier`                        |                                | GPT パラメータ。処理の優先度を指定します。オプション：auto / default / flex / priority。                                                                              |
-| `--debug_mode`                          |                                | デバッグモードを有効にします。LLM に送信されたメッセージと各翻訳呼び出し後の使用情報を表示します。                                                                    |
-| `--processing_proxy`                    |                                | Whisper/GPT API 用の HTTP/HTTPS/SOCKS プロキシを指定します（Gemini は現在プログラム内でのプロキシ指定をサポートしていません）。例：http://127.0.0.1:7890。            |
+| `--service-tier`                        |                                | GPT パラメータ。処理の優先度を指定します。オプション：auto / default / flex / priority。                                                                              |
+| `--debug-mode`                          |                                | デバッグモードを有効にします。LLM に送信されたメッセージと各翻訳呼び出し後の使用情報を表示します。                                                                    |
+| `--processing-proxy`                    |                                | Whisper/GPT API 用の HTTP/HTTPS/SOCKS プロキシを指定します（Gemini は現在プログラム内でのプロキシ指定をサポートしていません）。例：http://127.0.0.1:7890。            |
 | **出力オプション**                      |
-| `--output_timestamps`                   |                                | テキスト出力時にタイムスタンプも出力します。                                                                                                                          |
-| `--hide_transcribe_result`              |                                | Whisper の文字起こし結果を非表示にします。                                                                                                                            |
-| `--output_file_path`                    |                                | 設定すると、結果テキストをこのパスに保存します。                                                                                                                      |
-| `--cqhttp_url`                          |                                | 設定すると、結果テキストを cqhttp サーバーに送信します。                                                                                                              |
-| `--cqhttp_token`                        |                                | cqhttp の Token。サーバー側で設定されていない場合は入力不要です。                                                                                                     |
-| `--discord_webhook_url`                 |                                | 設定すると、結果テキストを Discord チャンネルに送信します。                                                                                                           |
-| `--telegram_token`                      |                                | Telegram ボットの Token。                                                                                                                                             |
-| `--telegram_chat_id`                    |                                | 設定すると、結果テキストをこの Telegram チャットに送信します。\"--telegram_token\" と併用する必要があります。                                                         |
-| `--output_proxy`                        |                                | Cqhttp/Discord/Telegram 用の HTTP/HTTPS/SOCKS プロキシを指定します。例：http://127.0.0.1:7890。                                                                       |
+| `--output-timestamps`                   |                                | テキスト出力時にタイムスタンプも出力します。                                                                                                                          |
+| `--no-show-transcribe-result`              |                                | Whisper の文字起こし結果を非表示にします（デフォルトで表示）。                                                                                                                            |
+| `--output-file-path`                    |                                | 設定すると、結果テキストをこのパスに保存します。                                                                                                                      |
+| `--cqhttp-url`                          |                                | 設定すると、結果テキストを cqhttp サーバーに送信します。                                                                                                              |
+| `--cqhttp-token`                        |                                | cqhttp の Token。サーバー側で設定されていない場合は入力不要です。                                                                                                     |
+| `--discord-webhook-url`                 |                                | 設定すると、結果テキストを Discord チャンネルに送信します。                                                                                                           |
+| `--telegram-token`                      |                                | Telegram ボットの Token。                                                                                                                                             |
+| `--telegram-chat-id`                    |                                | 設定すると、結果テキストをこの Telegram チャットに送信します。\"--telegram-token\" と併用する必要があります。                                                         |
+| `--output-proxy`                        |                                | Cqhttp/Discord/Telegram 用の HTTP/HTTPS/SOCKS プロキシを指定します。例：http://127.0.0.1:7890。                                                                       |
 
 ## お問い合わせ
 

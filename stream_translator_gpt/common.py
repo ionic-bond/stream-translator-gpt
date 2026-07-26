@@ -77,11 +77,11 @@ def is_ip_host(url: str):
 
 
 class ClientPool:
-    no_verify_ssl = False
+    verify_ssl = True
 
     @classmethod
     def _should_verify_ssl(cls, base_url):
-        if cls.no_verify_ssl:
+        if not cls.verify_ssl:
             return False
         if is_ip_host(base_url):
             print(f'{WARNING}Base URL "{base_url}" uses a bare IP, disabling TLS certificate verification for it.')
@@ -95,8 +95,8 @@ class ClientPool:
              proxy=None,
              openai_base_url=None,
              google_base_url=None,
-             no_verify_ssl=False):
-        cls.no_verify_ssl = no_verify_ssl
+             verify_ssl=True):
+        cls.verify_ssl = verify_ssl
 
         cls._openai_clients = []
         cls._openai_index = 0

@@ -46,37 +46,37 @@ The commands on Colab [![Open In Colab](https://colab.research.google.com/assets
 
 - Transcribe by **Faster-Whisper**:
 
-    ```stream-translator-gpt {URL} --language {input_language} --use_faster_whisper```
+    ```stream-translator-gpt {URL} --language {input_language} --use-faster-whisper```
 
 - Transcribe by **SimulStreaming**:
 
-    ```stream-translator-gpt {URL} --language {input_language} --use_simul_streaming```
+    ```stream-translator-gpt {URL} --language {input_language} --use-simul-streaming```
 
 - Transcribe by **SimulStreaming** with **Faster-Whisper** as the encoder:
 
-    ```stream-translator-gpt {URL} --language {input_language} --use_simul_streaming --use_faster_whisper```
+    ```stream-translator-gpt {URL} --language {input_language} --use-simul-streaming --use-faster-whisper```
 
 - Transcribe by **OpenAI Transcription API**:
 
-    ```stream-translator-gpt {URL} --language {input_language} --use_openai_transcription_api --openai_api_key {your_openai_key}```
+    ```stream-translator-gpt {URL} --language {input_language} --use-openai-transcription-api --openai-api-key {your_openai_key}```
 
 - Transcribe by a **HuggingFace ASR** model (requires `pip install stream-translator-gpt[hf_asr]`):
 
-    ```stream-translator-gpt {URL} --model {hf_model_name} --use_hf_asr```
+    ```stream-translator-gpt {URL} --model {hf_model_name} --use-hf-asr```
 
     Only models with `pipeline_tag: automatic-speech-recognition` on Hugging Face Hub are supported.
 
 - Translate to other language by **Gemini**:
 
-    ```stream-translator-gpt {URL} --language ja --translation_prompt "Translate from Japanese to Chinese" --google_api_key {your_google_key}```
+    ```stream-translator-gpt {URL} --language ja --translation-prompt "Translate from Japanese to Chinese" --google-api-key {your_google_key}```
 
 - Translate to other language by **GPT**:
 
-    ```stream-translator-gpt {URL} --language ja --translation_prompt "Translate from Japanese to Chinese" --openai_api_key {your_openai_key}```
+    ```stream-translator-gpt {URL} --language ja --translation-prompt "Translate from Japanese to Chinese" --openai-api-key {your_openai_key}```
 
 - Using **OpenAI Transcription API** and **Gemini** at the same time:
 
-    ```stream-translator-gpt {URL} --language ja --use_openai_transcription_api --openai_api_key {your_openai_key} --translation_prompt "Translate from Japanese to Chinese" --google_api_key {your_google_key}```
+    ```stream-translator-gpt {URL} --language ja --use-openai-transcription-api --openai-api-key {your_openai_key} --translation-prompt "Translate from Japanese to Chinese" --google-api-key {your_google_key}```
 
 - Local video/audio file as input:
 
@@ -92,16 +92,16 @@ The commands on Colab [![Open In Colab](https://colab.research.google.com/assets
 
 - Sending result to Discord:
 
-    ```stream-translator-gpt {URL} --language {input_language} --discord_webhook_url {your_discord_webhook_url}```
+    ```stream-translator-gpt {URL} --language {input_language} --discord-webhook-url {your_discord_webhook_url}```
 
 - Sending result to Telegram:
 
-    ```stream-translator-gpt {URL} --language {input_language} --telegram_token {your_telegram_token} --telegram_chat_id {your_telegram_chat_id}```
+    ```stream-translator-gpt {URL} --language {input_language} --telegram-token {your_telegram_token} --telegram-chat-id {your_telegram_chat_id}```
 
 - Sending result to Cqhttp:
 
-    ```stream-translator-gpt {URL} --language {input_language} --cqhttp_url {your_cqhttp_url} --cqhttp_token {your_cqhttp_token}```
+    ```stream-translator-gpt {URL} --language {input_language} --cqhttp-url {your_cqhttp_url} --cqhttp-token {your_cqhttp_token}```
 
 - Saving result to a .srt subtitle file:
 
-    ```stream-translator-gpt {URL} --language ja --translation_prompt "Translate from Japanese to Chinese" --google_api_key {your_google_key} --hide_transcribe_result --retry_if_translation_fails --output_timestamps --output_file_path ./result.srt```
+    ```stream-translator-gpt {URL} --language ja --translation-prompt "Translate from Japanese to Chinese" --google-api-key {your_google_key} --no-show-transcribe-result --retry-if-translation-fails --output-timestamps --output-file-path ./result.srt```

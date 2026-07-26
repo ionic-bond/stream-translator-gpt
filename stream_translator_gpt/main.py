@@ -1,4 +1,4 @@
-import argparse
+import dataclasses
 import os
 import platform
 import queue
@@ -8,6 +8,9 @@ import sys
 import time
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
+from typing import Annotated
+
+import tyro
 
 if __name__ == '__main__':
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -22,138 +25,340 @@ from .result_exporter import ResultExporter
 from . import __version__
 
 
-def main(url, openai_api_key, google_api_key, openai_base_url, google_base_url, no_verify_ssl, proxy, format, cookies,
-         input_proxy, device_index, device_recording_interval, mic, min_audio_length, max_audio_length,
-         target_audio_length, continuous_no_speech_threshold, disable_dynamic_no_speech_threshold,
-         prefix_retention_length, vad_threshold, disable_dynamic_vad_threshold, model, language, use_faster_whisper,
-         use_simul_streaming, use_hf_asr, use_openai_transcription_api, openai_transcription_model,
-         transcription_filters, disable_language_based_filter, disable_transcription_context,
-         transcription_initial_prompt, gpt_model, gemini_model, translation_prompt, translation_history_size,
-         translation_timeout, use_json_result, retry_if_translation_fails, temperature, top_p, top_k, prompt_cache_key,
-         reasoning_effort, verbosity, service_tier, debug_mode, processing_proxy, output_timestamps,
-         hide_transcribe_result, output_file_path, cqhttp_url, cqhttp_token, discord_webhook_url, telegram_token,
-         telegram_chat_id, output_proxy):
-    if openai_base_url:
-        os.environ['OPENAI_BASE_URL'] = openai_base_url
+@dataclasses.dataclass
+class Config:
+    url: Annotated[tyro.conf.Positional[str], tyro.conf.arg(metavar='URL')]
+    """The URL of the stream. If a local file path is filled in, it will be used as input. If fill in "device", the
+    input will be obtained from your PC device."""
 
-    ClientPool.init(openai_api_key=openai_api_key,
-                    google_api_key=google_api_key,
-                    proxy=processing_proxy,
-                    openai_base_url=openai_base_url,
-                    google_base_url=google_base_url,
-                    no_verify_ssl=no_verify_ssl)
+    openai_api_key: str | None = None
+    """OpenAI API key if using GPT translation / Whisper API. If you have multiple keys, you can separate them with ","
+    and each key will be used in turn."""
+
+    google_api_key: str | None = None
+    """Google API key if using Gemini translation. If you have multiple keys, you can separate them with "," and each
+    key will be used in turn."""
+
+    openai_base_url: str | None = None
+    """Customize the API endpoint of OpenAI (Affects GPT translation & OpenAI Transcription)."""
+
+    google_base_url: str | None = None
+    """Customize the API endpoint of Google (Affects Gemini translation)."""
+
+    verify_ssl: bool = True
+    """TLS certificate verification for OpenAI / Google API and HuggingFace downloads. Use --no-verify-ssl when your
+    API endpoint or proxy has a self-signed or invalid certificate. If the base URL host is a bare IP, verification is
+    disabled automatically."""
+
+    proxy: str | None = None
+    """Used to set the proxy for all --*-proxy flags if they are not specifically set. Also sets http_proxy environment
+    variables."""
+
+    format: str = 'ba/wa*'
+    """Stream format code, this parameter will be passed directly to yt-dlp. You can get the list of available format
+    codes by "yt-dlp {url} -F"."""
+
+    list_format: Annotated[bool, tyro.conf.FlagCreatePairsOff] = False
+    """Print all available formats then exit."""
+
+    cookies: str | None = None
+    """Used to open member-only stream, this parameter will be passed directly to yt-dlp."""
+
+    input_proxy: str | None = None
+    """Use the specified HTTP/HTTPS/SOCKS proxy for yt-dlp, e.g. http://127.0.0.1:7890."""
+
+    device_index: int | None = None
+    """The index of the device that needs to be recorded. If not set, the system default recording device will be
+    used."""
+
+    device_recording_interval: float = 0.5
+    """The shorter the recording interval, the lower the latency, but it will increase CPU usage. It is recommended to
+    set it between 0.1 and 1.0."""
+
+    list_devices: Annotated[bool, tyro.conf.FlagCreatePairsOff] = False
+    """Print all audio devices info then exit."""
+
+    mic: bool = False
+    """Use microphone instead of system audio (loopback)."""
+
+    min_audio_length: float = 0.5
+    """Minimum slice audio length in seconds."""
+
+    max_audio_length: float = 30.0
+    """Maximum slice audio length in seconds."""
+
+    target_audio_length: float = 5.0
+    """When dynamic no speech threshold is enabled (enabled by default), the program will slice the audio as close to
+    this length as possible."""
+
+    continuous_no_speech_threshold: float = 1.0
+    """Slice if there is no speech during this number of seconds. If the dynamic no speech threshold is enabled
+    (enabled by default), the actual threshold will be dynamically adjusted based on this value."""
+
+    dynamic_no_speech_threshold: bool = True
+    """Dynamically adjust the no speech threshold based on --continuous-no-speech-threshold. Disable with
+    --no-dynamic-no-speech-threshold."""
+
+    prefix_retention_length: float = 0.5
+    """The length of the retention prefix audio during slicing."""
+
+    vad_threshold: float = 0.35
+    """Range 0~1. The higher this value, the stricter the speech judgment. If dynamic VAD threshold is enabled (enabled
+    by default), this threshold will be adjusted dynamically based on this value."""
+
+    dynamic_vad_threshold: bool = True
+    """Dynamically adjust the VAD threshold based on --vad-threshold. Disable with --no-dynamic-vad-threshold."""
+
+    model: str = 'turbo'
+    """Select Whisper/Faster-Whisper/Simul Streaming model size. See
+    https://github.com/openai/whisper#available-models-and-languages for available models."""
+
+    language: str | None = 'auto'
+    """Language spoken in the stream. Default option is to auto detect the spoken language. See
+    https://github.com/openai/whisper#available-models-and-languages for available languages."""
+
+    use_faster_whisper: bool = False
+    """Use Faster-Whisper instead of Whisper. If used with --use-simul-streaming, SimulStreaming with Faster-Whisper
+    as the encoder will be used."""
+
+    use_simul_streaming: bool = False
+    """Use SimulStreaming instead of Whisper. If used with --use-faster-whisper, SimulStreaming with Faster-Whisper as
+    the encoder will be used."""
+
+    use_openai_transcription_api: bool = False
+    """Use OpenAI transcription API instead of the original local Whipser."""
+
+    openai_transcription_model: str = 'gpt-4o-mini-transcribe'
+    """OpenAI's transcription model name, whisper-1 / gpt-4o-mini-transcribe / gpt-4o-transcribe."""
+
+    use_hf_asr: bool = False
+    """Use a HuggingFace ASR model (via transformers pipeline) specified by --model."""
+
+    transcription_filters: str = 'emoji_filter,repetition_filter'
+    """Filters apply to transcription results, separated by ",". We provide emoji_filter and repetition_filter."""
+
+    language_based_filter: bool = True
+    """Language-based transcription filters (e.g. english_filter, chinese_filter, japanese_filter) selected by ASR
+    language. Disable with --no-language-based-filter."""
+
+    transcription_initial_prompt: str | None = None
+    """General purpose prompt or glossary for transcription. Format: "Word1, Word2, Word3, ..."."""
+
+    transcription_context: bool = True
+    """Context (previous sentence) propagation in transcription. Disable with --no-transcription-context."""
+
+    gpt_model: str = 'gpt-5.4-nano'
+    """OpenAI's GPT model name, gpt-5.4 / gpt-5.4-mini / gpt-5.4-nano / gpt-5.5 / gpt-5.6-luna."""
+
+    gemini_model: str = 'gemini-3.5-flash-lite'
+    """Google's Gemini model name, gemini-3-flash-preview / gemini-3.1-flash-lite / gemini-3.5-flash /
+    gemini-3.5-flash-lite / gemini-3.6-flash."""
+
+    translation_prompt: str | None = None
+    """If set, will translate result text to target language via GPT / Gemini API. Example: "Translate from Japanese
+    to Chinese"."""
+
+    translation_history_size: int = 0
+    """The number of previous transcripts sent as context when calling the LLM API. It is recommended to disable
+    context (set to 0) for weaker models."""
+
+    translation_timeout: int = 10
+    """If the GPT / Gemini translation exceeds this number of seconds, the translation will be discarded."""
+
+    use_json_result: bool = False
+    """Using JSON result in LLM translation for some locally deployed models."""
+
+    retry_if_translation_fails: bool = False
+    """Retry when translation times out/fails. Used to generate subtitles offline."""
+
+    temperature: float | None = None
+    """GPT/Gemini parameter. Controls output randomness, higher values produce more diverse results."""
+
+    top_p: float | None = None
+    """GPT/Gemini parameter. Nucleus sampling threshold, only tokens with cumulative probability above this value are
+    considered."""
+
+    top_k: int | None = None
+    """Gemini parameter. Limits token selection to the top K most probable candidates."""
+
+    prompt_cache_key: str | None = None
+    """GPT parameter. If set, enables prompt caching optimization on the API side."""
+
+    reasoning_effort: str | None = None
+    """GPT parameter. Controls reasoning depth for reasoning models. Options: none / minimal / low / medium / high /
+    xhigh."""
+
+    verbosity: str | None = None
+    """GPT parameter. Controls the verbosity of the response. Options: auto / short / concise / detailed."""
+
+    service_tier: str | None = None
+    """GPT parameter. Specifies processing priority tier. Options: auto / default / flex / priority."""
+
+    debug_mode: bool = False
+    """Enable debug mode. Print messages sent to LLM and usage info after each translation call."""
+
+    processing_proxy: str | None = None
+    """Use the specified HTTP/HTTPS/SOCKS proxy for Whisper/GPT API (Gemini currently doesn't support specifying a
+    proxy within the program), e.g. http://127.0.0.1:7890."""
+
+    output_timestamps: bool = False
+    """Output the timestamp of the text when outputting the text."""
+
+    show_transcribe_result: bool = True
+    """Print / export the transcription result. Disable with --no-show-transcribe-result to only output the
+    translation."""
+
+    output_file_path: str | None = None
+    """If set, will save the result text to this path."""
+
+    cqhttp_url: str | None = None
+    """If set, will send the result text to this Cqhttp server."""
+
+    cqhttp_token: str | None = None
+    """Token of cqhttp, if it is not set on the server side, it does not need to fill in."""
+
+    discord_webhook_url: str | None = None
+    """If set, will send the result text to this Discord channel."""
+
+    telegram_token: str | None = None
+    """Token of Telegram bot."""
+
+    telegram_chat_id: int | None = None
+    """If set, will send the result text to this Telegram chat. Needs to be used with --telegram-token."""
+
+    output_proxy: str | None = None
+    """Use the specified HTTP/HTTPS/SOCKS proxy for Cqhttp/Discord/Telegram, e.g. http://127.0.0.1:7890."""
+
+
+def run(config: Config):
+    """Run the transcription / translation pipeline until the input is exhausted."""
+    if config.openai_base_url:
+        os.environ['OPENAI_BASE_URL'] = config.openai_base_url
+
+    ClientPool.init(openai_api_key=config.openai_api_key,
+                    google_api_key=config.google_api_key,
+                    proxy=config.processing_proxy,
+                    openai_base_url=config.openai_base_url,
+                    google_base_url=config.google_base_url,
+                    verify_ssl=config.verify_ssl)
 
     # Init queues
     getter_to_slicer_queue = queue.SimpleQueue()
     slicer_to_transcriber_queue = queue.SimpleQueue()
     transcriber_to_translator_queue = queue.SimpleQueue()
-    translator_to_exporter_queue = queue.SimpleQueue() if translation_prompt else transcriber_to_translator_queue
+    translator_to_exporter_queue = queue.SimpleQueue() if config.translation_prompt else transcriber_to_translator_queue
 
     # Init workers
     with ThreadPoolExecutor() as executor:
 
         def init_audio_getter():
-            if url.lower() == 'device':
+            if config.url.lower() == 'device':
                 return DeviceAudioGetter(
-                    device_index=device_index,
-                    use_mic=mic,
-                    interval=device_recording_interval,
+                    device_index=config.device_index,
+                    use_mic=config.mic,
+                    interval=config.device_recording_interval,
                 )
-            elif is_url(url):
+            elif is_url(config.url):
                 return StreamAudioGetter(
-                    url=url,
-                    format=format,
-                    cookies=cookies,
-                    proxy=input_proxy,
+                    url=config.url,
+                    format=config.format,
+                    cookies=config.cookies,
+                    proxy=config.input_proxy,
                 )
             else:
-                return LocalFileAudioGetter(file_path=url)
+                return LocalFileAudioGetter(file_path=config.url)
 
         audio_getter_future = executor.submit(init_audio_getter)
         slicer_future = executor.submit(
             AudioSlicer,
-            min_audio_length=min_audio_length,
-            max_audio_length=max_audio_length,
-            target_audio_length=target_audio_length,
-            continuous_no_speech_threshold=continuous_no_speech_threshold,
-            dynamic_no_speech_threshold=not disable_dynamic_no_speech_threshold,
-            prefix_retention_length=prefix_retention_length,
-            vad_threshold=vad_threshold,
-            dynamic_vad_threshold=not disable_dynamic_vad_threshold,
+            min_audio_length=config.min_audio_length,
+            max_audio_length=config.max_audio_length,
+            target_audio_length=config.target_audio_length,
+            continuous_no_speech_threshold=config.continuous_no_speech_threshold,
+            dynamic_no_speech_threshold=config.dynamic_no_speech_threshold,
+            prefix_retention_length=config.prefix_retention_length,
+            vad_threshold=config.vad_threshold,
+            dynamic_vad_threshold=config.dynamic_vad_threshold,
         )
 
         def init_transcriber():
             common_args = {
-                'transcription_filters': transcription_filters,
-                'enable_language_based_filter': not disable_language_based_filter,
-                'print_result': not hide_transcribe_result,
-                'output_timestamps': output_timestamps,
-                'disable_transcription_context': disable_transcription_context,
-                'transcription_initial_prompt': transcription_initial_prompt,
+                'transcription_filters': config.transcription_filters,
+                'language_based_filter': config.language_based_filter,
+                'print_result': config.show_transcribe_result,
+                'output_timestamps': config.output_timestamps,
+                'transcription_context': config.transcription_context,
+                'transcription_initial_prompt': config.transcription_initial_prompt,
             }
-            if use_simul_streaming:
-                return SimulStreaming(model=model,
-                                      language=language,
-                                      use_faster_whisper=use_faster_whisper,
-                                      proxy=processing_proxy,
+            if config.use_simul_streaming:
+                return SimulStreaming(model=config.model,
+                                      language=config.language,
+                                      use_faster_whisper=config.use_faster_whisper,
+                                      proxy=config.processing_proxy,
                                       **common_args)
-            elif use_faster_whisper:
-                return FasterWhisper(model=model, language=language, proxy=processing_proxy, **common_args)
-            elif use_openai_transcription_api:
-                return RemoteOpenaiTranscriber(model=openai_transcription_model,
-                                               language=language,
-                                               proxy=processing_proxy,
+            elif config.use_faster_whisper:
+                return FasterWhisper(model=config.model,
+                                     language=config.language,
+                                     proxy=config.processing_proxy,
+                                     **common_args)
+            elif config.use_openai_transcription_api:
+                return RemoteOpenaiTranscriber(model=config.openai_transcription_model,
+                                               language=config.language,
+                                               proxy=config.processing_proxy,
                                                **common_args)
-            elif use_hf_asr:
-                return HFTranscriber(model=model, language=language, proxy=processing_proxy, **common_args)
+            elif config.use_hf_asr:
+                return HFTranscriber(model=config.model,
+                                     language=config.language,
+                                     proxy=config.processing_proxy,
+                                     **common_args)
             else:
-                return OpenaiWhisper(model=model, language=language, **common_args)
+                return OpenaiWhisper(model=config.model, language=config.language, **common_args)
 
         transcriber_future = executor.submit(init_transcriber)
 
         def init_translator():
-            if not translation_prompt:
+            if not config.translation_prompt:
                 return None
             common_args = {
-                'prompt': translation_prompt,
-                'history_size': translation_history_size,
-                'use_json_result': use_json_result,
-                'timeout': translation_timeout,
-                'retry_if_translation_fails': retry_if_translation_fails,
-                'debug_mode': debug_mode,
+                'prompt': config.translation_prompt,
+                'history_size': config.translation_history_size,
+                'use_json_result': config.use_json_result,
+                'timeout': config.translation_timeout,
+                'retry_if_translation_fails': config.retry_if_translation_fails,
+                'debug_mode': config.debug_mode,
             }
-            if google_api_key:
+            if config.google_api_key:
                 return GeminiTranslator(
-                    model=gemini_model,
-                    temperature=temperature,
-                    top_p=top_p,
-                    top_k=top_k,
+                    model=config.gemini_model,
+                    temperature=config.temperature,
+                    top_p=config.top_p,
+                    top_k=config.top_k,
                     **common_args,
                 )
             else:
                 return GPTTranslator(
-                    model=gpt_model,
-                    prompt_cache_key=prompt_cache_key,
-                    temperature=temperature,
-                    top_p=top_p,
-                    reasoning_effort=reasoning_effort,
-                    verbosity=verbosity,
-                    service_tier=service_tier,
+                    model=config.gpt_model,
+                    prompt_cache_key=config.prompt_cache_key,
+                    temperature=config.temperature,
+                    top_p=config.top_p,
+                    reasoning_effort=config.reasoning_effort,
+                    verbosity=config.verbosity,
+                    service_tier=config.service_tier,
                     **common_args,
                 )
 
         translator_future = executor.submit(init_translator)
         exporter_future = executor.submit(
             ResultExporter,
-            cqhttp_url=cqhttp_url,
-            cqhttp_token=cqhttp_token,
-            discord_webhook_url=discord_webhook_url,
-            telegram_token=telegram_token,
-            telegram_chat_id=telegram_chat_id,
-            output_file_path=output_file_path,
-            proxy=output_proxy,
-            output_whisper_result=not hide_transcribe_result,
-            output_timestamps=output_timestamps,
+            cqhttp_url=config.cqhttp_url,
+            cqhttp_token=config.cqhttp_token,
+            discord_webhook_url=config.discord_webhook_url,
+            telegram_token=config.telegram_token,
+            telegram_chat_id=config.telegram_chat_id,
+            output_file_path=config.output_file_path,
+            proxy=config.output_proxy,
+            output_whisper_result=config.show_transcribe_result,
+            output_timestamps=config.output_timestamps,
         )
 
         audio_getter = audio_getter_future.result()
@@ -195,363 +400,90 @@ def main(url, openai_api_key, google_api_key, openai_base_url, google_base_url, 
     print(f'{INFO}All processing completed, program exits.')
 
 
-def cli():
-    print(f'{INFO}Version: {__version__}')
-    parser = argparse.ArgumentParser(description='Parameters for translator.py')
-    parser.add_argument(
-        'URL',
-        type=str,
-        help=
-        'The URL of the stream. If a local file path is filled in, it will be used as input. If fill in "device", the input will be obtained from your PC device.'
-    )
-    parser.add_argument(
-        '--openai_api_key',
-        type=str,
-        default=None,
-        help=
-        'OpenAI API key if using GPT translation / Whisper API. If you have multiple keys, you can separate them with \",\" and each key will be used in turn.'
-    )
-    parser.add_argument(
-        '--google_api_key',
-        type=str,
-        default=None,
-        help=
-        'Google API key if using Gemini translation. If you have multiple keys, you can separate them with \",\" and each key will be used in turn.'
-    )
-    parser.add_argument('--openai_base_url',
-                        type=str,
-                        default=None,
-                        help='Customize the API endpoint of OpenAI (Affects GPT translation & OpenAI Transcription).')
-    parser.add_argument('--google_base_url',
-                        type=str,
-                        default=None,
-                        help='Customize the API endpoint of Google (Affects Gemini translation).')
-    parser.add_argument(
-        '--no_verify_ssl',
-        action='store_true',
-        help=
-        'Disable TLS certificate verification for OpenAI / Google API and HuggingFace downloads. Use this when your API endpoint or proxy has a self-signed or invalid certificate. If the base URL host is a bare IP, verification is disabled automatically.'
-    )
-    parser.add_argument('--gpt_base_url', type=str, default=None, help='(Deprecated) Use --openai_base_url instead.')
-    parser.add_argument('--gemini_base_url', type=str, default=None, help='(Deprecated) Use --google_base_url instead.')
-    parser.add_argument('--proxy',
-                        type=str,
-                        default=None,
-                        help='Used to set the proxy for all --*_proxy flags if they are not specifically set.')
-    parser.add_argument(
-        '--format',
-        type=str,
-        default='ba/wa*',
-        help=
-        'Stream format code, this parameter will be passed directly to yt-dlp. You can get the list of available format codes by \"yt-dlp \{url\} -F\"'
-    )
-    parser.add_argument('--list_format', action='store_true', help='Print all available formats then exit.')
-    parser.add_argument('--cookies',
-                        type=str,
-                        default=None,
-                        help='Used to open member-only stream, this parameter will be passed directly to yt-dlp.')
+def _preprocess_deprecated_flags(argv):
+    """Rewrite deprecated flags to their new form, printing a warning for each."""
+    processed = []
+    for arg in argv:
+        if arg.replace('_', '-') == '--hide-transcribe-result':
+            print(f'{WARNING}--hide_transcribe_result is deprecated and will be removed in future versions. '
+                  'Please use --no-show-transcribe-result instead.')
+            processed.append('--no-show-transcribe-result')
+        else:
+            processed.append(arg)
+    return processed
 
-    parser.add_argument('--input_proxy',
-                        type=str,
-                        default=None,
-                        help='Use the specified HTTP/HTTPS/SOCKS proxy for yt-dlp, '
-                        'e.g. http://127.0.0.1:7890.')
-    parser.add_argument(
-        '--device_index',
-        type=int,
-        default=None,
-        help=
-        'The index of the device that needs to be recorded. If not set, the system default recording device will be used.'
-    )
-    parser.add_argument(
-        '--device_recording_interval',
-        type=float,
-        default=0.5,
-        help=
-        'The shorter the recording interval, the lower the latency, but it will increase CPU usage. It is recommended to set it between 0.1 and 1.0.'
-    )
-    parser.add_argument('--list_devices', action='store_true', help='Print all audio devices info then exit.')
-    parser.add_argument('--mic', action='store_true', help='Use microphone instead of system audio (loopback).')
 
-    parser.add_argument('--min_audio_length', type=float, default=0.5, help='Minimum slice audio length in seconds.')
-    parser.add_argument('--max_audio_length', type=float, default=30.0, help='Maximum slice audio length in seconds.')
-    parser.add_argument(
-        '--target_audio_length',
-        type=float,
-        default=5.0,
-        help=
-        'When dynamic no speech threshold is enabled (enabled by default), the program will slice the audio as close to this length as possible.'
-    )
-    parser.add_argument(
-        '--continuous_no_speech_threshold',
-        type=float,
-        default=1.0,
-        help=
-        'Slice if there is no speech during this number of seconds. If the dynamic no speech threshold is enabled (enabled by default), the actual threshold will be dynamically adjusted based on this value.'
-    )
-    parser.add_argument('--disable_dynamic_no_speech_threshold',
-                        action='store_true',
-                        help='Set this flag to disable dynamic no speech threshold.')
-    parser.add_argument('--prefix_retention_length',
-                        type=float,
-                        default=0.5,
-                        help='The length of the retention prefix audio during slicing.')
-    parser.add_argument(
-        '--vad_threshold',
-        type=float,
-        default=0.35,
-        help=
-        'Range 0~1. the higher this value, the stricter the speech judgment. If dynamic VAD threshold is enabled (enabled by default), this threshold will be adjusted dynamically based on this value.'
-    )
-    parser.add_argument('--disable_dynamic_vad_threshold',
-                        action='store_true',
-                        help='Set this flag to disable dynamic VAD threshold.')
-    parser.add_argument(
-        '--model',
-        type=str,
-        default='turbo',
-        help=
-        'Select Whisper/Faster-Whisper/Simul Streaming model size. See https://github.com/openai/whisper#available-models-and-languages for available models.'
-    )
-    parser.add_argument(
-        '--language',
-        type=str,
-        default='auto',
-        help=
-        'Language spoken in the stream. Default option is to auto detect the spoken language. See https://github.com/openai/whisper#available-models-and-languages for available languages.'
-    )
+def _apply_overall_proxy(config: Config):
+    """Propagate --proxy to the environment and to all unset --*-proxy options."""
+    if not config.proxy:
+        return
+    os.environ['http_proxy'] = config.proxy
+    os.environ['https_proxy'] = config.proxy
+    os.environ['HTTP_PROXY'] = config.proxy
+    os.environ['HTTPS_PROXY'] = config.proxy
+    if config.input_proxy is None:
+        config.input_proxy = config.proxy
+    if config.processing_proxy is None:
+        config.processing_proxy = config.proxy
+    if config.output_proxy is None:
+        config.output_proxy = config.proxy
 
-    parser.add_argument(
-        '--use_faster_whisper',
-        action='store_true',
-        help=
-        'Set this flag to use Faster-Whisper instead of Whisper. If used with --use_simul_streaming, SimulStreaming with Faster-Whisper as the encoder will be used.'
-    )
-    parser.add_argument(
-        '--use_simul_streaming',
-        action='store_true',
-        help=
-        'Set this flag to use SimulStreaming instead of Whisper. If used with --use_faster_whisper, SimulStreaming with Faster-Whisper as the encoder will be used.'
-    )
-    parser.add_argument('--use_openai_transcription_api',
-                        action='store_true',
-                        help='Set this flag to use OpenAI transcription API instead of the original local Whipser.')
-    parser.add_argument(
-        '--openai_transcription_model',
-        type=str,
-        default='gpt-4o-mini-transcribe',
-        help='OpenAI\'s transcription model name, whisper-1 / gpt-4o-mini-transcribe / gpt-4o-transcribe')
-    parser.add_argument(
-        '--use_hf_asr',
-        action='store_true',
-        help='Set this flag to use a HuggingFace ASR model (via transformers pipeline) specified by --model.')
-    parser.add_argument(
-        '--transcription_filters',
-        type=str,
-        default='emoji_filter,repetition_filter',
-        help='Filters apply to transcription results, separated by ",". We provide emoji_filter and repetition_filter.')
-    parser.add_argument(
-        '--disable_language_based_filter',
-        action='store_true',
-        help=
-        'Set this flag to disable language-based filters (e.g. english_filter, chinese_filter, japanese_filter) based on ASR language.'
-    )
-    parser.add_argument('--whisper_filters',
-                        type=str,
-                        default=None,
-                        help='(Deprecated) Use --transcription_filters instead.')
-    parser.add_argument(
-        '--transcription_initial_prompt',
-        type=str,
-        default=None,
-        help='General purpose prompt or glossary for transcription. Format: "Word1, Word2, Word3, ...".')
-    parser.add_argument('--disable_transcription_context',
-                        action='store_true',
-                        help='Set this flag to disable context (previous sentence) propagation in transcription.')
-    parser.add_argument('--gpt_model',
-                        type=str,
-                        default='gpt-5.4-nano',
-                        help='OpenAI\'s GPT model name, gpt-5.4 / gpt-5.4-mini / gpt-5.4-nano / gpt-5.5 / gpt-5.6-luna')
-    parser.add_argument(
-        '--gemini_model',
-        type=str,
-        default='gemini-3.5-flash-lite',
-        help=
-        'Google\'s Gemini model name, gemini-3-flash-preview / gemini-3.1-flash-lite / gemini-3.5-flash / gemini-3.5-flash-lite / gemini-3.6-flash'
-    )
-    parser.add_argument(
-        '--translation_prompt',
-        type=str,
-        default=None,
-        help=
-        'If set, will translate result text to target language via GPT / Gemini API. Example: \"Translate from Japanese to Chinese\"'
-    )
-    parser.add_argument(
-        '--translation_history_size',
-        type=int,
-        default=0,
-        help=
-        'The number of previous transcripts sent as context when calling the LLM API. It is recommended to disable context (set to 0) for weaker models.'
-    )
-    parser.add_argument(
-        '--translation_timeout',
-        type=int,
-        default=10,
-        help='If the GPT / Gemini translation exceeds this number of seconds, the translation will be discarded.')
-    parser.add_argument('--use_json_result',
-                        action='store_true',
-                        help='Using JSON result in LLM translation for some locally deployed models.')
-    parser.add_argument('--retry_if_translation_fails',
-                        action='store_true',
-                        help='Retry when translation times out/fails. Used to generate subtitles offline.')
-    parser.add_argument(
-        '--temperature',
-        type=float,
-        default=None,
-        help='GPT/Gemini parameter. Controls output randomness, higher values produce more diverse results.')
-    parser.add_argument(
-        '--top_p',
-        type=float,
-        default=None,
-        help=
-        'GPT/Gemini parameter. Nucleus sampling threshold, only tokens with cumulative probability above this value are considered.'
-    )
-    parser.add_argument('--top_k',
-                        type=int,
-                        default=None,
-                        help='Gemini parameter. Limits token selection to the top K most probable candidates.')
-    parser.add_argument('--prompt_cache_key',
-                        type=str,
-                        default=None,
-                        help='GPT parameter. If set, enables prompt caching optimization on the API side.')
-    parser.add_argument(
-        '--reasoning_effort',
-        type=str,
-        default=None,
-        help=
-        'GPT parameter. Controls reasoning depth for reasoning models. Options: none / minimal / low / medium / high / xhigh.'
-    )
-    parser.add_argument(
-        '--verbosity',
-        type=str,
-        default=None,
-        help='GPT parameter. Controls the verbosity of the response. Options: auto / short / concise / detailed.')
-    parser.add_argument(
-        '--service_tier',
-        type=str,
-        default=None,
-        help='GPT parameter. Specifies processing priority tier. Options: auto / default / flex / priority.')
-    parser.add_argument(
-        '--debug_mode',
-        action='store_true',
-        help='Enable debug mode. Print messages sent to LLM and usage info after each translation call.')
-    parser.add_argument(
-        '--processing_proxy',
-        type=str,
-        default=None,
-        help=
-        'Use the specified HTTP/HTTPS/SOCKS proxy for Whisper/GPT API (Gemini currently doesn\'t support specifying a proxy within the program), e.g. http://127.0.0.1:7890.'
-    )
-    parser.add_argument('--output_timestamps',
-                        action='store_true',
-                        help='Output the timestamp of the text when outputting the text.')
-    parser.add_argument('--hide_transcribe_result', action='store_true', help='Hide the result of Whisper transcribe.')
-    parser.add_argument('--output_file_path',
-                        type=str,
-                        default=None,
-                        help='If set, will save the result text to this path.')
-    parser.add_argument('--cqhttp_url',
-                        type=str,
-                        default=None,
-                        help='If set, will send the result text to this Cqhttp server.')
-    parser.add_argument('--cqhttp_token',
-                        type=str,
-                        default=None,
-                        help='Token of cqhttp, if it is not set on the server side, it does not need to fill in.')
-    parser.add_argument('--discord_webhook_url',
-                        type=str,
-                        default=None,
-                        help='If set, will send the result text to this Discord channel.')
-    parser.add_argument('--telegram_token', type=str, default=None, help='Token of Telegram bot.')
-    parser.add_argument(
-        '--telegram_chat_id',
-        type=int,
-        default=None,
-        help='If set, will send the result text to this Telegram chat. Needs to be used with \"--telegram_token\".')
-    parser.add_argument(
-        '--output_proxy',
-        type=str,
-        default=None,
-        help='Use the specified HTTP/HTTPS/SOCKS proxy for Cqhttp/Discord/Telegram, e.g. http://127.0.0.1:7890.')
 
-    args = parser.parse_args().__dict__
+def _print_audio_devices():
+    if platform.system() == 'Windows':
+        import pyaudiowpatch as pa
+    else:
+        try:
+            import pyaudio as pa
+        except ImportError:
+            print("PyAudio is not installed. Unable to list devices.")
+            print("Debian/Ubuntu/Colab: apt install portaudio19-dev && pip install pyaudio")
+            sys.exit(1)
 
-    url = args.pop('URL')
+    pyaudio = pa.PyAudio()
 
-    if url.lower() != 'device' and not shutil.which('ffmpeg'):
+    print("Available audio devices:")
+    for i in range(pyaudio.get_device_count()):
+        dev = pyaudio.get_device_info_by_index(i)
+        if dev.get('maxInputChannels') > 0:
+            print(f"{dev['index']}: {dev['name']}")
+
+    if platform.system() == 'Windows':
+        print("\nLoopback devices (for system audio):")
+        for loopback in pyaudio.get_loopback_device_info_generator():
+            print(f"{loopback['index']}: {loopback['name']}")
+    pyaudio.terminate()
+
+
+def _print_stream_formats(config: Config):
+    cmd = [sys.executable, '-m', 'yt_dlp', config.url, '-F']
+    if config.cookies:
+        cmd.extend(['--cookies', config.cookies])
+    if config.input_proxy:
+        cmd.extend(['--proxy', config.input_proxy])
+    subprocess.run(cmd)
+
+
+def _check_ffmpeg(config: Config):
+    if config.url.lower() != 'device' and not shutil.which('ffmpeg'):
         if platform.system() == 'Windows':
             print(f'{ERROR}ffmpeg not found. Please install it with: winget install ffmpeg')
         else:
             print(f'{ERROR}ffmpeg not found. Please install it with: sudo apt install ffmpeg')
         sys.exit(1)
 
-    if args['proxy']:
-        os.environ['http_proxy'] = args['proxy']
-        os.environ['https_proxy'] = args['proxy']
-        os.environ['HTTP_PROXY'] = args['proxy']
-        os.environ['HTTPS_PROXY'] = args['proxy']
-        if args['input_proxy'] is None:
-            args['input_proxy'] = args['proxy']
-        if args['processing_proxy'] is None:
-            args['processing_proxy'] = args['proxy']
-        if args['output_proxy'] is None:
-            args['output_proxy'] = args['proxy']
 
-    if args['list_devices']:
-        if platform.system() == 'Windows':
-            import pyaudiowpatch as pa
-        else:
-            try:
-                import pyaudio as pa
-            except ImportError:
-                print("PyAudio is not installed. Unable to list devices.")
-                print("Debian/Ubuntu/Colab: apt install portaudio19-dev && pip install pyaudio")
-                exit(1)
-
-        pyaudio = pa.PyAudio()
-        info = pyaudio.get_host_api_info_by_type(pa.paWASAPI) if platform.system() == 'Windows' else None
-
-        print("Available audio devices:")
-        for i in range(pyaudio.get_device_count()):
-            dev = pyaudio.get_device_info_by_index(i)
-            if dev.get('maxInputChannels') > 0:
-                print(f"{dev['index']}: {dev['name']}")
-
-        if platform.system() == 'Windows':
-            print("\nLoopback devices (for system audio):")
-            for loopback in pyaudio.get_loopback_device_info_generator():
-                print(f"{loopback['index']}: {loopback['name']}")
-        pyaudio.terminate()
-        exit(0)
-
-    if args['list_format']:
-        cmd = [sys.executable, '-m', 'yt_dlp', url, '-F']
-        if args['cookies']:
-            cmd.extend(['--cookies', args['cookies']])
-        if args['input_proxy']:
-            cmd.extend(['--proxy', args['input_proxy']])
-        subprocess.run(cmd)
-        exit(0)
-
-    if args['model'].endswith('.en'):
-        if args['model'] == 'large.en':
+def _validate_and_normalize(config: Config):
+    """Check option combinations and normalize values, exiting with an error message on invalid input."""
+    if config.model.endswith('.en'):
+        if config.model == 'large.en':
             print(
                 f'{ERROR}English model does not have large model, please choose from {{tiny.en, small.en, medium.en}}')
             sys.exit(1)
-        if args['language'] != 'English' and args['language'] != 'en':
-            if args['language'] == 'auto':
+        if config.language != 'English' and config.language != 'en':
+            if config.language == 'auto':
                 print(f'{WARNING}Using .en model, setting language from auto to English')
-                args['language'] = 'en'
+                config.language = 'en'
             else:
                 print(
                     f'{ERROR}English model cannot be used to detect non english language, please choose a non .en model'
@@ -560,14 +492,14 @@ def cli():
 
     transcription_encoder_flag_num = 0
     transcription_decoder_flag_num = 0
-    if args['use_faster_whisper']:
+    if config.use_faster_whisper:
         transcription_encoder_flag_num += 1
-    if args['use_simul_streaming']:
+    if config.use_simul_streaming:
         transcription_decoder_flag_num += 1
-    if args['use_openai_transcription_api']:
+    if config.use_openai_transcription_api:
         transcription_encoder_flag_num += 1
         transcription_decoder_flag_num += 1
-    if args['use_hf_asr']:
+    if config.use_hf_asr:
         transcription_encoder_flag_num += 1
         transcription_decoder_flag_num += 1
     if transcription_encoder_flag_num > 1:
@@ -577,53 +509,40 @@ def cli():
         print(f'{ERROR}Cannot use Simul Streaming, OpenAI Transcription API or HuggingFace ASR at the same time')
         sys.exit(1)
 
-    if args['use_openai_transcription_api'] and not args['openai_api_key']:
+    if config.use_openai_transcription_api and not config.openai_api_key:
         print(f'{ERROR}Please fill in the OpenAI API key when enabling OpenAI Transcription API')
         sys.exit(1)
 
-    if args['translation_prompt'] and not (args['openai_api_key'] or args['google_api_key']):
+    if config.translation_prompt and not (config.openai_api_key or config.google_api_key):
         print(f'{ERROR}Please fill in the OpenAI / Google API key when enabling LLM translation')
         sys.exit(1)
 
-    if args['gpt_base_url'] is not None:
-        print(
-            f'{WARNING}--gpt_base_url is deprecated and will be removed in future versions. Please use --openai_base_url instead.'
-        )
-        if args['openai_base_url'] is None:
-            args['openai_base_url'] = args['gpt_base_url']
+    if config.language == 'auto':
+        config.language = None
 
-    if args['gemini_base_url'] is not None:
-        print(
-            f'{WARNING}--gemini_base_url is deprecated and will be removed in future versions. Please use --google_base_url instead.'
-        )
-        if args['google_base_url'] is None:
-            args['google_base_url'] = args['gemini_base_url']
-
-    args.pop('gpt_base_url', None)
-    args.pop('gemini_base_url', None)
-
-    if args['language'] == 'auto':
-        args['language'] = None
-
-    if args['whisper_filters'] is not None:
-        print(
-            f'{WARNING}--whisper_filters is deprecated and will be removed in future versions. Please use --transcription_filters instead.'
-        )
-        if args['transcription_filters'] == 'emoji_filter,repetition_filter':
-            args['transcription_filters'] = args['whisper_filters']
-
-    args.pop('whisper_filters', None)
-
-    args.pop('list_format', None)
-    args.pop('list_devices', None)
-
-    if args['output_file_path']:
-        output_dir = os.path.dirname(os.path.abspath(args['output_file_path']))
+    if config.output_file_path:
+        output_dir = os.path.dirname(os.path.abspath(config.output_file_path))
         if not os.path.isdir(output_dir):
             print(f'{ERROR}Output directory does not exist: {output_dir}')
             sys.exit(1)
 
-    main(url, **args)
+
+def cli():
+    print(f'{INFO}Version: {__version__}')
+    config = tyro.cli(Config, args=_preprocess_deprecated_flags(sys.argv[1:]), prog='stream-translator-gpt')
+
+    _apply_overall_proxy(config)
+
+    if config.list_devices:
+        _print_audio_devices()
+        return
+    if config.list_format:
+        _print_stream_formats(config)
+        return
+
+    _check_ffmpeg(config)
+    _validate_and_normalize(config)
+    run(config)
 
 
 if __name__ == '__main__':

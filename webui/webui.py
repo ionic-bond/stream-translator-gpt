@@ -309,7 +309,7 @@ def build_translator_command(
         target_url = url
     elif input_type == "Device":
         target_url = "device"
-        add_arg("--device_recording_interval", device_rec_interval, "device_rec_interval")
+        add_arg("--device-recording-interval", device_rec_interval, "device_rec_interval")
         if audio_source == "Input Audio":
             cmd.append("--mic")
     elif input_type == "File":
@@ -325,44 +325,44 @@ def build_translator_command(
         if input_cookies:
             cmd.extend(["--cookies", input_cookies])
         if input_proxy:
-            cmd.extend(["--input_proxy", input_proxy])
+            cmd.extend(["--input-proxy", input_proxy])
 
     # --- Audio Slicing ---
-    add_arg("--vad_threshold", vad_threshold, "vad_threshold")
+    add_arg("--vad-threshold", vad_threshold, "vad_threshold")
     if disable_dynamic_vad:
-        cmd.append("--disable_dynamic_vad_threshold")
+        cmd.append("--no-dynamic-vad-threshold")
 
-    add_arg("--min_audio_length", min_audio_len, "min_audio_len")
-    add_arg("--max_audio_length", max_audio_len, "max_audio_len")
-    add_arg("--target_audio_length", target_audio_len, "target_audio_len")
-    add_arg("--continuous_no_speech_threshold", silence_threshold, "silence_threshold")
-    add_arg("--prefix_retention_length", prefix_retention_len, "prefix_retention_len")
+    add_arg("--min-audio-length", min_audio_len, "min_audio_len")
+    add_arg("--max-audio-length", max_audio_len, "max_audio_len")
+    add_arg("--target-audio-length", target_audio_len, "target_audio_len")
+    add_arg("--continuous-no-speech-threshold", silence_threshold, "silence_threshold")
+    add_arg("--prefix-retention-length", prefix_retention_len, "prefix_retention_len")
     if disable_dynamic_silence:
-        cmd.append("--disable_dynamic_no_speech_threshold")
+        cmd.append("--no-dynamic-no-speech-threshold")
 
     # --- API Keys & Base URLs ---
     if openai_key and (whisper_backend == "OpenAI Transcription API" or translation_provider == "GPT"):
-        cmd.extend(["--openai_api_key", openai_key])
+        cmd.extend(["--openai-api-key", openai_key])
     if google_key and translation_provider == "Gemini":
-        cmd.extend(["--google_api_key", google_key])
+        cmd.extend(["--google-api-key", google_key])
     if openai_base_url and (whisper_backend == "OpenAI Transcription API" or translation_provider == "GPT"):
-        cmd.extend(["--openai_base_url", openai_base_url])
+        cmd.extend(["--openai-base-url", openai_base_url])
     if google_base_url and translation_provider == "Gemini":
-        cmd.extend(["--google_base_url", google_base_url])
+        cmd.extend(["--google-base-url", google_base_url])
 
     # --- Transcription ---
     if whisper_backend == "Faster-Whisper":
-        cmd.append("--use_faster_whisper")
+        cmd.append("--use-faster-whisper")
     elif whisper_backend == "Simul-Streaming":
-        cmd.append("--use_simul_streaming")
+        cmd.append("--use-simul-streaming")
     elif whisper_backend == "Faster-Whisper & Simul-Streaming":
-        cmd.append("--use_faster_whisper")
-        cmd.append("--use_simul_streaming")
+        cmd.append("--use-faster-whisper")
+        cmd.append("--use-simul-streaming")
     elif whisper_backend == "HuggingFace ASR":
-        cmd.append("--use_hf_asr")
+        cmd.append("--use-hf-asr")
     elif whisper_backend == "OpenAI Transcription API":
-        cmd.append("--use_openai_transcription_api")
-        add_arg("--openai_transcription_model", openai_transcription_model, "openai_transcription_model")
+        cmd.append("--use-openai-transcription-api")
+        add_arg("--openai-transcription-model", openai_transcription_model, "openai_transcription_model")
 
     if whisper_backend == "HuggingFace ASR":
         add_arg("--model", hf_model_name)
@@ -370,7 +370,7 @@ def build_translator_command(
         add_arg("--model", model_size, "model_size")
     add_arg("--language", language, "language")
     if disable_transcription_context:
-        cmd.append("--disable_transcription_context")
+        cmd.append("--no-transcription-context")
 
     transcription_filters = []
     if filter_emoji:
@@ -379,50 +379,50 @@ def build_translator_command(
         transcription_filters.append("repetition_filter")
 
     if transcription_filters:
-        add_arg("--transcription_filters", ",".join(transcription_filters), "transcription_filters")
+        add_arg("--transcription-filters", ",".join(transcription_filters), "transcription_filters")
 
     if not filter_language_based:
-        cmd.append("--disable_language_based_filter")
+        cmd.append("--no-language-based-filter")
 
-    add_arg("--transcription_initial_prompt", transcription_initial_prompt, "transcription_initial_prompt")
+    add_arg("--transcription-initial-prompt", transcription_initial_prompt, "transcription_initial_prompt")
 
     # --- Translation ---
     if translation_provider != "None":
-        cmd.extend(["--translation_prompt", translation_prompt])
+        cmd.extend(["--translation-prompt", translation_prompt])
 
         if translation_provider == "GPT":
-            add_arg("--gpt_model", gpt_model, "gpt_model")
+            add_arg("--gpt-model", gpt_model, "gpt_model")
         elif translation_provider == "Gemini":
-            add_arg("--gemini_model", gemini_model, "gemini_model")
+            add_arg("--gemini-model", gemini_model, "gemini_model")
 
-        add_arg("--translation_history_size", int(history_size), "history_size")
-        add_arg("--translation_timeout", int(translation_timeout), "translation_timeout")
+        add_arg("--translation-history-size", int(history_size), "history_size")
+        add_arg("--translation-timeout", int(translation_timeout), "translation_timeout")
 
         if use_json_result:
-            cmd.append("--use_json_result")
+            cmd.append("--use-json-result")
         if retry_if_translation_fails:
-            cmd.append("--retry_if_translation_fails")
+            cmd.append("--retry-if-translation-fails")
         if processing_proxy:
-            cmd.extend(["--processing_proxy", processing_proxy])
+            cmd.extend(["--processing-proxy", processing_proxy])
 
     # --- Output ---
     if show_timestamps:
-        cmd.append("--output_timestamps")
+        cmd.append("--output-timestamps")
     if hide_transcription:
-        cmd.append("--hide_transcribe_result")
+        cmd.append("--no-show-transcribe-result")
     if output_file:
-        cmd.extend(["--output_file_path", output_file])
+        cmd.extend(["--output-file-path", output_file])
     if output_proxy:
-        cmd.extend(["--output_proxy", output_proxy])
+        cmd.extend(["--output-proxy", output_proxy])
     if discord_hook:
-        cmd.extend(["--discord_webhook_url", discord_hook])
+        cmd.extend(["--discord-webhook-url", discord_hook])
     if telegram_token and telegram_chat_id:
-        cmd.extend(["--telegram_token", telegram_token])
-        cmd.extend(["--telegram_chat_id", str(telegram_chat_id)])
+        cmd.extend(["--telegram-token", telegram_token])
+        cmd.extend(["--telegram-chat-id", str(telegram_chat_id)])
     if cqhttp_url:
-        cmd.extend(["--cqhttp_url", cqhttp_url])
+        cmd.extend(["--cqhttp-url", cqhttp_url])
         if cqhttp_token:
-            cmd.extend(["--cqhttp_token", cqhttp_token])
+            cmd.extend(["--cqhttp-token", cqhttp_token])
 
     # --- Overall ---
     if overall_proxy:
@@ -639,11 +639,11 @@ def run_list_formats(url, cookies, input_proxy):
     if not url:
         return "Error: URL is required to list formats."
 
-    cmd = [sys.executable, "-m", "stream_translator_gpt", url, "--list_format"]
+    cmd = [sys.executable, "-m", "stream_translator_gpt", url, "--list-format"]
     if cookies:
         cmd.extend(["--cookies", cookies])
     if input_proxy:
-        cmd.extend(["--input_proxy", input_proxy])
+        cmd.extend(["--input-proxy", input_proxy])
 
     try:
         # This might take a while, so UI might freeze slightly, but it's okay for a button click
