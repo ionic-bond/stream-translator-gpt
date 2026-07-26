@@ -155,6 +155,20 @@ def get_default(key, fallback=None):
     return val
 
 
+def is_default_value(key, value):
+    """Check if a value equals the bundled default, so presets / localStorage only persist real changes and
+    untouched fields can pick up new defaults after an upgrade."""
+    default_val = get_default(key)
+    if isinstance(default_val, list):
+        default_val = ",".join(default_val)
+    if value == default_val:
+        return True
+    try:
+        return float(value) == float(default_val)
+    except (TypeError, ValueError):
+        return False
+
+
 i18n = I18n(get_default("ui_language", "en"))
 
 
@@ -1027,9 +1041,12 @@ with gr.Blocks() as demo:
         if not name:
             return gr.update()
 
+        # Only persist values that differ from the bundled defaults, so that untouched fields
+        # automatically follow new defaults when the app is upgraded.
         data = {}
         for i, key in enumerate(INPUT_KEYS):
-            data[key] = args[i]
+            if not is_default_value(key, args[i]):
+                data[key] = args[i]
 
         save_preset_data(name, data)
         return gr.update(choices=get_preset_list())
@@ -1112,10 +1129,15 @@ with gr.Blocks() as demo:
     openai_base_url_trans.change(fn=None, inputs=openai_base_url_trans, outputs=openai_base_url, js="(x) => x")
 
     # LocalStorage Persistence
+    # A value equal to the bundled default is removed instead of stored, so that untouched fields
+    # automatically follow new defaults when the app is upgraded.
     for i, component in enumerate(all_inputs):
         key = INPUT_KEYS[i]
+        default_json = json.dumps(get_default(key), ensure_ascii=False)
 
-        js_save = f"(x) => {{ localStorage.setItem('{key}', JSON.stringify(x)); return x; }}"
+        js_save = (f"(x) => {{ if (JSON.stringify(x) === JSON.stringify({default_json})) "
+                   f"{{ localStorage.removeItem('{key}'); }} else "
+                   f"{{ localStorage.setItem('{key}', JSON.stringify(x)); }} return x; }}")
         component.change(fn=None, inputs=[component], outputs=[], js=js_save)
 
     js_load = f"""
