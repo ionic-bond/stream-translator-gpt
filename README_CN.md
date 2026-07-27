@@ -2,7 +2,7 @@
 
 [![PyPI version](https://badge.fury.io/py/stream-translator-gpt.svg)](https://badge.fury.io/py/stream-translator-gpt) [![Python Versions](https://img.shields.io/pypi/pyversions/stream-translator-gpt.svg)](https://pypi.org/project/stream-translator-gpt/) [![Downloads](https://static.pepy.tech/badge/stream-translator-gpt)](https://pepy.tech/project/stream-translator-gpt) [![License](https://img.shields.io/github/license/ionic-bond/stream-translator-gpt.svg)](https://github.com/ionic-bond/stream-translator-gpt/blob/main/LICENSE) [![Gradio](https://img.shields.io/badge/WebUI-Gradio-orange)](https://gradio.app)
 
-[English](./README.md) | 中文 | [日本語](./README_JP.md)
+[**English**](./README.md) | **中文** | [**日本語**](./README_JP.md)
 
 对直播流、本地媒体文件和设备音频进行实时转录和翻译。提供命令行工具和 Gradio WebUI 两种使用方式。
 
@@ -15,7 +15,7 @@
 
 |                                                                                          命令行                                                                                           |                                                                                     WebUI                                                                                     |
 | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/stream_translator.ipynb) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/webui.ipynb) |
+| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/colab/command_line_CN.ipynb) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/colab/webui_CN.ipynb) |
 
 > [!NOTE]
 > 由于 API key 被频繁爬取和盗用，我们无法提供试用 API key，请填写你自己的 API key。
@@ -134,16 +134,16 @@ stream-translator-gpt URL [OPTIONS]
 
 **输入源**（除直播流网址外）：
 
-- 本地视频/音频文件: ```stream-translator-gpt {文件路径} --language {输入语言}```
-- 系统音频（即电脑正在播放的声音）: ```stream-translator-gpt device --language {输入语言}```
-- 麦克风: ```stream-translator-gpt device --mic --language {输入语言}```
+- **本地视频/音频文件**: ```stream-translator-gpt {文件路径} --language {输入语言}```
+- **系统音频**（即电脑正在播放的声音）: ```stream-translator-gpt device --language {输入语言}```
+- **麦克风**: ```stream-translator-gpt device --mic --language {输入语言}```
 
 **输出目标**（除终端外）：
 
-- Discord: ```stream-translator-gpt {网址} --language {输入语言} --discord-webhook-url {你的 Discord webhook 地址}```
-- Telegram: ```stream-translator-gpt {网址} --language {输入语言} --telegram-token {你的 Telegram 令牌} --telegram-chat-id {你的 Telegram 聊天 id}```
-- Cqhttp: ```stream-translator-gpt {网址} --language {输入语言} --cqhttp-url {你的 Cqhttp 地址} --cqhttp-token {你的 Cqhttp 令牌}```
-- .srt 字幕文件（离线生成）: ```stream-translator-gpt {网址} --language {输入语言} --translation-prompt "把{输入语言}翻译成{输出语言}" --google-api-key {你的 Google key} --no-show-transcribe-result --retry-if-translation-fails --output-timestamps --output-file-path ./result.srt```
+- **Discord**: ```stream-translator-gpt {网址} --language {输入语言} --discord-webhook-url {你的 Discord webhook 地址}```
+- **Telegram**: ```stream-translator-gpt {网址} --language {输入语言} --telegram-token {你的 Telegram 令牌} --telegram-chat-id {你的 Telegram 聊天 id}```
+- **Cqhttp**: ```stream-translator-gpt {网址} --language {输入语言} --cqhttp-url {你的 Cqhttp 地址} --cqhttp-token {你的 Cqhttp 令牌}```
+- **.srt 字幕文件**（离线生成）: ```stream-translator-gpt {网址} --language {输入语言} --translation-prompt "把{输入语言}翻译成{输出语言}" --google-api-key {你的 Google key} --no-show-transcribe-result --retry-if-translation-fails --output-timestamps --output-file-path ./result.srt```
 
 ## 所有选项
 

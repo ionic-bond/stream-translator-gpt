@@ -2,7 +2,7 @@
 
 [![PyPI version](https://badge.fury.io/py/stream-translator-gpt.svg)](https://badge.fury.io/py/stream-translator-gpt) [![Python Versions](https://img.shields.io/pypi/pyversions/stream-translator-gpt.svg)](https://pypi.org/project/stream-translator-gpt/) [![Downloads](https://static.pepy.tech/badge/stream-translator-gpt)](https://pepy.tech/project/stream-translator-gpt) [![License](https://img.shields.io/github/license/ionic-bond/stream-translator-gpt.svg)](https://github.com/ionic-bond/stream-translator-gpt/blob/main/LICENSE) [![Gradio](https://img.shields.io/badge/WebUI-Gradio-orange)](https://gradio.app)
 
-English | [中文](./README_CN.md) | [日本語](./README_JP.md)
+**English** | [**中文**](./README_CN.md) | [**日本語**](./README_JP.md)
 
 Real-time transcription and translation for live streams, local media files, and device audio. Available as a command-line tool and a Gradio WebUI.
 
@@ -15,7 +15,7 @@ The easiest way to use this tool, no local environment to set up, and Colab's pe
 
 |                                                                                       Command Line                                                                                        |                                                                                     WebUI                                                                                     |
 | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/stream_translator.ipynb) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/webui.ipynb) |
+| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/colab/command_line.ipynb) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ionic-bond/stream-translator-gpt/blob/main/colab/webui.ipynb) |
 
 > [!NOTE]
 > Due to frequent scraping and theft of API keys, we are unable to provide a trial API key. You need to fill in your own API key.
@@ -134,16 +134,16 @@ stream-translator-gpt URL [OPTIONS]
 
 **Input sources** (besides stream URLs):
 
-- Local video/audio file: ```stream-translator-gpt /path/to/file --language {input_language}```
-- System audio (loopback): ```stream-translator-gpt device --language {input_language}```
-- Microphone: ```stream-translator-gpt device --mic --language {input_language}```
+- **Local video/audio file**: ```stream-translator-gpt /path/to/file --language {input_language}```
+- **System audio** (loopback): ```stream-translator-gpt device --language {input_language}```
+- **Microphone**: ```stream-translator-gpt device --mic --language {input_language}```
 
 **Output destinations** (besides the terminal):
 
-- Discord: ```stream-translator-gpt {URL} --language {input_language} --discord-webhook-url {your_discord_webhook_url}```
-- Telegram: ```stream-translator-gpt {URL} --language {input_language} --telegram-token {your_telegram_token} --telegram-chat-id {your_telegram_chat_id}```
-- Cqhttp: ```stream-translator-gpt {URL} --language {input_language} --cqhttp-url {your_cqhttp_url} --cqhttp-token {your_cqhttp_token}```
-- .srt subtitle file (offline generation): ```stream-translator-gpt {URL} --language {input_language} --translation-prompt "Translate from {input_language} to {output_language}" --google-api-key {your_google_key} --no-show-transcribe-result --retry-if-translation-fails --output-timestamps --output-file-path ./result.srt```
+- **Discord**: ```stream-translator-gpt {URL} --language {input_language} --discord-webhook-url {your_discord_webhook_url}```
+- **Telegram**: ```stream-translator-gpt {URL} --language {input_language} --telegram-token {your_telegram_token} --telegram-chat-id {your_telegram_chat_id}```
+- **Cqhttp**: ```stream-translator-gpt {URL} --language {input_language} --cqhttp-url {your_cqhttp_url} --cqhttp-token {your_cqhttp_token}```
+- **.srt subtitle file** (offline generation): ```stream-translator-gpt {URL} --language {input_language} --translation-prompt "Translate from {input_language} to {output_language}" --google-api-key {your_google_key} --no-show-transcribe-result --retry-if-translation-fails --output-timestamps --output-file-path ./result.srt```
 
 ## All Options
 
