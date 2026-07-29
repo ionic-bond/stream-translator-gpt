@@ -82,9 +82,9 @@ INPUT_KEYS = [
     "input_type", "input_url", "device_rec_interval", "audio_source", "input_file", "input_format", "input_cookies",
     "input_proxy", "openai_key", "google_key", "openai_base_url", "google_base_url", "overall_proxy", "model_size",
     "hf_model_name", "language", "whisper_backend", "openai_transcription_model", "vad_threshold", "min_audio_len",
-    "max_audio_len", "target_audio_len", "silence_threshold", "disable_dynamic_vad", "disable_dynamic_silence",
+    "max_audio_len", "target_audio_len", "silence_threshold", "dynamic_vad_threshold", "dynamic_no_speech_threshold",
     "prefix_retention_len", "filter_emoji", "filter_repetition", "filter_language_based",
-    "disable_transcription_context", "transcription_initial_prompt", "translation_prompt", "translation_provider",
+    "transcription_context", "transcription_initial_prompt", "translation_prompt", "translation_provider",
     "gpt_model", "gemini_model", "history_size", "translation_timeout", "processing_proxy", "use_json_result",
     "retry_if_translation_fails", "show_timestamps", "hide_transcription", "output_file", "output_proxy", "cqhttp_url",
     "cqhttp_token", "discord_hook", "telegram_token", "telegram_chat_id", "extra_cli_args"
@@ -254,13 +254,13 @@ def build_translator_command(
         max_audio_len,
         target_audio_len,
         silence_threshold,
-        disable_dynamic_vad,
-        disable_dynamic_silence,
+        dynamic_vad_threshold,
+        dynamic_no_speech_threshold,
         prefix_retention_len,
         filter_emoji,
         filter_repetition,
         filter_language_based,
-        disable_transcription_context,
+        transcription_context,
         transcription_initial_prompt,
         translation_prompt,
         translation_provider,
@@ -343,7 +343,7 @@ def build_translator_command(
 
     # --- Audio Slicing ---
     add_arg("--vad-threshold", vad_threshold, "vad_threshold")
-    if disable_dynamic_vad:
+    if not dynamic_vad_threshold:
         cmd.append("--no-dynamic-vad-threshold")
 
     add_arg("--min-audio-length", min_audio_len, "min_audio_len")
@@ -351,7 +351,7 @@ def build_translator_command(
     add_arg("--target-audio-length", target_audio_len, "target_audio_len")
     add_arg("--continuous-no-speech-threshold", silence_threshold, "silence_threshold")
     add_arg("--prefix-retention-length", prefix_retention_len, "prefix_retention_len")
-    if disable_dynamic_silence:
+    if not dynamic_no_speech_threshold:
         cmd.append("--no-dynamic-no-speech-threshold")
 
     # --- API Keys & Base URLs ---
@@ -383,8 +383,8 @@ def build_translator_command(
     else:
         add_arg("--model", model_size, "model_size")
     add_arg("--language", language, "language")
-    if disable_transcription_context:
-        cmd.append("--no-transcription-context")
+    if transcription_context:
+        cmd.append("--transcription-context")
 
     transcription_filters = []
     if filter_emoji:
@@ -494,13 +494,13 @@ def run_translator(
         max_audio_len,
         target_audio_len,
         silence_threshold,
-        disable_dynamic_vad,
-        disable_dynamic_silence,
+        dynamic_vad_threshold,
+        dynamic_no_speech_threshold,
         prefix_retention_len,
         filter_emoji,
         filter_repetition,
         filter_language_based,
-        disable_transcription_context,
+        transcription_context,
         transcription_initial_prompt,
         # Translation
         translation_prompt,
@@ -570,13 +570,13 @@ def run_translator(
                                           max_audio_len=max_audio_len,
                                           target_audio_len=target_audio_len,
                                           silence_threshold=silence_threshold,
-                                          disable_dynamic_vad=disable_dynamic_vad,
-                                          disable_dynamic_silence=disable_dynamic_silence,
+                                          dynamic_vad_threshold=dynamic_vad_threshold,
+                                          dynamic_no_speech_threshold=dynamic_no_speech_threshold,
                                           prefix_retention_len=prefix_retention_len,
                                           filter_emoji=filter_emoji,
                                           filter_repetition=filter_repetition,
                                           filter_language_based=filter_language_based,
-                                          disable_transcription_context=disable_transcription_context,
+                                          transcription_context=transcription_context,
                                           transcription_initial_prompt=transcription_initial_prompt,
                                           translation_prompt=translation_prompt,
                                           translation_provider=translation_provider,
@@ -714,8 +714,8 @@ with gr.Blocks() as demo:
         with gr.Tab(i18n.get("audio_slicing")):
             with gr.Group():
                 vad_threshold = gr.Slider(0.0, 1.0, value=get_default("vad_threshold"), label=i18n.get("vad_threshold"))
-                disable_dynamic_vad = gr.Checkbox(label=i18n.get("disable_dynamic_vad"),
-                                                  value=get_default("disable_dynamic_vad"))
+                dynamic_vad_threshold = gr.Checkbox(label=i18n.get("dynamic_vad_threshold"),
+                                                    value=get_default("dynamic_vad_threshold"))
 
             with gr.Group():
                 with gr.Row():
@@ -741,8 +741,8 @@ with gr.Blocks() as demo:
                                                      3.0,
                                                      value=get_default("prefix_retention_len"),
                                                      label=i18n.get("prefix_retention_length"))
-                disable_dynamic_silence = gr.Checkbox(label=i18n.get("disable_dynamic_silence"),
-                                                      value=get_default("disable_dynamic_silence"))
+                dynamic_no_speech_threshold = gr.Checkbox(label=i18n.get("dynamic_no_speech_threshold"),
+                                                          value=get_default("dynamic_no_speech_threshold"))
 
         with gr.Tab(i18n.get("transcription")):
             whisper_backend = gr.Radio(choices=[
@@ -794,8 +794,8 @@ with gr.Blocks() as demo:
             transcription_initial_prompt = gr.Textbox(label=i18n.get("transcription_initial_prompt"),
                                                       value=get_default("transcription_initial_prompt"),
                                                       placeholder=i18n.get("transcription_initial_prompt_ph"))
-            disable_transcription_context = gr.Checkbox(label=i18n.get("disable_transcription_context"),
-                                                        value=get_default("disable_transcription_context"))
+            transcription_context = gr.Checkbox(label=i18n.get("transcription_context"),
+                                                    value=get_default("transcription_context"))
 
             with gr.Accordion(i18n.get("filters"), open=False):
                 filter_emoji = gr.Checkbox(label="Emoji Filter", value=get_default("filter_emoji"))
@@ -1012,9 +1012,9 @@ with gr.Blocks() as demo:
                         input_type, input_url, device_rec_interval, audio_source, input_file, input_format,
                         input_cookies, input_proxy, openai_key, google_key, overall_proxy, model_size, language,
                         whisper_backend, openai_transcription_model, hf_model_name, vad_threshold, min_audio_len,
-                        max_audio_len, target_audio_len, silence_threshold, disable_dynamic_vad,
-                        disable_dynamic_silence, prefix_retention_len, filter_emoji, filter_repetition,
-                        filter_language_based, disable_transcription_context, transcription_initial_prompt,
+                        max_audio_len, target_audio_len, silence_threshold, dynamic_vad_threshold,
+                        dynamic_no_speech_threshold, prefix_retention_len, filter_emoji, filter_repetition,
+                        filter_language_based, transcription_context, transcription_initial_prompt,
                         translation_prompt, translation_provider, gpt_model, gemini_model, history_size,
                         translation_timeout, openai_base_url, google_base_url, processing_proxy, use_json_result,
                         retry_if_translation_fails, show_timestamps, hide_transcription, output_file, output_proxy,

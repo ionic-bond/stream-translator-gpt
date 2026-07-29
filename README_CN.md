@@ -189,12 +189,12 @@ stream-translator-gpt URL [OPTIONS]
 | `--transcription-filters`          | emoji_filter,repetition_filter | 应用于转录结果的过滤器，用 "," 分隔。目前提供 emoji_filter 和 repetition_filter。                                                                                             |
 | `--no-language-based-filter`       |                                | 禁用根据 ASR 语言自动挂载的语言过滤器（默认开启）。目前提供英文、中文和日文的过滤器。                                                                                         |
 | `--transcription-initial-prompt`   |                                | 转录用的通用 prompt 或术语表。格式："词1, 词2, 词3, ..."。该文本会始终包含在传给模型的 prompt 中。                                                                            |
-| `--no-transcription-context`       |                                | 禁用转录中的上下文（上一句）传递（默认开启）。                                                                                                                                |
+| `--transcription-context`          |                                | 启用转录中的上下文（上一句）传递（默认关闭）。                                                                                                                                |
 | **翻译选项**                       |
 | `--gpt-model`                      | gpt-5.4-nano                   | OpenAI 的 GPT 模型名，gpt-5.4 / gpt-5.4-mini / gpt-5.4-nano / gpt-5.5 / gpt-5.6-luna                                                                                          |
 | `--gemini-model`                   | gemini-3.5-flash-lite          | Google 的 Gemini 模型名，gemini-3-flash-preview / gemini-3.1-flash-lite / gemini-3.5-flash / gemini-3.5-flash-lite / gemini-3.6-flash                                         |
 | `--translation-prompt`             |                                | 设置后，将通过 GPT / Gemini API 把结果文本翻译为目标语言（根据填写的 API key 自动选择）。示例："将日语翻译为中文"。在 prompt 中补充背景（主播是谁、直播内容）可提升翻译质量。 |
-| `--translation-history-size`       | 0                              | 调用 LLM API 时作为上下文发送的历史转录条数。对较弱的模型建议禁用上下文（设为 0）。                                                                                           |
+| `--translation-history-size`       | 3                              | 调用 LLM API 时作为上下文发送的历史转录条数。对较弱的模型建议禁用上下文（设为 0）。                                                                                           |
 | `--translation-timeout`            | 10                             | GPT / Gemini 翻译超过此秒数时，该条翻译将被丢弃。                                                                                                                             |
 | `--use-json-result`                |                                | 在 LLM 翻译中使用 JSON 结果，适用于某些本地部署的模型。                                                                                                                       |
 | `--retry-if-translation-fails`     |                                | 翻译超时/失败时重试。用于离线生成字幕。                                                                                                                                       |

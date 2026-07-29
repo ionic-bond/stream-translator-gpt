@@ -144,8 +144,8 @@ class Config:
     transcription_initial_prompt: str | None = None
     """General purpose prompt or glossary for transcription. Format: "Word1, Word2, Word3, ..."."""
 
-    transcription_context: bool = True
-    """Context (previous sentence) propagation in transcription. Disable with --no-transcription-context."""
+    transcription_context: bool = False
+    """Context (previous sentence) propagation in transcription. Enable with --transcription-context, disabled by default."""
 
     gpt_model: str = 'gpt-5.4-nano'
     """OpenAI's GPT model name, gpt-5.4 / gpt-5.4-mini / gpt-5.4-nano / gpt-5.5 / gpt-5.6-luna."""
@@ -158,7 +158,7 @@ class Config:
     """If set, will translate result text to target language via GPT / Gemini API. Example: "Translate from Japanese
     to Chinese". Adding context (who the streamer is, what the stream is about) improves translation quality."""
 
-    translation_history_size: int = 0
+    translation_history_size: int = 3
     """The number of previous transcripts sent as context when calling the LLM API. It is recommended to disable
     context (set to 0) for weaker models."""
 
