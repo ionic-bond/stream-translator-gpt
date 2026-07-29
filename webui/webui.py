@@ -83,11 +83,11 @@ INPUT_KEYS = [
     "input_proxy", "openai_key", "google_key", "openai_base_url", "google_base_url", "overall_proxy", "model_size",
     "hf_model_name", "language", "whisper_backend", "openai_transcription_model", "vad_threshold", "min_audio_len",
     "max_audio_len", "target_audio_len", "silence_threshold", "dynamic_vad_threshold", "dynamic_no_speech_threshold",
-    "prefix_retention_len", "filter_emoji", "filter_repetition", "filter_language_based",
-    "transcription_context", "transcription_initial_prompt", "translation_prompt", "translation_provider",
-    "gpt_model", "gemini_model", "history_size", "translation_timeout", "processing_proxy", "use_json_result",
-    "retry_if_translation_fails", "show_timestamps", "hide_transcription", "output_file", "output_proxy", "cqhttp_url",
-    "cqhttp_token", "discord_hook", "telegram_token", "telegram_chat_id", "extra_cli_args"
+    "prefix_retention_len", "filter_emoji", "filter_repetition", "filter_language_based", "transcription_context",
+    "transcription_initial_prompt", "translation_prompt", "translation_provider", "gpt_model", "gemini_model",
+    "history_size", "translation_timeout", "processing_proxy", "use_json_result", "retry_if_translation_fails",
+    "show_timestamps", "hide_transcription", "output_file", "output_proxy", "cqhttp_url", "cqhttp_token",
+    "discord_hook", "telegram_token", "telegram_chat_id", "extra_cli_args"
 ]
 
 
@@ -795,7 +795,7 @@ with gr.Blocks() as demo:
                                                       value=get_default("transcription_initial_prompt"),
                                                       placeholder=i18n.get("transcription_initial_prompt_ph"))
             transcription_context = gr.Checkbox(label=i18n.get("transcription_context"),
-                                                    value=get_default("transcription_context"))
+                                                value=get_default("transcription_context"))
 
             with gr.Accordion(i18n.get("filters"), open=False):
                 filter_emoji = gr.Checkbox(label="Emoji Filter", value=get_default("filter_emoji"))
@@ -1014,11 +1014,11 @@ with gr.Blocks() as demo:
                         whisper_backend, openai_transcription_model, hf_model_name, vad_threshold, min_audio_len,
                         max_audio_len, target_audio_len, silence_threshold, dynamic_vad_threshold,
                         dynamic_no_speech_threshold, prefix_retention_len, filter_emoji, filter_repetition,
-                        filter_language_based, transcription_context, transcription_initial_prompt,
-                        translation_prompt, translation_provider, gpt_model, gemini_model, history_size,
-                        translation_timeout, openai_base_url, google_base_url, processing_proxy, use_json_result,
-                        retry_if_translation_fails, show_timestamps, hide_transcription, output_file, output_proxy,
-                        cqhttp_url, cqhttp_token, discord_hook, telegram_token, telegram_chat_id, extra_cli_args
+                        filter_language_based, transcription_context, transcription_initial_prompt, translation_prompt,
+                        translation_provider, gpt_model, gemini_model, history_size, translation_timeout,
+                        openai_base_url, google_base_url, processing_proxy, use_json_result, retry_if_translation_fails,
+                        show_timestamps, hide_transcription, output_file, output_proxy, cqhttp_url, cqhttp_token,
+                        discord_hook, telegram_token, telegram_chat_id, extra_cli_args
                     ],
                     outputs=output_box,
                     concurrency_limit=1,
