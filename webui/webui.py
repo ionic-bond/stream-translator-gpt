@@ -820,7 +820,7 @@ with gr.Blocks() as demo:
                         openai_base_url = gr.Textbox(label=i18n.get("gpt_base_url"),
                                                      placeholder=i18n.get("gpt_base_url_ph"))
 
-                    gpt_model = gr.Dropdown(["gpt-5.4", "gpt-5.4-mini", "gpt-5.4-nano", "gpt-5.5", "gpt-5.6-luna"],
+                    gpt_model = gr.Dropdown(["gpt-5.4-nano", "gpt-5.4-mini", "gpt-5.6-luna", "gpt-5.6-terra"],
                                             label=i18n.get("gpt_model"),
                                             value=get_default("gpt_model"),
                                             allow_custom_value=True)

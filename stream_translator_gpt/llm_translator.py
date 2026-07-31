@@ -210,13 +210,11 @@ class GPTTranslator(LLMTranslator):
             if self.use_json_result:
                 kwargs["response_format"] = {"type": "json_object"}
 
-            match = re.match(r'^gpt-(\d+(?:\.\d+)?)', self.model)
-            if match:
+            match = re.match(r'^gpt-(\d+(?:\.\d+)?)', self.model.lower())
+            if match and self.reasoning_effort is None:
                 version = float(match.group(1))
-                if version < 5.0 or version >= 5.1:
-                    kwargs["temperature"] = 0.7
-                    kwargs["top_p"] = 0.9
                 if version >= 5.0:
+                    # Use the lowest supported reasoning level for latency-sensitive translation.
                     kwargs["reasoning_effort"] = "none" if version >= 5.1 else "minimal"
 
             if self.prompt_cache_key is not None:

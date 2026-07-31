@@ -147,8 +147,8 @@ class Config:
     transcription_context: bool = False
     """Context (previous sentence) propagation in transcription. Enable with --transcription-context, disabled by default."""
 
-    gpt_model: str = 'gpt-5.4-nano'
-    """OpenAI's GPT model name, gpt-5.4 / gpt-5.4-mini / gpt-5.4-nano / gpt-5.5 / gpt-5.6-luna."""
+    gpt_model: str = 'gpt-5.6-luna'
+    """OpenAI's GPT model name, gpt-5.4-nano / gpt-5.4-mini / gpt-5.6-luna / gpt-5.6-terra."""
 
     gemini_model: str = 'gemini-3.5-flash-lite'
     """Google's Gemini model name, gemini-3-flash-preview / gemini-3.1-flash-lite / gemini-3.5-flash /
@@ -186,10 +186,10 @@ class Config:
 
     reasoning_effort: str | None = None
     """GPT parameter. Controls reasoning depth for reasoning models. Options: none / minimal / low / medium / high /
-    xhigh."""
+    xhigh / max."""
 
     verbosity: str | None = None
-    """GPT parameter. Controls the verbosity of the response. Options: auto / short / concise / detailed."""
+    """GPT parameter. Controls the verbosity of the response. Options: low / medium / high."""
 
     service_tier: str | None = None
     """GPT parameter. Specifies processing priority tier. Options: auto / default / flex / priority."""
