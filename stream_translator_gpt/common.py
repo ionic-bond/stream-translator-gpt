@@ -110,6 +110,7 @@ class ClientPool:
                 key = key.strip()
                 client = OpenAI(
                     api_key=key,
+                    base_url=openai_base_url,
                     default_headers={'User-Agent': f'stream-translator-gpt/{__version__}'},
                     http_client=httpx.Client(proxy=proxy, verify=verify),
                 )

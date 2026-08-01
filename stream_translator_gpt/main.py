@@ -235,9 +235,6 @@ class Config:
 
 def run(config: Config):
     """Run the transcription / translation pipeline until the input is exhausted."""
-    if config.openai_base_url:
-        os.environ['OPENAI_BASE_URL'] = config.openai_base_url
-
     ClientPool.init(openai_api_key=config.openai_api_key,
                     google_api_key=config.google_api_key,
                     proxy=config.processing_proxy,
