@@ -271,7 +271,8 @@ class HFTranscriber(AudioTranscriber):
 
     def transcribe(self, audio: np.array, initial_prompt: str = None) -> tuple[str, list | None]:
         generate_kwargs = {}
-        if self.language:
+        # Legacy Whisper configs reject the language argument.
+        if self.language and hasattr(getattr(self.pipe, 'generation_config', None), 'lang_to_id'):
             generate_kwargs['language'] = self.language
         result = self.pipe(
             {

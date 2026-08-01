@@ -53,7 +53,7 @@ dependencies = [
 
 [project.optional-dependencies]
 webui = ["gradio>=6.0,<7.0", "platformdirs>=4.0"]
-hf_asr = ["transformers>=4.40.0"]
+hf_asr = ["transformers>=4.40.0", "accelerate>=0.30.0"]
 
 [project.scripts]
 stream-translator-gpt = "stream_translator_gpt.main:cli"
