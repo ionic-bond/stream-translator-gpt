@@ -11,30 +11,47 @@ from . import filters
 from .common import TranslationTask, SAMPLE_RATE, LoopWorkerBase, sec2str, ClientPool, INFO, WARNING
 from .simul_streaming.simul_whisper.whisper.utils import compression_ratio
 
+# Application-level bound for one history result; prompt builders reserve space for keywords as needed.
+MAX_HISTORY_CONTEXT_LENGTH = 500
+
 
 class AudioTranscriber(LoopWorkerBase):
 
     def __init__(self, language: str, transcription_filters: str, language_based_filter: bool, print_result: bool,
-                 output_timestamps: bool, transcription_context: bool, transcription_initial_prompt: str):
+                 output_timestamps: bool, use_history_context: bool, transcription_keywords: str | None):
         self.language = language
         self.transcription_filters = transcription_filters
         self.language_based_filter = language_based_filter
         self.print_result = print_result
         self.output_timestamps = output_timestamps
-        self.transcription_context = transcription_context
-        self.transcription_initial_prompt = transcription_initial_prompt
-
-        self.constant_prompt = re.sub(r',\s*', ', ',
-                                      transcription_initial_prompt) if transcription_initial_prompt else ""
-        if self.constant_prompt and not self.constant_prompt.strip().endswith(','):
-            self.constant_prompt += ','
+        self.use_history_context = use_history_context
+        self.transcription_keywords = (re.sub(r'(?:\s*,\s*)+', ', ', transcription_keywords.strip()).strip()
+                                       if transcription_keywords else '')
+        if self.transcription_keywords and not self.transcription_keywords.endswith(','):
+            self.transcription_keywords += ','
 
         self.filter_chain = self._build_filter_chain()
 
     @abstractmethod
-    def transcribe(self, audio: np.array, initial_prompt: str = None) -> tuple[str, list | None]:
+    def transcribe(self, audio: np.ndarray, history_context: str | None = None) -> tuple[str, list | None]:
         """Returns (text, tokens). tokens can be None if not available."""
         pass
+
+    def limit_history_context(self, history_context: str | None,
+                              max_length: int = MAX_HISTORY_CONTEXT_LENGTH) -> str | None:
+        if not history_context:
+            return None
+        if len(history_context) <= max_length:
+            return history_context
+        return history_context[-max_length:] if max_length > 0 else None
+
+    def build_transcription_prompt(self, history_context: str | None) -> str | None:
+        """Combine keywords and history for backends whose API has one prompt field."""
+        history_length = MAX_HISTORY_CONTEXT_LENGTH - len(self.transcription_keywords) - (
+            1 if self.transcription_keywords else 0)
+        history_context = self.limit_history_context(history_context, history_length)
+        prompt = f'{self.transcription_keywords} {history_context or ""}'.strip()
+        return prompt or None
 
     def reset_context(self):
         """Override in subclass to reset model context when repetition is detected."""
@@ -75,23 +92,11 @@ class AudioTranscriber(LoopWorkerBase):
                 output_queue.put(None)
                 break
 
-            dynamic_context = filters.symbol_filter(previous_text) if self.transcription_context else ""
+            history_context = (filters.symbol_filter(previous_text) or None) if self.use_history_context else None
 
-            if self.constant_prompt:
-                limit = 500 - len(self.constant_prompt) - 1
-                if len(dynamic_context) > limit:
-                    if limit > 0:
-                        dynamic_context = dynamic_context[-limit:]
-                    else:
-                        dynamic_context = ""
+            text, tokens = self.transcribe(task.audio, history_context=history_context)
 
-            initial_prompt = f"{self.constant_prompt} {dynamic_context}".strip()
-            if not initial_prompt:
-                initial_prompt = None
-
-            text, tokens = self.transcribe(task.audio, initial_prompt=initial_prompt)
-
-            if self.constant_prompt and text.strip().rstrip(',') == self.constant_prompt.strip().rstrip(','):
+            if self.transcription_keywords and text.strip().rstrip(',') == self.transcription_keywords.strip().rstrip(','):
                 text = ""
 
             # Repetition detection: reset context if compression ratio too high OR token diversity too low
@@ -126,7 +131,8 @@ class OpenaiWhisper(AudioTranscriber):
         print(f'{INFO}Loading Whisper model: {model}')
         self.model = whisper.load_model(model)
 
-    def transcribe(self, audio: np.array, initial_prompt: str = None) -> tuple[str, list | None]:
+    def transcribe(self, audio: np.ndarray, history_context: str | None = None) -> tuple[str, list | None]:
+        initial_prompt = self.build_transcription_prompt(history_context)
         result = self.model.transcribe(audio,
                                        without_timestamps=True,
                                        language=self.language,
@@ -159,7 +165,8 @@ class FasterWhisper(AudioTranscriber):
         print(f'{INFO}Loading Faster-Whisper model: {model}')
         self.model = WhisperModel(model, device='auto', compute_type='auto')
 
-    def transcribe(self, audio: np.array, initial_prompt: str = None) -> tuple[str, list | None]:
+    def transcribe(self, audio: np.ndarray, history_context: str | None = None) -> tuple[str, list | None]:
+        initial_prompt = self.build_transcription_prompt(history_context)
         segments, info = self.model.transcribe(audio, language=self.language, initial_prompt=initial_prompt)
         text = ''
         tokens = []
@@ -196,7 +203,7 @@ class SimulStreaming(AudioTranscriber):
             "beams": 1,
             "decoder_type": "greedy",
             "never_fire": False,
-            "init_prompt": self.constant_prompt,
+            "init_prompt": self.build_transcription_prompt(None),
             "static_init_prompt": None,
             "max_context_tokens": 50,
             "logdir": None,
@@ -206,7 +213,8 @@ class SimulStreaming(AudioTranscriber):
         self.asr_online = SimulWhisperOnline(asr)
         self.asr_online.init()
 
-    def transcribe(self, audio: np.array, initial_prompt: str = None) -> tuple[str, list | None]:
+    def transcribe(self, audio: np.ndarray, history_context: str | None = None) -> tuple[str, list | None]:
+        # SimulStreaming maintains its own streaming context and does not accept text history.
         self.asr_online.insert_audio_chunk(audio)
         result = self.asr_online.process_iter(is_last=True)
         return result.get('text', ''), result.get('tokens', None)
@@ -217,14 +225,14 @@ class SimulStreaming(AudioTranscriber):
 
 
 class RemoteOpenaiTranscriber(AudioTranscriber):
-    # https://platform.openai.com/docs/api-reference/audio/createTranscription?lang=python
+    # https://developers.openai.com/api/docs/guides/speech-to-text
 
     def __init__(self, model: str, language: str, proxy: str, **kwargs) -> None:
         super().__init__(language=language, **kwargs)
         print(f'{INFO}Using {model} API as transcription engine.')
         self.model = model
 
-    def transcribe(self, audio: np.array, initial_prompt: str = None) -> tuple[str, list | None]:
+    def transcribe(self, audio: np.ndarray, history_context: str | None = None) -> tuple[str, list | None]:
         # Create an in-memory buffer
         audio_buffer = io.BytesIO()
         audio_buffer.name = 'audio.wav'
@@ -234,10 +242,26 @@ class RemoteOpenaiTranscriber(AudioTranscriber):
         call_args = {
             'model': self.model,
             'file': audio_buffer,
-            'language': self.language,
         }
-        if initial_prompt:
-            call_args['prompt'] = initial_prompt
+        if self.model == 'gpt-transcribe':
+            keywords = [keyword.strip() for keyword in re.split(
+                r'\s*,\s*', self.transcription_keywords) if keyword.strip()]
+            extra_body = {}
+            if keywords:
+                extra_body['keywords'] = keywords
+            if self.language:
+                extra_body['languages'] = [self.language]
+            if extra_body:
+                call_args['extra_body'] = extra_body
+            history_context = self.limit_history_context(history_context)
+            if history_context:
+                call_args['prompt'] = history_context
+        else:
+            if self.language:
+                call_args['language'] = self.language
+            prompt = self.build_transcription_prompt(history_context)
+            if prompt:
+                call_args['prompt'] = prompt
 
         client = ClientPool.get_openai_client()
         result = client.audio.transcriptions.create(**call_args).text
@@ -269,7 +293,8 @@ class HFTranscriber(AudioTranscriber):
         print(f'{INFO}Loading HuggingFace ASR model: {model}')
         self.pipe = pipeline('automatic-speech-recognition', model=model, device_map='auto')
 
-    def transcribe(self, audio: np.array, initial_prompt: str = None) -> tuple[str, list | None]:
+    def transcribe(self, audio: np.ndarray, history_context: str | None = None) -> tuple[str, list | None]:
+        # HuggingFace ASR pipeline usage here does not support text history or keyword prompting.
         generate_kwargs = {}
         # Legacy Whisper configs reject the language argument.
         if self.language and hasattr(getattr(self.pipe, 'generation_config', None), 'lang_to_id'):

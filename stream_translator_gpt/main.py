@@ -128,8 +128,9 @@ class Config:
     use_openai_transcription_api: bool = False
     """Use OpenAI Transcription API instead of the original local Whisper."""
 
-    openai_transcription_model: str = 'gpt-4o-mini-transcribe'
-    """OpenAI's transcription model name, whisper-1 / gpt-4o-mini-transcribe / gpt-4o-transcribe."""
+    openai_transcription_model: str = 'gpt-transcribe'
+    """OpenAI's transcription model name, gpt-transcribe / whisper-1 / gpt-4o-mini-transcribe /
+    gpt-4o-transcribe."""
 
     use_hf_asr: bool = False
     """Use a HuggingFace ASR model (via transformers pipeline) specified by --model."""
@@ -141,11 +142,13 @@ class Config:
     """Language-based transcription filters (e.g. english_filter, chinese_filter, japanese_filter) selected by ASR
     language. Disable with --no-language-based-filter."""
 
-    transcription_initial_prompt: str | None = None
-    """General purpose prompt or glossary for transcription. Format: "Word1, Word2, Word3, ..."."""
+    transcription_keywords: str | None = None
+    """Comma-separated transcription keywords. OpenAI gpt-transcribe sends them as keywords; other Whisper backends
+    use them as an initial prompt. SimulStreaming uses them only during initialization; HuggingFace ASR ignores them."""
 
     transcription_context: bool = False
-    """Context (previous sentence) propagation in transcription. Enable with --transcription-context, disabled by default."""
+    """Pass the previous transcription result as context. Only one result is retained. SimulStreaming and HuggingFace
+    ASR do not support text context propagation. Enable with --transcription-context, disabled by default."""
 
     gpt_model: str = 'gpt-5.6-luna'
     """OpenAI's GPT model name, gpt-5.4-nano / gpt-5.4-mini / gpt-5.6-luna / gpt-5.6-terra."""
@@ -287,8 +290,8 @@ def run(config: Config):
                 'language_based_filter': config.language_based_filter,
                 'print_result': config.show_transcribe_result,
                 'output_timestamps': config.output_timestamps,
-                'transcription_context': config.transcription_context,
-                'transcription_initial_prompt': config.transcription_initial_prompt,
+                'use_history_context': config.transcription_context,
+                'transcription_keywords': config.transcription_keywords,
             }
             if config.use_simul_streaming:
                 return SimulStreaming(model=config.model,
@@ -408,6 +411,10 @@ def _preprocess_deprecated_flags(argv):
             print(f'{WARNING}--hide_transcribe_result is deprecated and will be removed in future versions. '
                   'Please use --no-show-transcribe-result instead.')
             processed.append('--no-show-transcribe-result')
+        elif arg.replace('_', '-') == '--transcription-initial-prompt':
+            print(f'{WARNING}--transcription-initial-prompt is deprecated and will be removed in future versions. '
+                  'Please use --transcription-keywords instead.')
+            processed.append('--transcription-keywords')
         else:
             processed.append(arg)
     return processed
