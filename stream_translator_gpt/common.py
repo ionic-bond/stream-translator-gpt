@@ -8,6 +8,8 @@ from urllib.parse import urlparse
 
 import numpy as np
 
+from . import __version__
+
 SAMPLE_RATE = 16000
 SAMPLES_PER_FRAME = 512  # Requested by silero-vad >= v5
 FRAME_DURATION = SAMPLES_PER_FRAME / SAMPLE_RATE
@@ -106,7 +108,11 @@ class ClientPool:
             verify = cls._should_verify_ssl(openai_base_url)
             for key in openai_api_key.split(','):
                 key = key.strip()
-                client = OpenAI(api_key=key, http_client=httpx.Client(proxy=proxy, verify=verify))
+                client = OpenAI(
+                    api_key=key,
+                    default_headers={'User-Agent': f'stream-translator-gpt/{__version__}'},
+                    http_client=httpx.Client(proxy=proxy, verify=verify),
+                )
                 cls._openai_clients.append(client)
 
         cls._google_clients = []
