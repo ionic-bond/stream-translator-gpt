@@ -37,7 +37,8 @@ class AudioTranscriber(LoopWorkerBase):
         """Returns (text, tokens). tokens can be None if not available."""
         pass
 
-    def limit_history_context(self, history_context: str | None,
+    def limit_history_context(self,
+                              history_context: str | None,
                               max_length: int = MAX_HISTORY_CONTEXT_LENGTH) -> str | None:
         if not history_context:
             return None
@@ -47,8 +48,8 @@ class AudioTranscriber(LoopWorkerBase):
 
     def build_transcription_prompt(self, history_context: str | None) -> str | None:
         """Combine keywords and history for backends whose API has one prompt field."""
-        history_length = MAX_HISTORY_CONTEXT_LENGTH - len(self.transcription_keywords) - (
-            1 if self.transcription_keywords else 0)
+        history_length = MAX_HISTORY_CONTEXT_LENGTH - len(
+            self.transcription_keywords) - (1 if self.transcription_keywords else 0)
         history_context = self.limit_history_context(history_context, history_length)
         prompt = f'{self.transcription_keywords} {history_context or ""}'.strip()
         return prompt or None
@@ -96,7 +97,8 @@ class AudioTranscriber(LoopWorkerBase):
 
             text, tokens = self.transcribe(task.audio, history_context=history_context)
 
-            if self.transcription_keywords and text.strip().rstrip(',') == self.transcription_keywords.strip().rstrip(','):
+            if self.transcription_keywords and text.strip().rstrip(',') == self.transcription_keywords.strip().rstrip(
+                    ','):
                 text = ""
 
             # Repetition detection: reset context if compression ratio too high OR token diversity too low
@@ -244,8 +246,9 @@ class RemoteOpenaiTranscriber(AudioTranscriber):
             'file': audio_buffer,
         }
         if self.model == 'gpt-transcribe':
-            keywords = [keyword.strip() for keyword in re.split(
-                r'\s*,\s*', self.transcription_keywords) if keyword.strip()]
+            keywords = [
+                keyword.strip() for keyword in re.split(r'\s*,\s*', self.transcription_keywords) if keyword.strip()
+            ]
             extra_body = {}
             if keywords:
                 extra_body['keywords'] = keywords
