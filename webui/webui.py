@@ -77,7 +77,6 @@ def get_ui_language_override():
 
 UI_LANGUAGE_OVERRIDE = get_ui_language_override()
 
-
 # Global state for process management
 process = None
 is_running = False
