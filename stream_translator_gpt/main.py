@@ -525,6 +525,9 @@ def _validate_and_normalize(config: Config):
         config.language = None
 
     if config.output_file_path:
+        if os.path.splitext(config.output_file_path)[1].lower() == '.srt' and not config.output_timestamps:
+            print(f'{WARNING}Output timestamps are required for .srt files, enabling them automatically.')
+            config.output_timestamps = True
         output_dir = os.path.dirname(os.path.abspath(config.output_file_path))
         if not os.path.isdir(output_dir):
             print(f'{ERROR}Output directory does not exist: {output_dir}')
