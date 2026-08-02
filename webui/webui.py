@@ -64,6 +64,20 @@ class I18n:
         return ""
 
 
+UI_LANGUAGE_CHOICES = ("en", "zh", "ja")
+
+
+def get_ui_language_override():
+    """Read the startup language without consuming unrelated command-line arguments."""
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--ui-language", choices=UI_LANGUAGE_CHOICES)
+    args, _ = parser.parse_known_args()
+    return args.ui_language
+
+
+UI_LANGUAGE_OVERRIDE = get_ui_language_override()
+
+
 # Global state for process management
 process = None
 is_running = False
@@ -150,8 +164,11 @@ SYSTEM_SETTINGS = load_settings()
 def get_default(key, fallback=None):
     val = DEFAULT_VALUES.get(key, fallback)
     # Override with system setting for global keys
-    if key == "ui_language" and "ui_language" in SYSTEM_SETTINGS:
-        val = SYSTEM_SETTINGS["ui_language"]
+    if key == "ui_language":
+        if UI_LANGUAGE_OVERRIDE is not None:
+            val = UI_LANGUAGE_OVERRIDE
+        elif "ui_language" in SYSTEM_SETTINGS:
+            val = SYSTEM_SETTINGS["ui_language"]
     return val
 
 
@@ -1192,6 +1209,9 @@ with gr.Blocks() as demo:
 def main():
     parser = argparse.ArgumentParser(description="Stream Translator GPT WebUI")
     parser.add_argument("--share", action="store_true", help="Create a public link to your interface (for Colab etc.)")
+    parser.add_argument("--ui-language",
+                        choices=UI_LANGUAGE_CHOICES,
+                        help="Set the WebUI interface language for this startup (en, zh, ja)")
     args = parser.parse_args()
 
     demo.queue().launch(inbrowser=True, share=args.share)

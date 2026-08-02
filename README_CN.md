@@ -106,6 +106,8 @@ pip install stream-translator-gpt[webui] -U
 stream-translator-gpt-webui
 ```
 
+启动时可以通过 `--ui-language` 指定 WebUI 界面语言，可选值为 `en`、`zh` 或 `ja`。
+
 然后在浏览器中打开输出的本地链接。CLI 的全部功能都可以在界面中使用，配置还可以保存为预设。
 
 ### 命令行
