@@ -817,9 +817,11 @@ with gr.Blocks() as demo:
                 with gr.Group(visible=False) as gpt_group:
                     with gr.Row():
                         openai_key = gr.Textbox(label=i18n.get("openai_api_key"),
-                                                placeholder=i18n.get("openai_api_key_ph"))
+                                                placeholder=i18n.get("openai_api_key_ph"),
+                                                elem_id="openai-key-translation")
                         openai_base_url = gr.Textbox(label=i18n.get("gpt_base_url"),
-                                                     placeholder=i18n.get("gpt_base_url_ph"))
+                                                     placeholder=i18n.get("gpt_base_url_ph"),
+                                                     elem_id="openai-base-url-translation")
 
                     gpt_model = gr.Dropdown(["gpt-5.4-nano", "gpt-5.4-mini", "gpt-5.6-luna", "gpt-5.6-terra"],
                                             label=i18n.get("gpt_model"),
@@ -860,7 +862,8 @@ with gr.Blocks() as demo:
 
                 with gr.Group():
                     processing_proxy = gr.Textbox(label=i18n.get("processing_proxy"),
-                                                  placeholder=i18n.get("processing_proxy_ph"))
+                                                  placeholder=i18n.get("processing_proxy_ph"),
+                                                  elem_id="processing-proxy-translation")
 
         with gr.Tab(i18n.get("output")):
             with gr.Row():
@@ -1008,6 +1011,23 @@ with gr.Blocks() as demo:
     ui_language.change(on_language_change, inputs=[ui_language], outputs=[ui_language], js=js_lang_change)
 
     # Start Action
+    # Read text inputs from the DOM immediately before submitting. This avoids a
+    # blur/change event racing the first click after a value was entered.
+    js_start = """
+    (...args) => {
+        const currentValues = [
+            [8, "openai-key-translation"],
+            [35, "openai-base-url-translation"],
+            [37, "processing-proxy-translation"]
+        ];
+        for (const [index, id] of currentValues) {
+            const input = document.querySelector(`#${id} input, #${id} textarea`);
+            if (input) args[index] = input.value;
+        }
+        return args;
+    }
+    """
+
     start_btn.click(run_translator,
                     inputs=[
                         input_type, input_url, device_rec_interval, audio_source, input_file, input_format,
@@ -1023,7 +1043,8 @@ with gr.Blocks() as demo:
                     ],
                     outputs=output_box,
                     concurrency_limit=1,
-                    scroll_to_output=False)
+                    scroll_to_output=False,
+                    js=js_start)
 
     # Stop Action
     stop_btn.click(stop_translator, outputs=output_box, scroll_to_output=False)
