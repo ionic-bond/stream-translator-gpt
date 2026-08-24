@@ -1,4 +1,5 @@
 import dataclasses
+import json
 import os
 import platform
 import queue
@@ -197,6 +198,11 @@ class Config:
     service_tier: str | None = None
     """GPT parameter. Specifies processing priority tier. Options: auto / default / flex / priority."""
 
+    extra_body: str | None = None
+    """Additional JSON object fields passed to the GPT-compatible API request body."""
+
+    parsed_extra_body: dict[str, object] | None = dataclasses.field(default=None, init=False)
+
     debug_mode: bool = False
     """Enable debug mode. Print messages sent to LLM and usage info after each translation call."""
 
@@ -344,6 +350,7 @@ def run(config: Config):
                     reasoning_effort=config.reasoning_effort,
                     verbosity=config.verbosity,
                     service_tier=config.service_tier,
+                    extra_body=config.parsed_extra_body,
                     **common_args,
                 )
 
@@ -477,6 +484,20 @@ def _check_ffmpeg(config: Config):
         sys.exit(1)
 
 
+def _parse_extra_body(value: str | None) -> dict[str, object] | None:
+    if value is None:
+        return None
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError as e:
+        print(f'{ERROR}--extra-body must be valid JSON: {e.msg}')
+        sys.exit(1)
+    if not isinstance(parsed, dict):
+        print(f'{ERROR}--extra-body must be a JSON object.')
+        sys.exit(1)
+    return parsed
+
+
 def _validate_and_normalize(config: Config):
     """Check option combinations and normalize values, exiting with an error message on invalid input."""
     if config.model.endswith('.en'):
@@ -532,6 +553,8 @@ def _validate_and_normalize(config: Config):
         if not os.path.isdir(output_dir):
             print(f'{ERROR}Output directory does not exist: {output_dir}')
             sys.exit(1)
+
+    config.parsed_extra_body = _parse_extra_body(config.extra_body)
 
 
 def cli():

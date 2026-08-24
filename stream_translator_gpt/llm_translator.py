@@ -182,6 +182,7 @@ class GPTTranslator(LLMTranslator):
                  reasoning_effort: str = None,
                  verbosity: str = None,
                  service_tier: str = None,
+                 extra_body: dict[str, object] = None,
                  **kwargs) -> None:
         super().__init__(**kwargs)
         self.prompt_cache_key = prompt_cache_key
@@ -190,6 +191,7 @@ class GPTTranslator(LLMTranslator):
         self.reasoning_effort = reasoning_effort
         self.verbosity = verbosity
         self.service_tier = service_tier
+        self.extra_body = extra_body
 
     def translate(self, translation_task: TranslationTask):
         client = ClientPool.get_openai_client()
@@ -229,6 +231,8 @@ class GPTTranslator(LLMTranslator):
                 kwargs["verbosity"] = self.verbosity
             if self.service_tier is not None:
                 kwargs["service_tier"] = self.service_tier
+            if self.extra_body is not None:
+                kwargs["extra_body"] = self.extra_body
 
             completion = client.chat.completions.create(**kwargs)
 
