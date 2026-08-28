@@ -32,20 +32,6 @@ class Config:
     """The URL of the stream. If a local file path is filled in, it will be used as input. If fill in "device", the
     input will be obtained from your PC device."""
 
-    openai_api_key: str | None = None
-    """OpenAI API key if using GPT translation / Whisper API. If you have multiple keys, you can separate them with ","
-    and each key will be used in turn."""
-
-    google_api_key: str | None = None
-    """Google API key if using Gemini translation. If you have multiple keys, you can separate them with "," and each
-    key will be used in turn."""
-
-    openai_base_url: str | None = None
-    """Customize the API endpoint of OpenAI (Affects GPT translation & OpenAI Transcription)."""
-
-    google_base_url: str | None = None
-    """Customize the API endpoint of Google (Affects Gemini translation)."""
-
     verify_ssl: bool = True
     """TLS certificate verification for OpenAI / Google API and HuggingFace downloads. Use --no-verify-ssl when your
     API endpoint or proxy has a self-signed or invalid certificate. If the base URL host is a bare IP, verification is
@@ -129,6 +115,15 @@ class Config:
     use_openai_transcription_api: bool = False
     """Use OpenAI Transcription API instead of the original local Whisper."""
 
+    openai_transcription_api_key: str | None = None
+    """OpenAI API key for OpenAI Transcription API. If omitted, --openai-api-key is used when
+    --use-openai-transcription-api is enabled."""
+
+    openai_transcription_base_url: str | None = None
+    """Customize the API endpoint of OpenAI Transcription API. It requires --openai-transcription-api-key. If left
+    blank, the endpoint is inherited from --openai-base-url only when --openai-transcription-api-key and
+    --openai-api-key contain the same keys; otherwise the OpenAI SDK default endpoint is used."""
+
     openai_transcription_model: str = 'gpt-transcribe'
     """OpenAI's transcription model name, gpt-transcribe / whisper-1 / gpt-4o-mini-transcribe /
     gpt-4o-transcribe."""
@@ -151,16 +146,30 @@ class Config:
     """Pass the previous transcription result as context. Only one result is retained. SimulStreaming and HuggingFace
     ASR do not support text context propagation. Enable with --transcription-context, disabled by default."""
 
+    translation_prompt: str | None = None
+    """If set, will translate result text to target language via GPT / Gemini API. Example: "Translate from Japanese
+    to Chinese". Adding context (who the streamer is, what the stream is about) improves translation quality."""
+
+    openai_api_key: str | None = None
+    """OpenAI API key for GPT translation. If you have multiple keys, you can separate them with "," and each key
+    will be used in turn."""
+
+    openai_base_url: str | None = None
+    """Customize the API endpoint of OpenAI for GPT translation."""
+
     gpt_model: str = 'gpt-5.6-luna'
     """OpenAI's GPT model name, gpt-5.4-nano / gpt-5.4-mini / gpt-5.6-luna / gpt-5.6-terra."""
+
+    google_api_key: str | None = None
+    """Google API key for Gemini translation. If you have multiple keys, you can separate them with "," and each key
+    will be used in turn."""
+
+    google_base_url: str | None = None
+    """Customize the API endpoint of Google for Gemini translation."""
 
     gemini_model: str = 'gemini-3.5-flash-lite'
     """Google's Gemini model name, gemini-3-flash-preview / gemini-3.1-flash-lite / gemini-3.5-flash /
     gemini-3.5-flash-lite / gemini-3.6-flash."""
-
-    translation_prompt: str | None = None
-    """If set, will translate result text to target language via GPT / Gemini API. Example: "Translate from Japanese
-    to Chinese". Adding context (who the streamer is, what the stream is about) improves translation quality."""
 
     translation_history_size: int = 3
     """The number of previous transcripts sent as context when calling the LLM API. It is recommended to disable
@@ -242,9 +251,11 @@ class Config:
 def run(config: Config):
     """Run the transcription / translation pipeline until the input is exhausted."""
     ClientPool.init(openai_api_key=config.openai_api_key,
+                    openai_transcription_api_key=config.openai_transcription_api_key,
                     google_api_key=config.google_api_key,
                     proxy=config.processing_proxy,
                     openai_base_url=config.openai_base_url,
+                    openai_transcription_base_url=config.openai_transcription_base_url,
                     google_base_url=config.google_base_url,
                     verify_ssl=config.verify_ssl)
 
@@ -498,6 +509,61 @@ def _parse_extra_body(value: str | None) -> dict[str, object] | None:
     return parsed
 
 
+def _normalize_api_keys(value: str | None) -> list[str]:
+    if not value:
+        return []
+    return [key for key in (part.strip() for part in value.split(',')) if key]
+
+
+def _normalize_optional_string(value: str | None) -> str | None:
+    if not value:
+        return None
+    value = value.strip()
+    return value or None
+
+
+def _resolve_openai_transcription_config(config: Config):
+    """Resolve the dedicated transcription connection from explicit and legacy options."""
+    openai_keys = _normalize_api_keys(config.openai_api_key)
+    google_keys = _normalize_api_keys(config.google_api_key)
+    transcription_keys = _normalize_api_keys(config.openai_transcription_api_key)
+
+    config.openai_api_key = ','.join(openai_keys) or None
+    config.google_api_key = ','.join(google_keys) or None
+    config.openai_base_url = _normalize_optional_string(config.openai_base_url)
+    transcription_base_url = _normalize_optional_string(config.openai_transcription_base_url)
+    config.openai_transcription_base_url = transcription_base_url
+
+    if transcription_base_url and not transcription_keys:
+        print(f'{ERROR}--openai-transcription-base-url requires --openai-transcription-api-key.')
+        sys.exit(1)
+
+    if not config.use_openai_transcription_api:
+        return
+
+    if transcription_keys:
+        config.openai_transcription_api_key = ','.join(transcription_keys)
+        if transcription_base_url:
+            return
+
+        if openai_keys and transcription_keys == openai_keys:
+            config.openai_transcription_base_url = config.openai_base_url
+            print(f'{INFO}OpenAI Transcription API base URL inherited from --openai-base-url because the '
+                  f'OpenAI API keys are the same.')
+        else:
+            reason = ('no --openai-api-key was provided' if not openai_keys
+                      else 'the OpenAI API keys are different')
+            print(f'{INFO}OpenAI Transcription API base URL is left unset because {reason}, the OpenAI SDK default '
+                  f'endpoint will be used.')
+        return
+
+    if openai_keys:
+        config.openai_transcription_api_key = ','.join(openai_keys)
+        config.openai_transcription_base_url = config.openai_base_url
+        print(f'{INFO}OpenAI Transcription API key inherited from --openai-api-key.')
+        print(f'{INFO}OpenAI Transcription API base URL inherited from --openai-base-url.')
+
+
 def _validate_and_normalize(config: Config):
     """Check option combinations and normalize values, exiting with an error message on invalid input."""
     if config.model.endswith('.en'):
@@ -534,8 +600,11 @@ def _validate_and_normalize(config: Config):
         print(f'{ERROR}Cannot use SimulStreaming, OpenAI Transcription API or HuggingFace ASR at the same time')
         sys.exit(1)
 
-    if config.use_openai_transcription_api and not config.openai_api_key:
-        print(f'{ERROR}Please fill in the OpenAI API key when enabling OpenAI Transcription API')
+    _resolve_openai_transcription_config(config)
+
+    if config.use_openai_transcription_api and not config.openai_transcription_api_key:
+        print(f'{ERROR}Please fill in --openai-transcription-api-key or --openai-api-key when enabling OpenAI '
+              f'Transcription API')
         sys.exit(1)
 
     if config.translation_prompt and not (config.openai_api_key or config.google_api_key):

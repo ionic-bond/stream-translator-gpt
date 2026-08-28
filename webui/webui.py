@@ -93,14 +93,15 @@ os.makedirs(USER_PRESETS_DIR, exist_ok=True)
 
 INPUT_KEYS = [
     "input_type", "input_url", "device_rec_interval", "audio_source", "input_file", "input_format", "input_cookies",
-    "input_proxy", "openai_key", "google_key", "openai_base_url", "google_base_url", "overall_proxy", "model_size",
-    "hf_model_name", "language", "whisper_backend", "openai_transcription_model", "vad_threshold", "min_audio_len",
-    "max_audio_len", "target_audio_len", "silence_threshold", "dynamic_vad_threshold", "dynamic_no_speech_threshold",
+    "input_proxy", "whisper_backend", "openai_transcription_api_key", "openai_transcription_base_url", "model_size",
+    "language", "openai_transcription_model", "hf_model_name", "vad_threshold", "min_audio_len", "max_audio_len",
+    "target_audio_len", "silence_threshold", "dynamic_vad_threshold", "dynamic_no_speech_threshold",
     "prefix_retention_len", "filter_emoji", "filter_repetition", "filter_language_based", "transcription_context",
-    "transcription_keywords", "translation_prompt", "translation_provider", "gpt_model", "gemini_model", "history_size",
-    "translation_timeout", "processing_proxy", "use_json_result", "retry_if_translation_fails", "show_timestamps",
-    "hide_transcription", "output_file", "output_proxy", "cqhttp_url", "cqhttp_token", "discord_hook", "telegram_token",
-    "telegram_chat_id", "extra_cli_args"
+    "transcription_keywords", "translation_prompt", "translation_provider", "openai_key", "openai_base_url", "gpt_model",
+    "google_key", "google_base_url", "gemini_model", "history_size", "translation_timeout", "processing_proxy",
+    "use_json_result", "retry_if_translation_fails", "show_timestamps", "hide_transcription", "output_file",
+    "output_proxy", "cqhttp_url", "cqhttp_token", "discord_hook", "telegram_token", "telegram_chat_id",
+    "overall_proxy", "extra_cli_args"
 ]
 
 
@@ -257,12 +258,11 @@ def build_translator_command(
         input_format,
         input_cookies,
         input_proxy,
-        openai_key,
-        google_key,
-        overall_proxy,
+        whisper_backend,
+        openai_transcription_api_key,
+        openai_transcription_base_url,
         model_size,
         language,
-        whisper_backend,
         openai_transcription_model,
         hf_model_name,
         vad_threshold,
@@ -280,12 +280,14 @@ def build_translator_command(
         transcription_keywords,
         translation_prompt,
         translation_provider,
+        openai_key,
+        openai_base_url,
         gpt_model,
+        google_key,
+        google_base_url,
         gemini_model,
         history_size,
         translation_timeout,
-        openai_base_url,
-        google_base_url,
         processing_proxy,
         use_json_result,
         retry_if_translation_fails,
@@ -298,6 +300,7 @@ def build_translator_command(
         discord_hook,
         telegram_token,
         telegram_chat_id,
+        overall_proxy,
         extra_cli_args=None):
     cmd = [sys.executable, "-u", "-m", "stream_translator_gpt"]
 
@@ -370,17 +373,17 @@ def build_translator_command(
     if not dynamic_no_speech_threshold:
         cmd.append("--no-dynamic-no-speech-threshold")
 
-    # --- API Keys & Base URLs ---
-    if openai_key and (whisper_backend == "OpenAI Transcription API" or translation_provider == "GPT"):
-        cmd.extend(["--openai-api-key", openai_key])
-    if google_key and translation_provider == "Gemini":
-        cmd.extend(["--google-api-key", google_key])
-    if openai_base_url and (whisper_backend == "OpenAI Transcription API" or translation_provider == "GPT"):
-        cmd.extend(["--openai-base-url", openai_base_url])
-    if google_base_url and translation_provider == "Gemini":
-        cmd.extend(["--google-base-url", google_base_url])
-
     # --- Transcription ---
+    if whisper_backend == "OpenAI Transcription API":
+        if openai_key:
+            cmd.extend(["--openai-api-key", openai_key])
+        if openai_base_url:
+            cmd.extend(["--openai-base-url", openai_base_url])
+        if openai_transcription_api_key:
+            cmd.extend(["--openai-transcription-api-key", openai_transcription_api_key])
+        if openai_transcription_base_url:
+            cmd.extend(["--openai-transcription-base-url", openai_transcription_base_url])
+
     if whisper_backend == "Faster-Whisper":
         cmd.append("--use-faster-whisper")
     elif whisper_backend == "Simul-Streaming":
@@ -421,8 +424,16 @@ def build_translator_command(
         cmd.extend(["--translation-prompt", translation_prompt])
 
         if translation_provider == "GPT":
+            if openai_key and whisper_backend != "OpenAI Transcription API":
+                cmd.extend(["--openai-api-key", openai_key])
+            if openai_base_url and whisper_backend != "OpenAI Transcription API":
+                cmd.extend(["--openai-base-url", openai_base_url])
             add_arg("--gpt-model", gpt_model, "gpt_model")
         elif translation_provider == "Gemini":
+            if google_key:
+                cmd.extend(["--google-api-key", google_key])
+            if google_base_url:
+                cmd.extend(["--google-base-url", google_base_url])
             add_arg("--gemini-model", gemini_model, "gemini_model")
 
         add_arg("--translation-history-size", int(history_size), "history_size")
@@ -495,14 +506,12 @@ def run_translator(
         input_format,
         input_cookies,
         input_proxy,
-        # Keys & Overall
-        openai_key,
-        google_key,
-        overall_proxy,
         # Transcription
+        whisper_backend,
+        openai_transcription_api_key,
+        openai_transcription_base_url,
         model_size,
         language,
-        whisper_backend,
         openai_transcription_model,
         hf_model_name,
         vad_threshold,
@@ -521,12 +530,14 @@ def run_translator(
         # Translation
         translation_prompt,
         translation_provider,
+        openai_key,
+        openai_base_url,
         gpt_model,
+        google_key,
+        google_base_url,
         gemini_model,
         history_size,
         translation_timeout,
-        openai_base_url,
-        google_base_url,
         processing_proxy,
         use_json_result,
         retry_if_translation_fails,
@@ -540,6 +551,8 @@ def run_translator(
         discord_hook,
         telegram_token,
         telegram_chat_id,
+        # Overall
+        overall_proxy,
         extra_cli_args):
     global process, is_running
 
@@ -549,13 +562,14 @@ def run_translator(
 
     # --- Validation ---
     if translation_provider == "GPT" and not openai_key:
-        yield "Error: OpenAI API Key is required for GPT Translation.\nPlease enter your key in the 'Overall' tab.\n"
+        yield "Error: OpenAI API Key is required for GPT Translation.\nPlease enter your key in the Translation tab.\n"
         return
     if translation_provider == "Gemini" and not google_key:
-        yield "Error: Google API Key is required for Gemini Translation.\nPlease enter your key in the 'Overall' tab.\n"
+        yield "Error: Google API Key is required for Gemini Translation.\nPlease enter your key in the Translation tab.\n"
         return
-    if whisper_backend == "OpenAI Transcription API" and not openai_key:
-        yield "Error: OpenAI API Key is required for OpenAI Transcription.\nPlease enter your key in the 'Overall' tab.\n"
+    if whisper_backend == "OpenAI Transcription API" and not (openai_key or openai_transcription_api_key):
+        yield "Error: OpenAI API Key is required for OpenAI Transcription.\nPlease enter it in the Transcription or " \
+              "Translation tab.\n"
         return
 
     # --- Logic Enforcements ---
@@ -573,12 +587,11 @@ def run_translator(
                                           input_format=input_format,
                                           input_cookies=input_cookies,
                                           input_proxy=input_proxy,
-                                          openai_key=openai_key,
-                                          google_key=google_key,
-                                          overall_proxy=overall_proxy,
+                                          whisper_backend=whisper_backend,
+                                          openai_transcription_api_key=openai_transcription_api_key,
+                                          openai_transcription_base_url=openai_transcription_base_url,
                                           model_size=model_size,
                                           language=language,
-                                          whisper_backend=whisper_backend,
                                           openai_transcription_model=openai_transcription_model,
                                           hf_model_name=hf_model_name,
                                           vad_threshold=vad_threshold,
@@ -596,12 +609,14 @@ def run_translator(
                                           transcription_keywords=transcription_keywords,
                                           translation_prompt=translation_prompt,
                                           translation_provider=translation_provider,
+                                          openai_key=openai_key,
+                                          openai_base_url=openai_base_url,
                                           gpt_model=gpt_model,
+                                          google_key=google_key,
+                                          google_base_url=google_base_url,
                                           gemini_model=gemini_model,
                                           history_size=history_size,
                                           translation_timeout=translation_timeout,
-                                          openai_base_url=openai_base_url,
-                                          google_base_url=google_base_url,
                                           processing_proxy=processing_proxy,
                                           use_json_result=use_json_result,
                                           retry_if_translation_fails=retry_if_translation_fails,
@@ -614,6 +629,7 @@ def run_translator(
                                           discord_hook=discord_hook,
                                           telegram_token=telegram_token,
                                           telegram_chat_id=telegram_chat_id,
+                                          overall_proxy=overall_proxy,
                                           extra_cli_args=extra_cli_args)
 
     if error:
@@ -772,10 +788,16 @@ with gr.Blocks() as demo:
 
             with gr.Group(visible=False) as openai_transcription_group:
                 with gr.Row():
-                    openai_key_trans = gr.Textbox(label=i18n.get("openai_api_key"),
-                                                  placeholder=i18n.get("openai_api_key_ph"))
-                    openai_base_url_trans = gr.Textbox(label=i18n.get("gpt_base_url"),
-                                                       placeholder=i18n.get("gpt_base_url_ph"))
+                    openai_transcription_api_key = gr.Textbox(
+                        label=i18n.get("openai_transcription_api_key"),
+                        placeholder=i18n.get("openai_transcription_api_key_ph"),
+                        value=get_default("openai_transcription_api_key"),
+                        elem_id="openai-key-transcription")
+                    openai_transcription_base_url = gr.Textbox(
+                        label=i18n.get("openai_transcription_base_url"),
+                        placeholder=i18n.get("openai_transcription_base_url_ph"),
+                        value=get_default("openai_transcription_base_url"),
+                        elem_id="openai-base-url-transcription")
             with gr.Row():
                 model_size = gr.Dropdown([
                     "tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large",
@@ -909,11 +931,11 @@ with gr.Blocks() as demo:
 
         with gr.Tab(i18n.get("overall")):
 
+            overall_proxy = gr.Textbox(label=i18n.get("overall_proxy"), placeholder=i18n.get("overall_proxy_ph"))
+
             extra_cli_args = gr.Textbox(label=i18n.get("extra_cli_args"),
                                         placeholder=i18n.get("extra_cli_args_ph"),
                                         lines=2)
-
-            overall_proxy = gr.Textbox(label=i18n.get("overall_proxy"), placeholder=i18n.get("overall_proxy_ph"))
 
     with gr.Row():
         with gr.Column(scale=1):
@@ -1032,9 +1054,11 @@ with gr.Blocks() as demo:
     js_start = """
     (...args) => {
         const currentValues = [
-            [8, "openai-key-translation"],
-            [35, "openai-base-url-translation"],
-            [37, "processing-proxy-translation"]
+            [9, "openai-key-transcription"],
+            [10, "openai-base-url-transcription"],
+            [30, "openai-key-translation"],
+            [31, "openai-base-url-translation"],
+            [38, "processing-proxy-translation"]
         ];
         for (const [index, id] of currentValues) {
             const input = document.querySelector(`#${id} input, #${id} textarea`);
@@ -1047,15 +1071,17 @@ with gr.Blocks() as demo:
     start_btn.click(run_translator,
                     inputs=[
                         input_type, input_url, device_rec_interval, audio_source, input_file, input_format,
-                        input_cookies, input_proxy, openai_key, google_key, overall_proxy, model_size, language,
-                        whisper_backend, openai_transcription_model, hf_model_name, vad_threshold, min_audio_len,
+                        input_cookies, input_proxy,
+                        whisper_backend, openai_transcription_api_key, openai_transcription_base_url,
+                        model_size, language, openai_transcription_model, hf_model_name, vad_threshold, min_audio_len,
                         max_audio_len, target_audio_len, silence_threshold, dynamic_vad_threshold,
                         dynamic_no_speech_threshold, prefix_retention_len, filter_emoji, filter_repetition,
                         filter_language_based, transcription_context, transcription_keywords, translation_prompt,
-                        translation_provider, gpt_model, gemini_model, history_size, translation_timeout,
-                        openai_base_url, google_base_url, processing_proxy, use_json_result, retry_if_translation_fails,
+                        translation_provider, openai_key, openai_base_url, gpt_model, google_key, google_base_url,
+                        gemini_model, history_size, translation_timeout, processing_proxy,
+                        use_json_result, retry_if_translation_fails,
                         show_timestamps, hide_transcription, output_file, output_proxy, cqhttp_url, cqhttp_token,
-                        discord_hook, telegram_token, telegram_chat_id, extra_cli_args
+                        discord_hook, telegram_token, telegram_chat_id, overall_proxy, extra_cli_args
                     ],
                     outputs=output_box,
                     concurrency_limit=1,
@@ -1158,13 +1184,6 @@ with gr.Blocks() as demo:
     # Sync Processing Proxy
     processing_proxy_trans.change(fn=None, inputs=processing_proxy_trans, outputs=processing_proxy, js="(x) => x")
     processing_proxy.change(fn=None, inputs=processing_proxy, outputs=processing_proxy_trans, js="(x) => x")
-
-    # Sync OpenAI Transcription Keys
-    openai_key.change(fn=None, inputs=openai_key, outputs=openai_key_trans, js="(x) => x")
-    openai_key_trans.change(fn=None, inputs=openai_key_trans, outputs=openai_key, js="(x) => x")
-
-    openai_base_url.change(fn=None, inputs=openai_base_url, outputs=openai_base_url_trans, js="(x) => x")
-    openai_base_url_trans.change(fn=None, inputs=openai_base_url_trans, outputs=openai_base_url, js="(x) => x")
 
     # LocalStorage Persistence
     # A value equal to the bundled default is removed instead of stored, so that untouched fields

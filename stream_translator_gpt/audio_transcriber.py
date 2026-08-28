@@ -266,7 +266,7 @@ class RemoteOpenaiTranscriber(AudioTranscriber):
             if prompt:
                 call_args['prompt'] = prompt
 
-        client = ClientPool.get_openai_client()
+        client = ClientPool.get_openai_transcription_client()
         result = client.audio.transcriptions.create(**call_args).text
         return result, None
 

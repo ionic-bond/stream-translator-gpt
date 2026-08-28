@@ -11,7 +11,7 @@
 最简单的使用方式：无需搭建本地环境，Colab 的性能足以稳定地日常使用，你只需要按用途准备自己的 API key：
 
 - 使用 **Gemini API** 翻译：[创建 **Google API key**](https://aistudio.google.com/app/apikey)（推荐，Gemini 的 **Flash-Lite** 模型有每分钟 15 条、每日 500 条的免费额度）
-- 使用 **OpenAI Transcription API** 转录或 **GPT API** 翻译：[创建 **OpenAI API key**](https://platform.openai.com/api-keys)（也可以使用任何 **OpenAI 兼容格式**的 API）
+- 使用 **OpenAI Transcription API** 转录或 **GPT API** 翻译：[创建 **OpenAI API key**](https://platform.openai.com/api-keys)。请将 key 填入对应的转录或翻译位置。
 
 |                                                                                            命令行                                                                                             |                                                                                         WebUI                                                                                          |
 | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
@@ -122,15 +122,13 @@ stream-translator-gpt URL [OPTIONS]
 - **Faster-Whisper**: ```stream-translator-gpt {网址} --language {输入语言} --use-faster-whisper```
 - **SimulStreaming**: ```stream-translator-gpt {网址} --language {输入语言} --use-simul-streaming```
 - 以 **Faster-Whisper** 为编码器的 **SimulStreaming**: ```stream-translator-gpt {网址} --language {输入语言} --use-simul-streaming --use-faster-whisper```
-- **OpenAI Transcription API**: ```stream-translator-gpt {网址} --language {输入语言} --use-openai-transcription-api --openai-api-key {你的 OpenAI key}```
+- **OpenAI Transcription API**: ```stream-translator-gpt {网址} --language {输入语言} --use-openai-transcription-api --openai-transcription-api-key {你的 OpenAI key}```
 - **HuggingFace ASR** 模型（需要 `pip install stream-translator-gpt[hf_asr]`；仅支持 Hugging Face Hub 上 `pipeline_tag` 为 `automatic-speech-recognition` 的模型）: ```stream-translator-gpt {网址} --model {hf_模型名} --use-hf-asr```
 
 **翻译**（设置 `--translation-prompt` 即启用；根据填写的 API key 自动选择服务商）：
 
 - 使用 **Gemini**: ```stream-translator-gpt {网址} --language {输入语言} --translation-prompt "把{输入语言}翻译成{输出语言}" --google-api-key {你的 Google key}```
 - 使用 **GPT**: ```stream-translator-gpt {网址} --language {输入语言} --translation-prompt "把{输入语言}翻译成{输出语言}" --openai-api-key {你的 OpenAI key}```
-- 同时使用 **OpenAI Transcription API** 和 **Gemini**: ```stream-translator-gpt {网址} --language {输入语言} --use-openai-transcription-api --openai-api-key {你的 OpenAI key} --translation-prompt "把{输入语言}翻译成{输出语言}" --google-api-key {你的 Google key}```
-
 > [!TIP]
 > 翻译 prompt 会原样传给大模型，所以它能承载的不只是语言对。如果你的 API 额度允许，把背景信息写进去（主播是谁、直播的内容是什么、专有名词希望怎么译等），翻译会更准确，也更能根据上下文纠正语音识别的错字。
 
@@ -157,10 +155,6 @@ stream-translator-gpt URL [OPTIONS]
 | :--------------------------------- | :----------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `URL`                              |                                | 直播流的 URL。如果填入本地文件路径，则会将其用作输入。如果填入 "device"，将从你的电脑设备获取输入。                                                                           |
 | **通用选项**                       |
-| `--openai-api-key`                 |                                | 使用 GPT 翻译 / OpenAI Transcription API 时需要的 OpenAI API key。如果有多个 key，可用 "," 分隔，每个 key 会轮流使用。                                                        |
-| `--google-api-key`                 |                                | 使用 Gemini 翻译时需要的 Google API key。如果有多个 key，可用 "," 分隔，每个 key 会轮流使用。                                                                                 |
-| `--openai-base-url`                |                                | 自定义 OpenAI 的 API 端点（影响 GPT 翻译和 OpenAI 转录）。                                                                                                                    |
-| `--google-base-url`                |                                | 自定义 Google 的 API 端点（影响 Gemini 翻译）。                                                                                                                               |
 | `--no-verify-ssl`                  |                                | 禁用 OpenAI / Google API 及 HuggingFace 下载的 TLS 证书校验。当你的 API 端点或代理使用自签名或无效证书时使用。如果 base URL 的主机是裸 IP，会自动禁用校验。                   |
 | `--proxy`                          |                                | 为所有未单独设置的 --*-proxy 选项统一设置代理。同时会设置 http_proxy 环境变量。                                                                                               |
 | **输入选项**                       |
@@ -187,6 +181,8 @@ stream-translator-gpt URL [OPTIONS]
 | `--use-faster-whisper`             |                                | 使用 Faster-Whisper 代替 Whisper。与 --use-simul-streaming 同时使用时，将以 Faster-Whisper 为编码器运行 SimulStreaming。                                                      |
 | `--use-simul-streaming`            |                                | 使用 SimulStreaming 代替 Whisper。与 --use-faster-whisper 同时使用时，将以 Faster-Whisper 为编码器运行 SimulStreaming。                                                       |
 | `--use-openai-transcription-api`   |                                | 使用 OpenAI Transcription API 代替本地 Whisper。                                                                                                                              |
+| `--openai-transcription-api-key`   |                                | OpenAI Transcription API 使用的 OpenAI API key。未填写时将从 `--openai-api-key` 继承。如果有多个 key，可用 "," 分隔，每个 key 会轮流使用。                                  |
+| `--openai-transcription-base-url`  |                                | 自定义 OpenAI Transcription API 的 API 端点。                                                                                                                                   |
 | `--openai-transcription-model`     | gpt-transcribe                 | OpenAI 转录模型。普通转录推荐使用 `gpt-transcribe`；也支持 `whisper-1`、`gpt-4o-mini-transcribe` 和 `gpt-4o-transcribe`。                                                     |
 | `--use-hf-asr`                     |                                | 使用 HuggingFace ASR 模型，用 `--model` 指定模型 ID。需要 `pip install stream-translator-gpt[hf_asr]`。                                                                       |
 | `--transcription-filters`          | emoji_filter,repetition_filter | 应用于转录结果的过滤器，用 "," 分隔。目前提供 emoji_filter 和 repetition_filter。                                                                                             |
@@ -194,9 +190,13 @@ stream-translator-gpt URL [OPTIONS]
 | `--transcription-keywords`         |                                | 逗号分隔的转录关键词。`gpt-transcribe` 会作为 `keywords` 发送，其他 Whisper 后端会作为初始 prompt 使用。旧的 `--transcription-initial-prompt` 仍可用，但已弃用。              |
 | `--transcription-context`          |                                | 启用转录中的上下文传递，只保留上一条结果；SimulStreaming 和 HuggingFace ASR 不支持文本上下文（默认关闭）。                                                                    |
 | **翻译选项**                       |
-| `--gpt-model`                      | gpt-5.6-luna                   | OpenAI 的 GPT 模型名，gpt-5.4-nano / gpt-5.4-mini / gpt-5.6-luna / gpt-5.6-terra                                                                                              |
-| `--gemini-model`                   | gemini-3.5-flash-lite          | Google 的 Gemini 模型名，gemini-3-flash-preview / gemini-3.1-flash-lite / gemini-3.5-flash / gemini-3.5-flash-lite / gemini-3.6-flash                                         |
 | `--translation-prompt`             |                                | 设置后，将通过 GPT / Gemini API 把结果文本翻译为目标语言（根据填写的 API key 自动选择）。示例："将日语翻译为中文"。在 prompt 中补充背景（主播是谁、直播内容）可提升翻译质量。 |
+| `--openai-api-key`                 |                                | GPT 翻译使用的 OpenAI API key。如果有多个 key，可用 "," 分隔，每个 key 会轮流使用。                                                                                         |
+| `--openai-base-url`                |                                | 自定义 GPT 翻译使用的 OpenAI API 端点。                                                                                                                                       |
+| `--gpt-model`                      | gpt-5.6-luna                   | OpenAI 的 GPT 模型名，gpt-5.4-nano / gpt-5.4-mini / gpt-5.6-luna / gpt-5.6-terra                                                                                              |
+| `--google-api-key`                 |                                | Gemini 翻译使用的 Google API key。如果有多个 key，可用 "," 分隔，每个 key 会轮流使用。                                                                                      |
+| `--google-base-url`                |                                | 自定义 Gemini 翻译使用的 Google API 端点。                                                                                                                                   |
+| `--gemini-model`                   | gemini-3.5-flash-lite          | Google 的 Gemini 模型名，gemini-3-flash-preview / gemini-3.1-flash-lite / gemini-3.5-flash / gemini-3.5-flash-lite / gemini-3.6-flash                                         |
 | `--translation-history-size`       | 3                              | 调用 LLM API 时作为上下文发送的历史转录条数。对较弱的模型建议禁用上下文（设为 0）。                                                                                           |
 | `--translation-timeout`            | 10                             | GPT / Gemini 翻译超过此秒数时，该条翻译将被丢弃。                                                                                                                             |
 | `--use-json-result`                |                                | 在 LLM 翻译中使用 JSON 结果，适用于某些本地部署的模型。                                                                                                                       |

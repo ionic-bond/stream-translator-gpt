@@ -91,44 +91,73 @@ class ClientPool:
         return True
 
     @classmethod
+    def _create_openai_clients(cls, api_key, base_url, proxy):
+        clients = []
+        if not api_key:
+            return clients
+
+        from openai import OpenAI
+        import httpx
+
+        verify = cls._should_verify_ssl(base_url)
+        for key in api_key.split(','):
+            key = key.strip()
+            if not key:
+                continue
+            client_args = {
+                'api_key': key,
+                'default_headers': {'User-Agent': f'stream-translator-gpt/{__version__}'},
+                'http_client': httpx.Client(proxy=proxy, verify=verify),
+            }
+            if base_url:
+                client_args['base_url'] = base_url
+            clients.append(OpenAI(**client_args))
+        return clients
+
+    @classmethod
+    def _create_google_clients(cls, api_key, base_url, proxy):
+        clients = []
+        if not api_key:
+            return clients
+
+        from google import genai
+
+        http_options = {'client_args': {'verify': cls._should_verify_ssl(base_url)}}
+        if proxy:
+            http_options['client_args']['proxy'] = proxy
+        if base_url:
+            http_options['base_url'] = base_url
+        for key in api_key.split(','):
+            key = key.strip()
+            if not key:
+                continue
+            clients.append(genai.Client(api_key=key, http_options=http_options))
+        return clients
+
+    @classmethod
     def init(cls,
              openai_api_key,
-             google_api_key,
+             openai_transcription_api_key=None,
+             google_api_key=None,
              proxy=None,
              openai_base_url=None,
+             openai_transcription_base_url=None,
              google_base_url=None,
              verify_ssl=True):
         cls.verify_ssl = verify_ssl
 
-        cls._openai_clients = []
+        cls._openai_clients = cls._create_openai_clients(openai_api_key, openai_base_url, proxy)
         cls._openai_index = 0
-        if openai_api_key:
-            from openai import OpenAI
-            import httpx
-            verify = cls._should_verify_ssl(openai_base_url)
-            for key in openai_api_key.split(','):
-                key = key.strip()
-                client = OpenAI(
-                    api_key=key,
-                    base_url=openai_base_url,
-                    default_headers={'User-Agent': f'stream-translator-gpt/{__version__}'},
-                    http_client=httpx.Client(proxy=proxy, verify=verify),
-                )
-                cls._openai_clients.append(client)
 
-        cls._google_clients = []
+        cls._openai_transcription_clients = cls._create_openai_clients(
+            openai_transcription_api_key,
+            openai_transcription_base_url,
+            proxy,
+        )
+        cls._openai_transcription_index = 0
+
+        cls._google_clients = cls._create_google_clients(google_api_key, google_base_url, proxy)
         cls._google_index = 0
-        if google_api_key:
-            from google import genai
-            http_options = {'client_args': {'verify': cls._should_verify_ssl(google_base_url)}}
-            if proxy:
-                http_options['client_args']['proxy'] = proxy
-            if google_base_url:
-                http_options['base_url'] = google_base_url
-            for key in google_api_key.split(','):
-                key = key.strip()
-                client = genai.Client(api_key=key, http_options=http_options)
-                cls._google_clients.append(client)
 
     @classmethod
     def get_openai_client(cls):
@@ -136,6 +165,15 @@ class ClientPool:
             return None
         client = cls._openai_clients[cls._openai_index]
         cls._openai_index = (cls._openai_index + 1) % len(cls._openai_clients)
+        return client
+
+    @classmethod
+    def get_openai_transcription_client(cls):
+        if not cls._openai_transcription_clients:
+            return None
+        client = cls._openai_transcription_clients[cls._openai_transcription_index]
+        cls._openai_transcription_index = (cls._openai_transcription_index + 1) % len(
+            cls._openai_transcription_clients)
         return client
 
     @classmethod
