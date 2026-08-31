@@ -106,7 +106,9 @@ class ClientPool:
                 continue
             client_args = {
                 'api_key': key,
-                'default_headers': {'User-Agent': f'stream-translator-gpt/{__version__}'},
+                'default_headers': {
+                    'User-Agent': f'stream-translator-gpt/{__version__}'
+                },
                 'http_client': httpx.Client(proxy=proxy, verify=verify),
             }
             if base_url:
@@ -172,8 +174,7 @@ class ClientPool:
         if not cls._openai_transcription_clients:
             return None
         client = cls._openai_transcription_clients[cls._openai_transcription_index]
-        cls._openai_transcription_index = (cls._openai_transcription_index + 1) % len(
-            cls._openai_transcription_clients)
+        cls._openai_transcription_index = (cls._openai_transcription_index + 1) % len(cls._openai_transcription_clients)
         return client
 
     @classmethod

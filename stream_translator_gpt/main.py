@@ -551,8 +551,7 @@ def _resolve_openai_transcription_config(config: Config):
             print(f'{INFO}OpenAI Transcription API base URL inherited from --openai-base-url because the '
                   f'OpenAI API keys are the same.')
         else:
-            reason = ('no --openai-api-key was provided' if not openai_keys
-                      else 'the OpenAI API keys are different')
+            reason = ('no --openai-api-key was provided' if not openai_keys else 'the OpenAI API keys are different')
             print(f'{INFO}OpenAI Transcription API base URL is left unset because {reason}, the OpenAI SDK default '
                   f'endpoint will be used.')
         return

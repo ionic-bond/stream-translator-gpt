@@ -97,10 +97,10 @@ INPUT_KEYS = [
     "language", "openai_transcription_model", "hf_model_name", "vad_threshold", "min_audio_len", "max_audio_len",
     "target_audio_len", "silence_threshold", "dynamic_vad_threshold", "dynamic_no_speech_threshold",
     "prefix_retention_len", "filter_emoji", "filter_repetition", "filter_language_based", "transcription_context",
-    "transcription_keywords", "translation_prompt", "translation_provider", "openai_key", "openai_base_url", "gpt_model",
-    "google_key", "google_base_url", "gemini_model", "history_size", "translation_timeout", "processing_proxy",
-    "use_json_result", "retry_if_translation_fails", "show_timestamps", "hide_transcription", "output_file",
-    "output_proxy", "cqhttp_url", "cqhttp_token", "discord_hook", "telegram_token", "telegram_chat_id",
+    "transcription_keywords", "translation_prompt", "translation_provider", "openai_key", "openai_base_url",
+    "gpt_model", "google_key", "google_base_url", "gemini_model", "history_size", "translation_timeout",
+    "processing_proxy", "use_json_result", "retry_if_translation_fails", "show_timestamps", "hide_transcription",
+    "output_file", "output_proxy", "cqhttp_url", "cqhttp_token", "discord_hook", "telegram_token", "telegram_chat_id",
     "overall_proxy", "extra_cli_args"
 ]
 
@@ -788,16 +788,14 @@ with gr.Blocks() as demo:
 
             with gr.Group(visible=False) as openai_transcription_group:
                 with gr.Row():
-                    openai_transcription_api_key = gr.Textbox(
-                        label=i18n.get("openai_transcription_api_key"),
-                        placeholder=i18n.get("openai_transcription_api_key_ph"),
-                        value=get_default("openai_transcription_api_key"),
-                        elem_id="openai-key-transcription")
-                    openai_transcription_base_url = gr.Textbox(
-                        label=i18n.get("openai_transcription_base_url"),
-                        placeholder=i18n.get("openai_transcription_base_url_ph"),
-                        value=get_default("openai_transcription_base_url"),
-                        elem_id="openai-base-url-transcription")
+                    openai_transcription_api_key = gr.Textbox(label=i18n.get("openai_transcription_api_key"),
+                                                              placeholder=i18n.get("openai_transcription_api_key_ph"),
+                                                              value=get_default("openai_transcription_api_key"),
+                                                              elem_id="openai-key-transcription")
+                    openai_transcription_base_url = gr.Textbox(label=i18n.get("openai_transcription_base_url"),
+                                                               placeholder=i18n.get("openai_transcription_base_url_ph"),
+                                                               value=get_default("openai_transcription_base_url"),
+                                                               elem_id="openai-base-url-transcription")
             with gr.Row():
                 model_size = gr.Dropdown([
                     "tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large",
@@ -1068,25 +1066,23 @@ with gr.Blocks() as demo:
     }
     """
 
-    start_btn.click(run_translator,
-                    inputs=[
-                        input_type, input_url, device_rec_interval, audio_source, input_file, input_format,
-                        input_cookies, input_proxy,
-                        whisper_backend, openai_transcription_api_key, openai_transcription_base_url,
-                        model_size, language, openai_transcription_model, hf_model_name, vad_threshold, min_audio_len,
-                        max_audio_len, target_audio_len, silence_threshold, dynamic_vad_threshold,
-                        dynamic_no_speech_threshold, prefix_retention_len, filter_emoji, filter_repetition,
-                        filter_language_based, transcription_context, transcription_keywords, translation_prompt,
-                        translation_provider, openai_key, openai_base_url, gpt_model, google_key, google_base_url,
-                        gemini_model, history_size, translation_timeout, processing_proxy,
-                        use_json_result, retry_if_translation_fails,
-                        show_timestamps, hide_transcription, output_file, output_proxy, cqhttp_url, cqhttp_token,
-                        discord_hook, telegram_token, telegram_chat_id, overall_proxy, extra_cli_args
-                    ],
-                    outputs=output_box,
-                    concurrency_limit=1,
-                    scroll_to_output=False,
-                    js=js_start)
+    start_btn.click(
+        run_translator,
+        inputs=[
+            input_type, input_url, device_rec_interval, audio_source, input_file, input_format, input_cookies,
+            input_proxy, whisper_backend, openai_transcription_api_key, openai_transcription_base_url, model_size,
+            language, openai_transcription_model, hf_model_name, vad_threshold, min_audio_len, max_audio_len,
+            target_audio_len, silence_threshold, dynamic_vad_threshold, dynamic_no_speech_threshold,
+            prefix_retention_len, filter_emoji, filter_repetition, filter_language_based, transcription_context,
+            transcription_keywords, translation_prompt, translation_provider, openai_key, openai_base_url, gpt_model,
+            google_key, google_base_url, gemini_model, history_size, translation_timeout, processing_proxy,
+            use_json_result, retry_if_translation_fails, show_timestamps, hide_transcription, output_file, output_proxy,
+            cqhttp_url, cqhttp_token, discord_hook, telegram_token, telegram_chat_id, overall_proxy, extra_cli_args
+        ],
+        outputs=output_box,
+        concurrency_limit=1,
+        scroll_to_output=False,
+        js=js_start)
 
     # Stop Action
     stop_btn.click(stop_translator, outputs=output_box, scroll_to_output=False)
