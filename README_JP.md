@@ -77,7 +77,7 @@ flowchart LR
 
 ローカルでの実行には Python 環境の経験がある程度必要です（特に Windows）。実質的に Colab と同様の環境を自分で構築することになります。迷ったら Colab を使ってください。
 
-1. **Python** >= 3.10
+1. **Python** >= 3.11
 2. **FFmpeg**（インストール済みならスキップ）：
    - Windows: `winget install ffmpeg`
    - Linux (Debian/Ubuntu): `sudo apt install ffmpeg`
