@@ -16,6 +16,12 @@ from scipy.signal import resample
 from .common import SAMPLE_RATE, SAMPLES_PER_FRAME, LoopWorkerBase, INFO, WARNING
 
 
+def _log_abnormal_process_exit(name, process):
+    returncode = process.poll()
+    if returncode not in (None, 0):
+        print(f'{WARNING}{name} exited with code {returncode}.')
+
+
 def _read_ffmpeg_loop(ffmpeg_process, byte_size: int, output_queue):
     while ffmpeg_process.poll() is None:
         in_bytes = ffmpeg_process.stdout.read(byte_size)
@@ -27,13 +33,16 @@ def _read_ffmpeg_loop(ffmpeg_process, byte_size: int, output_queue):
         output_queue.put(audio)
 
 
-def _transport(ytdlp_proc, ffmpeg_proc):
+def _transport(ytdlp_proc, ffmpeg_proc, cleanup_started):
     while (ytdlp_proc.poll() is None) and (ffmpeg_proc.poll() is None):
         try:
             chunk = ytdlp_proc.stdout.read(1024)
             ffmpeg_proc.stdin.write(chunk)
         except (BrokenPipeError, OSError):
             pass
+    if not cleanup_started.is_set():
+        _log_abnormal_process_exit('yt-dlp', ytdlp_proc)
+        _log_abnormal_process_exit('ffmpeg', ffmpeg_proc)
     ytdlp_proc.kill()
     ffmpeg_proc.kill()
 
@@ -47,7 +56,7 @@ def _open_stream(url: str, format: str, cookies: str, proxy: str, cwd: str):
     ytdlp_process = subprocess.Popen(cmd, stdout=subprocess.PIPE, cwd=cwd)
 
     try:
-        ffmpeg_process = (ffmpeg.input('pipe:', loglevel='panic').output('pipe:',
+        ffmpeg_process = (ffmpeg.input('pipe:', loglevel='error').output('pipe:',
                                                                          format='f32le',
                                                                          acodec='pcm_f32le',
                                                                          ac=1,
@@ -56,9 +65,10 @@ def _open_stream(url: str, format: str, cookies: str, proxy: str, cwd: str):
     except ffmpeg.Error as e:
         raise RuntimeError(f'Failed to load audio: {e.stderr.decode()}') from e
 
-    thread = threading.Thread(target=_transport, args=(ytdlp_process, ffmpeg_process))
+    cleanup_started = threading.Event()
+    thread = threading.Thread(target=_transport, args=(ytdlp_process, ffmpeg_process, cleanup_started))
     thread.start()
-    return ffmpeg_process, ytdlp_process
+    return ffmpeg_process, ytdlp_process, cleanup_started
 
 
 class StreamAudioGetter(LoopWorkerBase):
@@ -71,6 +81,7 @@ class StreamAudioGetter(LoopWorkerBase):
         self.temp_dir = tempfile.mkdtemp()
         self.ffmpeg_process = None
         self.ytdlp_process = None
+        self.cleanup_started = None
         self.byte_size = round(SAMPLES_PER_FRAME * 4)  # Factor 4 comes from float32 (4 bytes per sample)
 
     def __del__(self):
@@ -78,6 +89,8 @@ class StreamAudioGetter(LoopWorkerBase):
             shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def _exit_handler(self, signum, frame):
+        if self.cleanup_started:
+            self.cleanup_started.set()
         if self.ffmpeg_process:
             self.ffmpeg_process.kill()
         if self.ytdlp_process:
@@ -88,10 +101,11 @@ class StreamAudioGetter(LoopWorkerBase):
 
     def loop(self, output_queue: queue.SimpleQueue[np.array]):
         print(f'{INFO}Opening stream: {self.url}')
-        self.ffmpeg_process, self.ytdlp_process = _open_stream(self.url, self.format, self.cookies, self.proxy,
-                                                               self.temp_dir)
+        self.ffmpeg_process, self.ytdlp_process, self.cleanup_started = _open_stream(
+            self.url, self.format, self.cookies, self.proxy, self.temp_dir)
         _read_ffmpeg_loop(self.ffmpeg_process, self.byte_size, output_queue)
 
+        self.cleanup_started.set()
         self.ffmpeg_process.kill()
         if self.ytdlp_process:
             self.ytdlp_process.kill()
@@ -116,7 +130,7 @@ class LocalFileAudioGetter(LoopWorkerBase):
         print(f'{INFO}Opening local file: {self.file_path}')
         try:
             self.ffmpeg_process = (ffmpeg.input(self.file_path,
-                                                loglevel='panic').output('pipe:',
+                                                loglevel='error').output('pipe:',
                                                                          format='f32le',
                                                                          acodec='pcm_f32le',
                                                                          ac=1,
@@ -127,6 +141,7 @@ class LocalFileAudioGetter(LoopWorkerBase):
 
         _read_ffmpeg_loop(self.ffmpeg_process, self.byte_size, output_queue)
 
+        _log_abnormal_process_exit('ffmpeg', self.ffmpeg_process)
         self.ffmpeg_process.kill()
         output_queue.put(None)
 
