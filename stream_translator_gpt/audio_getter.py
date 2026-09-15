@@ -99,7 +99,7 @@ class StreamAudioGetter(LoopWorkerBase):
             shutil.rmtree(self.temp_dir, ignore_errors=True)
         sys.exit(0)
 
-    def loop(self, output_queue: queue.SimpleQueue[np.array]):
+    def loop(self, output_queue: queue.SimpleQueue[np.ndarray]):
         print(f'{INFO}Opening stream: {self.url}')
         self.ffmpeg_process, self.ytdlp_process, self.cleanup_started = _open_stream(
             self.url, self.format, self.cookies, self.proxy, self.temp_dir)
@@ -126,7 +126,7 @@ class LocalFileAudioGetter(LoopWorkerBase):
             self.ffmpeg_process.kill()
         sys.exit(0)
 
-    def loop(self, output_queue: queue.SimpleQueue[np.array]):
+    def loop(self, output_queue: queue.SimpleQueue[np.ndarray]):
         print(f'{INFO}Opening local file: {self.file_path}')
         try:
             self.ffmpeg_process = (ffmpeg.input(self.file_path,
@@ -209,7 +209,7 @@ class DeviceAudioGetter(LoopWorkerBase):
         self.pyaudio.terminate()
         sys.exit(0)
 
-    def loop(self, output_queue: queue.SimpleQueue[np.array]):
+    def loop(self, output_queue: queue.SimpleQueue[np.ndarray]):
         print(f'{INFO}Recording device: {self.device_name} ({"Input" if self.use_mic else "Output"})')
 
         try:
@@ -235,13 +235,13 @@ class DeviceAudioGetter(LoopWorkerBase):
             while self.stream.is_active():
                 try:
                     in_data = self.stream.read(read_size, exception_on_overflow=False)
-                    audio = np.frombuffer(in_data, dtype=np.float32)
+                    audio: np.ndarray = np.frombuffer(in_data, dtype=np.float32)
                     if native_channels > 1:
                         audio = audio.reshape(-1, native_channels).mean(axis=1)
                     if native_rate != SAMPLE_RATE:
                         target_len = int(len(audio) * SAMPLE_RATE / native_rate)
-                        audio = resample(audio, target_len)
-                    buffer = np.concatenate((buffer, audio))
+                        audio = np.asarray(resample(audio, target_len))
+                    buffer = np.concatenate([buffer, audio])
                     while len(buffer) >= SAMPLES_PER_FRAME:
                         chunk = buffer[:SAMPLES_PER_FRAME]
                         buffer = buffer[SAMPLES_PER_FRAME:]

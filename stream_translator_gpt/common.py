@@ -27,7 +27,7 @@ ERROR = f'{RED}[ERROR]{ENDC} '
 
 class TranslationTask:
 
-    def __init__(self, audio: np.array, time_range: tuple[float, float]):
+    def __init__(self, audio: np.ndarray, time_range: tuple[float, float]):
         self.audio = audio
         self.transcript = None
         self.context_transcripts = None

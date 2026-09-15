@@ -27,7 +27,7 @@ class VAD:
         self.model = _init_jit_model(os.path.join(current_dir, 'silero_vad.jit'))
         self.reset_states()
 
-    def get_speech_prob(self, audio: np.array):
+    def get_speech_prob(self, audio: np.ndarray | torch.Tensor):
         if not torch.is_tensor(audio):
             try:
                 audio = torch.Tensor(audio)
@@ -90,7 +90,7 @@ class AudioSlicer(LoopWorkerBase):
             self.min_vad_threshold = 0.0001
             self.max_vad_threshold = 0.6
 
-    def put(self, audio: np.array):
+    def put(self, audio: np.ndarray):
         self.counter += 1
         speech_prob = self.vad.get_speech_prob(audio)
         is_speech = speech_prob > (self.vad_neg_threshold if self.speech_count else self.vad_threshold)
@@ -145,7 +145,7 @@ class AudioSlicer(LoopWorkerBase):
         self.last_slice_second = slice_second
         return concatenate_audio, (last_slice_second, slice_second)
 
-    def loop(self, input_queue: queue.SimpleQueue[np.array], output_queue: queue.SimpleQueue[TranslationTask]):
+    def loop(self, input_queue: queue.SimpleQueue[np.ndarray], output_queue: queue.SimpleQueue[TranslationTask]):
         vad_reset_interval = round(60 * 5 / FRAME_DURATION)  # 5 minutes
         while True:
             audio = input_queue.get()
