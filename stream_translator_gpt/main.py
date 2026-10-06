@@ -157,8 +157,8 @@ class Config:
     openai_base_url: str | None = None
     """Customize the API endpoint of OpenAI for GPT translation."""
 
-    gpt_model: str = 'gpt-5.6-luna'
-    """OpenAI's GPT model name, gpt-5.4-nano / gpt-5.4-mini / gpt-5.6-luna / gpt-5.6-terra."""
+    gpt_model: str = 'gpt-6-luna'
+    """OpenAI's GPT model name, gpt-5.4-nano / gpt-5.4-mini / gpt-5.6-luna / gpt-6-luna / gpt-6.1-sol."""
 
     google_api_key: str | None = None
     """Google API key for Gemini translation. If you have multiple keys, you can separate them with "," and each key
@@ -168,8 +168,7 @@ class Config:
     """Customize the API endpoint of Google for Gemini translation."""
 
     gemini_model: str = 'gemini-3.5-flash-lite'
-    """Google's Gemini model name, gemini-3-flash-preview / gemini-3.1-flash-lite / gemini-3.5-flash /
-    gemini-3.5-flash-lite / gemini-3.6-flash."""
+    """Google's Gemini model name, gemini-3.5-flash-lite / gemini-3.8-flash."""
 
     translation_history_size: int = 3
     """The number of previous transcripts sent as context when calling the LLM API. It is recommended to disable
