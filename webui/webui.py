@@ -859,10 +859,11 @@ with gr.Blocks() as demo:
                                                      placeholder=i18n.get("gpt_base_url_ph"),
                                                      elem_id="openai-base-url-translation")
 
-                    gpt_model = gr.Dropdown(["gpt-5.4-nano", "gpt-5.4-mini", "gpt-5.6-luna", "gpt-6-luna", "gpt-6.1-sol"],
-                                            label=i18n.get("gpt_model"),
-                                            value=get_default("gpt_model"),
-                                            allow_custom_value=True)
+                    gpt_model = gr.Dropdown(
+                        ["gpt-5.4-nano", "gpt-5.4-mini", "gpt-5.6-luna", "gpt-6-luna", "gpt-6.1-sol"],
+                        label=i18n.get("gpt_model"),
+                        value=get_default("gpt_model"),
+                        allow_custom_value=True)
 
                 with gr.Group(visible=False) as gemini_group:
                     with gr.Row():
