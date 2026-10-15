@@ -10,6 +10,7 @@ HALLUCINATION_KEYWORDS = [
 # romaji words containing "by" (e.g. "Baby") are not filtered.
 HALLUCINATION_PATTERNS = [
     re.compile(r'(?<![A-Za-z])by(?![A-Za-z])'),
+    re.compile(r'作詞\s*(?:[・･/／、,，]\s*)?作曲\s*(?:[・･/／、,，]\s*)?編曲'),
 ]
 
 HALLUCINATION_SENTENCES = {
