@@ -259,17 +259,19 @@ class GeminiTranslator(LLMTranslator):
         self.top_k = top_k
 
     def _get_thinking_config(self, types):
-        """Return the lowest supported thinking setting for the selected Gemini model."""
+        """Choose a low-latency thinking setting for Gemini models."""
         model = self.model.lower().removeprefix('models/')
 
-        if model.startswith('gemini-2.5-'):
-            if '-pro' in model:
-                return types.ThinkingConfig(thinking_budget=128)
+        if model.startswith('gemini-2.5-flash-lite'):
             return types.ThinkingConfig(thinking_budget=0)
 
-        major_version_match = re.match(r'gemini-(\d+)', model)
-        if major_version_match and int(major_version_match.group(1)) >= 3:
-            thinking_level = 'low' if '-pro' in model else 'minimal'
+        version_match = re.match(r'gemini-(\d+)(?:\.(\d+))?', model)
+        if version_match:
+            version = (int(version_match.group(1)), int(version_match.group(2) or 0))
+            if version < (3, 0):
+                return None
+            # Gemini 3.7 and 3.8 Flash do not support minimal.
+            thinking_level = 'low' if version >= (3, 7) or '-pro' in model else 'minimal'
             return types.ThinkingConfig(thinking_level=thinking_level)
 
         return None
