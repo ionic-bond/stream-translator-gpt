@@ -860,7 +860,7 @@ with gr.Blocks() as demo:
                                                      elem_id="openai-base-url-translation")
 
                     gpt_model = gr.Dropdown(
-                        ["gpt-5.4-nano", "gpt-5.4-mini", "gpt-5.6-luna", "gpt-6-luna", "gpt-6.1-sol"],
+                        ["gpt-6-luna", "gpt-6.1-terra"],
                         label=i18n.get("gpt_model"),
                         value=get_default("gpt_model"),
                         allow_custom_value=True)

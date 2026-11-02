@@ -158,7 +158,7 @@ class Config:
     """Customize the API endpoint of OpenAI for GPT translation."""
 
     gpt_model: str = 'gpt-6-luna'
-    """OpenAI's GPT model name, gpt-5.4-nano / gpt-5.4-mini / gpt-5.6-luna / gpt-6-luna / gpt-6.1-sol."""
+    """OpenAI's GPT model name, gpt-6-luna / gpt-6.1-terra."""
 
     google_api_key: str | None = None
     """Google API key for Gemini translation. If you have multiple keys, you can separate them with "," and each key
