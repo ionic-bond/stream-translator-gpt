@@ -197,10 +197,13 @@ class GPTTranslator(LLMTranslator):
         client = ClientPool.get_openai_client()
 
         system_prompt, user_content = self._build_messages(translation_task)
+        match = re.match(r'^gpt-(\d+(?:\.\d+)?)', self.model.lower())
+        # Modern GPT models use developer instructions; keep system for other compatible models.
+        instruction_role = 'developer' if match and float(match.group(1)) >= 5.0 else 'system'
         if self.debug_mode:
-            print(f'{INFO}[System] {system_prompt}')
+            print(f'{INFO}[{instruction_role.capitalize()}] {system_prompt}')
             print(f'{INFO}[User] {user_content}')
-        messages = [{'role': 'system', 'content': system_prompt}]
+        messages = [{'role': instruction_role, 'content': system_prompt}]
         messages.append({'role': 'user', 'content': user_content})
 
         try:
@@ -212,7 +215,6 @@ class GPTTranslator(LLMTranslator):
             if self.use_json_result:
                 kwargs["response_format"] = {"type": "json_object"}
 
-            match = re.match(r'^gpt-(\d+(?:\.\d+)?)', self.model.lower())
             if match and self.reasoning_effort is None:
                 version = float(match.group(1))
                 if version >= 5.0:
